@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>思緒拆解與行動規劃</title>
+    <title>思緒拆解與目標規劃</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 min-h-screen py-8 px-4 text-slate-800">
@@ -11,8 +11,8 @@
         <!-- 頁首與匯出匯入按鈕 -->
         <header class="mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
-                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與行動拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 零雲端連結 · 絕對安全</p>
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 支援最終目標與達成日期 · 零雲端風險</p>
             </div>
             <!-- 匯出與匯入功能按鈕 -->
             <div class="flex items-center gap-2">
@@ -26,15 +26,32 @@
             </div>
         </header>
 
-        <!-- 新增思緒輸入區 -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-8">
-            <label class="block text-sm font-semibold text-slate-700 mb-2">記錄新的思緒或想法：</label>
-            <div class="flex gap-2">
-                <input type="text" id="thoughtInput" placeholder="例如：想建一個專案管理網站、整理理財規劃..." 
-                    class="flex-1 px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <!-- 新增思緒輸入區 (包含最終目標與預期日期) -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-8 space-y-4">
+            <h2 class="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2">💡 記錄新的思緒與目標</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">思緒 / 想法主題：</label>
+                    <input type="text" id="thoughtInput" placeholder="例如：開發個人專案管理工具、規畫理財組合..." 
+                        class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">🎯 最終目標：</label>
+                    <input type="text" id="goalInput" placeholder="例如：完成一套可跨裝置備份的 Web 應用程式" 
+                        class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">📅 預期達成日期：</label>
+                    <input type="date" id="dateInput" 
+                        class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700">
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
                 <button onclick="addThought()" 
-                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2 rounded-xl transition-colors">
-                    新增思緒
+                    class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-6 py-2.5 rounded-xl transition-colors shadow-sm">
+                    ＋ 新增思緒目標
                 </button>
             </div>
         </div>
@@ -49,9 +66,11 @@
             {
                 id: Date.now(),
                 text: "建立一個專案管理與時間追蹤工具",
+                goal: "發布專屬個人專案管理系統並完成資料備份",
+                targetDate: "2026-12-31",
                 steps: [
                     { id: 1, text: "規劃本地備份與匯出匯入機制", done: true },
-                    { id: 2, text: "設計目標管理與時間記錄卡片", done: false }
+                    { id: 2, text: "加入最終目標與預期達成日期欄位", done: true }
                 ]
             }
         ];
@@ -62,18 +81,33 @@
             render();
         }
 
-        // 新增思緒
+        // 新增思緒與目標
         function addThought() {
             const input = document.getElementById('thoughtInput');
+            const goalInput = document.getElementById('goalInput');
+            const dateInput = document.getElementById('dateInput');
+
             const text = input.value.trim();
-            if (!text) return;
+            const goal = goalInput.value.trim();
+            const targetDate = dateInput.value;
+
+            if (!text) {
+                alert("請填入思緒/想法主題！");
+                return;
+            }
 
             thoughts.push({
                 id: Date.now(),
                 text: text,
+                goal: goal || '未設定目標',
+                targetDate: targetDate || '未指定日期',
                 steps: []
             });
+
+            // 清空輸入框
             input.value = '';
+            goalInput.value = '';
+            dateInput.value = '';
             saveData();
         }
 
@@ -133,7 +167,7 @@
             const downloadAnchor = document.createElement('a');
             const dateStr = new Date().toISOString().slice(0, 10);
             downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `思緒備份_${dateStr}.json`);
+            downloadAnchor.setAttribute("download", `思緒與目標備份_${dateStr}.json`);
             document.body.appendChild(downloadAnchor);
             downloadAnchor.click();
             downloadAnchor.remove();
@@ -162,7 +196,6 @@
                 }
             };
             reader.readAsText(file);
-            // 重置 input 以利重複選取同名檔案
             event.target.value = '';
         }
 
@@ -199,18 +232,32 @@
                 `).join('');
 
                 card.innerHTML = `
-                    <div class="p-4 border-b border-slate-100 flex items-start justify-between gap-3 bg-slate-50/50">
-                        <div class="flex items-start gap-3">
-                            <span class="inline-flex items-center justify-center bg-indigo-100 text-indigo-700 font-bold text-sm w-7 h-7 rounded-full shrink-0 mt-0.5">
-                                ${index + 1}
-                            </span>
-                            <h2 class="font-semibold text-slate-800 text-lg leading-snug">${thought.text}</h2>
+                    <!-- 標頭與主要主題 -->
+                    <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+                        <div class="flex items-start justify-between gap-3 mb-2">
+                            <div class="flex items-start gap-3">
+                                <span class="inline-flex items-center justify-center bg-indigo-100 text-indigo-700 font-bold text-sm w-7 h-7 rounded-full shrink-0 mt-0.5">
+                                    ${index + 1}
+                                </span>
+                                <h2 class="font-bold text-slate-800 text-lg leading-snug">${thought.text}</h2>
+                            </div>
+                            <button onclick="deleteThought(${thought.id})" class="text-slate-400 hover:text-red-500 text-xs shrink-0 pt-1">
+                                刪除思緒
+                            </button>
                         </div>
-                        <button onclick="deleteThought(${thought.id})" class="text-slate-400 hover:text-red-500 text-sm shrink-0">
-                            刪除思緒
-                        </button>
+
+                        <!-- 最終目標與日期標籤 -->
+                        <div class="ml-10 flex flex-wrap gap-2 text-xs">
+                            <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-200/60 px-2.5 py-1 rounded-md font-medium">
+                                🎯 最終目標：${thought.goal || '未設定'}
+                            </span>
+                            <span class="inline-flex items-center gap-1 bg-indigo-50 text-indigo-800 border border-indigo-200/60 px-2.5 py-1 rounded-md font-medium">
+                                📅 預期日期：${thought.targetDate || '未指定'}
+                            </span>
+                        </div>
                     </div>
 
+                    <!-- 行動拆解 -->
                     <div class="p-4">
                         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">📋 行動拆解 (Next Action Steps)</h3>
                         <ul class="space-y-2 mb-4">
@@ -221,7 +268,7 @@
                                 onkeypress="if(event.key==='Enter') addStep(${thought.id}, '${stepInputId}')"
                                 class="flex-1 px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
                             <button onclick="addStep(${thought.id}, '${stepInputId}')" 
-                                class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">
+                                class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium px-3.5 py-1.5 rounded-lg transition-colors">
                                 新增步驟
                             </button>
                         </div>
@@ -231,11 +278,12 @@
             });
         }
 
+        // 綁定主輸入框 Enter 鍵
         document.getElementById('thoughtInput').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') addThought();
         });
 
-        // 載入初始化繪製
+        // 初始化繪製
         render();
     </script>
 </body>
