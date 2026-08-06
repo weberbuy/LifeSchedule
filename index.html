@@ -12,7 +12,7 @@
         <header class="mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 支援最終目標與達成日期 · 零雲端風險</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 支援目標與日期編輯 · 零雲端風險</p>
             </div>
             <!-- 匯出與匯入功能按鈕 -->
             <div class="flex items-center gap-2">
@@ -26,7 +26,7 @@
             </div>
         </header>
 
-        <!-- 新增思緒輸入區 (包含最終目標與預期日期) -->
+        <!-- 新增思緒輸入區 -->
         <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-8 space-y-4">
             <h2 class="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2">💡 記錄新的思緒與目標</h2>
             
@@ -70,10 +70,13 @@
                 targetDate: "2026-12-31",
                 steps: [
                     { id: 1, text: "規劃本地備份與匯出匯入機制", done: true },
-                    { id: 2, text: "加入最終目標與預期達成日期欄位", done: true }
+                    { id: 2, text: "支援已建立思緒之目標與日期編輯功能", done: true }
                 ]
             }
         ];
+
+        // 正在編輯中的思緒 ID
+        let editingThoughtId = null;
 
         // 儲存至本地瀏覽器
         function saveData() {
@@ -104,7 +107,6 @@
                 steps: []
             });
 
-            // 清空輸入框
             input.value = '';
             goalInput.value = '';
             dateInput.value = '';
@@ -115,6 +117,40 @@
         function deleteThought(thoughtId) {
             if (confirm("確定要刪除這項思緒及其所有行動拆解嗎？")) {
                 thoughts = thoughts.filter(t => t.id !== thoughtId);
+                if (editingThoughtId === thoughtId) editingThoughtId = null;
+                saveData();
+            }
+        }
+
+        // 開始編輯思緒/目標/日期
+        function startEdit(thoughtId) {
+            editingThoughtId = thoughtId;
+            render();
+        }
+
+        // 取消編輯
+        function cancelEdit() {
+            editingThoughtId = null;
+            render();
+        }
+
+        // 儲存編輯後的思緒與目標
+        function saveEdit(thoughtId) {
+            const textVal = document.getElementById(`edit-text-${thoughtId}`).value.trim();
+            const goalVal = document.getElementById(`edit-goal-${thoughtId}`).value.trim();
+            const dateVal = document.getElementById(`edit-date-${thoughtId}`).value;
+
+            if (!textVal) {
+                alert("思緒主題不能為空！");
+                return;
+            }
+
+            const thought = thoughts.find(t => t.id === thoughtId);
+            if (thought) {
+                thought.text = textVal;
+                thought.goal = goalVal || '未設定目標';
+                thought.targetDate = dateVal || '未指定日期';
+                editingThoughtId = null;
                 saveData();
             }
         }
@@ -185,6 +221,7 @@
                     if (Array.isArray(importedThoughts)) {
                         if (confirm("匯入備份檔將會覆蓋當前畫面的資料，確定要繼續嗎？")) {
                             thoughts = importedThoughts;
+                            editingThoughtId = null;
                             saveData();
                             alert("成功匯入備份資料！");
                         }
@@ -212,6 +249,7 @@
             thoughts.forEach((thought, index) => {
                 const card = document.createElement('div');
                 card.className = "bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden";
+                const isEditing = (editingThoughtId === thought.id);
                 const stepInputId = `step-input-${thought.id}`;
 
                 const stepsHtml = thought.steps.map(step => `
@@ -231,54 +269,90 @@
                     </li>
                 `).join('');
 
-                card.innerHTML = `
-                    <!-- 標頭與主要主題 -->
-                    <div class="p-4 border-b border-slate-100 bg-slate-50/50">
-                        <div class="flex items-start justify-between gap-3 mb-2">
-                            <div class="flex items-start gap-3">
-                                <span class="inline-flex items-center justify-center bg-indigo-100 text-indigo-700 font-bold text-sm w-7 h-7 rounded-full shrink-0 mt-0.5">
-                                    ${index + 1}
-                                </span>
-                                <h2 class="font-bold text-slate-800 text-lg leading-snug">${thought.text}</h2>
+                if (isEditing) {
+                    // ✏️ 編輯模式卡片 UI
+                    card.innerHTML = `
+                        <div class="p-5 bg-amber-50/40 border-b border-amber-200/60 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">✏️ 正在編輯項目 #${index + 1}</span>
+                                <div class="flex gap-2">
+                                    <button onclick="cancelEdit()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1.5 rounded-lg font-medium transition-colors">取消</button>
+                                    <button onclick="saveEdit(${thought.id})" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1.5 rounded-lg font-medium transition-colors shadow-sm">💾 儲存修改</button>
+                                </div>
                             </div>
-                            <button onclick="deleteThought(${thought.id})" class="text-slate-400 hover:text-red-500 text-xs shrink-0 pt-1">
-                                刪除思緒
-                            </button>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">思緒 / 想法主題：</label>
+                                <input type="text" id="edit-text-${thought.id}" value="${thought.text.replace(/"/g, '&quot;')}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">🎯 最終目標：</label>
+                                    <input type="text" id="edit-goal-${thought.id}" value="${(thought.goal || '').replace(/"/g, '&quot;')}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">📅 預期達成日期：</label>
+                                    <input type="date" id="edit-date-${thought.id}" value="${thought.targetDate !== '未指定日期' ? (thought.targetDate || '') : ''}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-700">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-slate-50/30">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">📋 行動拆解清單 (編輯模式中暫不可新增步驟)</h3>
+                            <ul class="space-y-1.5 opacity-60">${stepsHtml || '<li class="text-xs text-slate-400 italic">尚無步驟</li>'}</ul>
+                        </div>
+                    `;
+                } else {
+                    // 👁️ 一般檢視模式卡片 UI
+                    card.innerHTML = `
+                        <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+                            <div class="flex items-start justify-between gap-3 mb-2">
+                                <div class="flex items-start gap-3">
+                                    <span class="inline-flex items-center justify-center bg-indigo-100 text-indigo-700 font-bold text-sm w-7 h-7 rounded-full shrink-0 mt-0.5">
+                                        ${index + 1}
+                                    </span>
+                                    <h2 class="font-bold text-slate-800 text-lg leading-snug">${thought.text}</h2>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0 pt-0.5">
+                                    <button onclick="startEdit(${thought.id})" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-800 px-2.5 py-1 rounded-md font-medium border border-slate-200 transition-colors">
+                                        ✏️ 編輯
+                                    </button>
+                                    <button onclick="deleteThought(${thought.id})" class="text-xs text-slate-400 hover:text-red-500 px-1 py-1">
+                                        刪除
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="ml-10 flex flex-wrap gap-2 text-xs">
+                                <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-200/60 px-2.5 py-1 rounded-md font-medium">
+                                    🎯 最終目標：${thought.goal || '未設定'}
+                                </span>
+                                <span class="inline-flex items-center gap-1 bg-indigo-50 text-indigo-800 border border-indigo-200/60 px-2.5 py-1 rounded-md font-medium">
+                                    📅 預期日期：${thought.targetDate || '未指定'}
+                                </span>
+                            </div>
                         </div>
 
-                        <!-- 最終目標與日期標籤 -->
-                        <div class="ml-10 flex flex-wrap gap-2 text-xs">
-                            <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-200/60 px-2.5 py-1 rounded-md font-medium">
-                                🎯 最終目標：${thought.goal || '未設定'}
-                            </span>
-                            <span class="inline-flex items-center gap-1 bg-indigo-50 text-indigo-800 border border-indigo-200/60 px-2.5 py-1 rounded-md font-medium">
-                                📅 預期日期：${thought.targetDate || '未指定'}
-                            </span>
+                        <div class="p-4">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">📋 行動拆解 (Next Action Steps)</h3>
+                            <ul class="space-y-2 mb-4">
+                                ${stepsHtml || '<li class="text-xs text-slate-400 italic">尚未新增拆解步驟...</li>'}
+                            </ul>
+                            <div class="flex gap-2">
+                                <input type="text" id="${stepInputId}" placeholder="+ 新增這點思緒的下一步行動..." 
+                                    onkeypress="if(event.key==='Enter') addStep(${thought.id}, '${stepInputId}')"
+                                    class="flex-1 px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <button onclick="addStep(${thought.id}, '${stepInputId}')" 
+                                    class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium px-3.5 py-1.5 rounded-lg transition-colors">
+                                    新增步驟
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    `;
+                }
 
-                    <!-- 行動拆解 -->
-                    <div class="p-4">
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">📋 行動拆解 (Next Action Steps)</h3>
-                        <ul class="space-y-2 mb-4">
-                            ${stepsHtml || '<li class="text-xs text-slate-400 italic">尚未新增拆解步驟...</li>'}
-                        </ul>
-                        <div class="flex gap-2">
-                            <input type="text" id="${stepInputId}" placeholder="+ 新增這點思緒的下一步行動..." 
-                                onkeypress="if(event.key==='Enter') addStep(${thought.id}, '${stepInputId}')"
-                                class="flex-1 px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <button onclick="addStep(${thought.id}, '${stepInputId}')" 
-                                class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium px-3.5 py-1.5 rounded-lg transition-colors">
-                                新增步驟
-                            </button>
-                        </div>
-                    </div>
-                `;
                 container.appendChild(card);
             });
         }
 
-        // 綁定主輸入框 Enter 鍵
         document.getElementById('thoughtInput').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') addThought();
         });
