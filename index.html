@@ -4,52 +4,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>思緒拆解與行動規劃</title>
-    <!-- 引入 Tailwind CSS 快速呈現簡潔現代風格 -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-50 min-h-screen py-10 px-4 text-slate-800">
+<body class="bg-slate-50 min-h-screen py-8 px-4 text-slate-800">
     <div class="max-w-3xl mx-auto">
-        <!-- 標題 -->
-        <header class="mb-8 text-center">
-            <h1 class="text-3xl font-bold text-slate-900 tracking-tight mb-2">🧠 思緒卡片與行動拆解</h1>
-            <p class="text-slate-500">先倒出腦中的靈感與想法，再一步步拆解接下來的具體行動</p>
+        <!-- 頁首與匯出匯入按鈕 -->
+        <header class="mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與行動拆解</h1>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 零雲端連結 · 絕對安全</p>
+            </div>
+            <!-- 匯出與匯入功能按鈕 -->
+            <div class="flex items-center gap-2">
+                <button onclick="exportData()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-xl border border-indigo-200 font-medium transition-colors flex items-center gap-1">
+                    📥 匯出備份
+                </button>
+                <label class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl border border-slate-300 font-medium transition-colors cursor-pointer flex items-center gap-1">
+                    📤 匯入備份
+                    <input type="file" id="importFile" accept=".json" onchange="importData(event)" class="hidden">
+                </label>
+            </div>
         </header>
 
-        <!-- 1. 新增思緒輸入區 -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-8">
+        <!-- 新增思緒輸入區 -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-8">
             <label class="block text-sm font-semibold text-slate-700 mb-2">記錄新的思緒或想法：</label>
             <div class="flex gap-2">
-                <input type="text" id="thoughtInput" placeholder="例如：想建一個專案管理網站、需要整理理財規劃..." 
-                    class="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                <input type="text" id="thoughtInput" placeholder="例如：想建一個專案管理網站、整理理財規劃..." 
+                    class="flex-1 px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 <button onclick="addThought()" 
-                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2 rounded-lg transition-colors">
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2 rounded-xl transition-colors">
                     新增思緒
                 </button>
             </div>
         </div>
 
-        <!-- 2. 思緒與拆解列表 -->
-        <div id="thoughtList" class="space-y-6">
-            <!-- 動態生成 1, 2, 3, 4 思緒卡片 -->
-        </div>
+        <!-- 思緒列表區 -->
+        <div id="thoughtList" class="space-y-6"></div>
     </div>
 
     <script>
-        // 初始化資料（從 localStorage 載入或使用預設）
-        let thoughts = JSON.parse(localStorage.getItem('my_thoughts')) || [
+        // 初始化資料：預設從本地 LocalStorage 載入
+        let thoughts = JSON.parse(localStorage.getItem('my_thoughts_local')) || [
             {
                 id: Date.now(),
                 text: "建立一個專案管理與時間追蹤工具",
                 steps: [
-                    { id: 1, text: "畫出首頁與思緒拆解介面草圖", done: true },
-                    { id: 2, text: "評估 Supabase 與 Firebase 資料庫規格", done: false }
+                    { id: 1, text: "規劃本地備份與匯出匯入機制", done: true },
+                    { id: 2, text: "設計目標管理與時間記錄卡片", done: false }
                 ]
             }
         ];
 
-        // 儲存至 localStorage
+        // 儲存至本地瀏覽器
         function saveData() {
-            localStorage.setItem('my_thoughts', JSON.stringify(thoughts));
+            localStorage.setItem('my_thoughts_local', JSON.stringify(thoughts));
             render();
         }
 
@@ -70,11 +79,13 @@
 
         // 刪除思緒
         function deleteThought(thoughtId) {
-            thoughts = thoughts.filter(t => t.id !== thoughtId);
-            saveData();
+            if (confirm("確定要刪除這項思緒及其所有行動拆解嗎？")) {
+                thoughts = thoughts.filter(t => t.id !== thoughtId);
+                saveData();
+            }
         }
 
-        // 新增拆解步驟 (Breakdown Step)
+        // 新增行動拆解步驟
         function addStep(thoughtId, inputId) {
             const input = document.getElementById(inputId);
             const text = input.value.trim();
@@ -91,7 +102,7 @@
             }
         }
 
-        // 切換拆解步驟完成狀態
+        // 切換完成狀態
         function toggleStep(thoughtId, stepId) {
             const thought = thoughts.find(t => t.id === thoughtId);
             if (thought) {
@@ -103,7 +114,7 @@
             }
         }
 
-        // 刪除單一拆解步驟
+        // 刪除行動拆解步驟
         function deleteStep(thoughtId, stepId) {
             const thought = thoughts.find(t => t.id === thoughtId);
             if (thought) {
@@ -112,33 +123,70 @@
             }
         }
 
+        // 📥 匯出資料為 JSON 檔案
+        function exportData() {
+            if (thoughts.length === 0) {
+                alert("目前沒有可匯出的思緒資料！");
+                return;
+            }
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(thoughts, null, 2));
+            const downloadAnchor = document.createElement('a');
+            const dateStr = new Date().toISOString().slice(0, 10);
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `思緒備份_${dateStr}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        // 📤 從 JSON 檔案匯入資料
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedThoughts = JSON.parse(e.target.result);
+                    if (Array.isArray(importedThoughts)) {
+                        if (confirm("匯入備份檔將會覆蓋當前畫面的資料，確定要繼續嗎？")) {
+                            thoughts = importedThoughts;
+                            saveData();
+                            alert("成功匯入備份資料！");
+                        }
+                    } else {
+                        alert("檔案格式不正確！");
+                    }
+                } catch (err) {
+                    alert("解析備份檔案失敗，請確認是否為正確的 .json 格式檔案。");
+                }
+            };
+            reader.readAsText(file);
+            // 重置 input 以利重複選取同名檔案
+            event.target.value = '';
+        }
+
         // 渲染畫面
         function render() {
             const container = document.getElementById('thoughtList');
             container.innerHTML = '';
 
             if (thoughts.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-12 text-slate-400">
-                        目前沒有記錄任何思緒，請在上方輸入框填入第一點想法！
-                    </div>
-                `;
+                container.innerHTML = `<div class="text-center py-12 text-slate-400">目前沒有記錄任何思緒，請在上方輸入框填入第一點想法！</div>`;
                 return;
             }
 
             thoughts.forEach((thought, index) => {
                 const card = document.createElement('div');
-                card.className = "bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden";
-                
+                card.className = "bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden";
                 const stepInputId = `step-input-${thought.id}`;
 
-                // 生成步驟清單 HTML
                 const stepsHtml = thought.steps.map(step => `
                     <li class="flex items-center justify-between py-1.5 px-3 bg-slate-50 rounded-lg group">
                         <label class="flex items-center gap-2.5 cursor-pointer flex-1">
                             <input type="checkbox" ${step.done ? 'checked' : ''} 
                                 onchange="toggleStep(${thought.id}, ${step.id})" 
-                                class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500">
+                                class="w-4 h-4 text-indigo-600 rounded border-slate-300">
                             <span class="${step.done ? 'line-through text-slate-400' : 'text-slate-700'} text-sm">
                                 ${step.text}
                             </span>
@@ -151,7 +199,6 @@
                 `).join('');
 
                 card.innerHTML = `
-                    <!-- 思緒標頭 (1, 2, 3...) -->
                     <div class="p-4 border-b border-slate-100 flex items-start justify-between gap-3 bg-slate-50/50">
                         <div class="flex items-start gap-3">
                             <span class="inline-flex items-center justify-center bg-indigo-100 text-indigo-700 font-bold text-sm w-7 h-7 rounded-full shrink-0 mt-0.5">
@@ -164,15 +211,11 @@
                         </button>
                     </div>
 
-                    <!-- 行動拆解 (Breakdown Section) -->
                     <div class="p-4">
                         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">📋 行動拆解 (Next Action Steps)</h3>
-                        
                         <ul class="space-y-2 mb-4">
                             ${stepsHtml || '<li class="text-xs text-slate-400 italic">尚未新增拆解步驟...</li>'}
                         </ul>
-
-                        <!-- 新增拆解步驟輸入框 -->
                         <div class="flex gap-2">
                             <input type="text" id="${stepInputId}" placeholder="+ 新增這點思緒的下一步行動..." 
                                 onkeypress="if(event.key==='Enter') addStep(${thought.id}, '${stepInputId}')"
@@ -184,17 +227,15 @@
                         </div>
                     </div>
                 `;
-
                 container.appendChild(card);
             });
         }
 
-        // 綁定主輸入框 Enter 鍵觸發
         document.getElementById('thoughtInput').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') addThought();
         });
 
-        // 首次初始化繪製
+        // 載入初始化繪製
         render();
     </script>
 </body>
