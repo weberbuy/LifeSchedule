@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>思緒拆解與行動規劃</title>
+    <!-- 引入 Tailwind CSS 快速呈現簡潔現代風格 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen py-10 px-4 text-slate-800">
+    <div class="max-w-3xl mx-auto">
+        <!-- 標題 -->
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl font-bold text-slate-900 tracking-tight mb-2">🧠 思緒卡片與行動拆解</h1>
+            <p class="text-slate-500">先倒出腦中的靈感與想法，再一步步拆解接下來的具體行動</p>
+        </header>
+
+        <!-- 1. 新增思緒輸入區 -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-8">
+            <label class="block text-sm font-semibold text-slate-700 mb-2">記錄新的思緒或想法：</label>
+            <div class="flex gap-2">
+                <input type="text" id="thoughtInput" placeholder="例如：想建一個專案管理網站、需要整理理財規劃..." 
+                    class="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                <button onclick="addThought()" 
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2 rounded-lg transition-colors">
+                    新增思緒
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. 思緒與拆解列表 -->
+        <div id="thoughtList" class="space-y-6">
+            <!-- 動態生成 1, 2, 3, 4 思緒卡片 -->
+        </div>
+    </div>
+
+    <script>
+        // 初始化資料（從 localStorage 載入或使用預設）
+        let thoughts = JSON.parse(localStorage.getItem('my_thoughts')) || [
+            {
+                id: Date.now(),
+                text: "建立一個專案管理與時間追蹤工具",
+                steps: [
+                    { id: 1, text: "畫出首頁與思緒拆解介面草圖", done: true },
+                    { id: 2, text: "評估 Supabase 與 Firebase 資料庫規格", done: false }
+                ]
+            }
+        ];
+
+        // 儲存至 localStorage
+        function saveData() {
+            localStorage.setItem('my_thoughts', JSON.stringify(thoughts));
+            render();
+        }
+
+        // 新增思緒
+        function addThought() {
+            const input = document.getElementById('thoughtInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            thoughts.push({
+                id: Date.now(),
+                text: text,
+                steps: []
+            });
+            input.value = '';
+            saveData();
+        }
+
+        // 刪除思緒
+        function deleteThought(thoughtId) {
+            thoughts = thoughts.filter(t => t.id !== thoughtId);
+            saveData();
+        }
+
+        // 新增拆解步驟 (Breakdown Step)
+        function addStep(thoughtId, inputId) {
+            const input = document.getElementById(inputId);
+            const text = input.value.trim();
+            if (!text) return;
+
+            const thought = thoughts.find(t => t.id === thoughtId);
+            if (thought) {
+                thought.steps.push({
+                    id: Date.now(),
+                    text: text,
+                    done: false
+                });
+                saveData();
+            }
+        }
+
+        // 切換拆解步驟完成狀態
+        function toggleStep(thoughtId, stepId) {
+            const thought = thoughts.find(t => t.id === thoughtId);
+            if (thought) {
+                const step = thought.steps.find(s => s.id === stepId);
+                if (step) {
+                    step.done = !step.done;
+                    saveData();
+                }
+            }
+        }
+
+        // 刪除單一拆解步驟
+        function deleteStep(thoughtId, stepId) {
+            const thought = thoughts.find(t => t.id === thoughtId);
+            if (thought) {
+                thought.steps = thought.steps.filter(s => s.id !== stepId);
+                saveData();
+            }
+        }
+
+        // 渲染畫面
+        function render() {
+            const container = document.getElementById('thoughtList');
+            container.innerHTML = '';
+
+            if (thoughts.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-slate-400">
+                        目前沒有記錄任何思緒，請在上方輸入框填入第一點想法！
+                    </div>
+                `;
+                return;
+            }
+
+            thoughts.forEach((thought, index) => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden";
+                
+                const stepInputId = `step-input-${thought.id}`;
+
+                // 生成步驟清單 HTML
+                const stepsHtml = thought.steps.map(step => `
+                    <li class="flex items-center justify-between py-1.5 px-3 bg-slate-50 rounded-lg group">
+                        <label class="flex items-center gap-2.5 cursor-pointer flex-1">
+                            <input type="checkbox" ${step.done ? 'checked' : ''} 
+                                onchange="toggleStep(${thought.id}, ${step.id})" 
+                                class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500">
+                            <span class="${step.done ? 'line-through text-slate-400' : 'text-slate-700'} text-sm">
+                                ${step.text}
+                            </span>
+                        </label>
+                        <button onclick="deleteStep(${thought.id}, ${step.id})" 
+                            class="text-slate-400 hover:text-red-500 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                            刪除
+                        </button>
+                    </li>
+                `).join('');
+
+                card.innerHTML = `
+                    <!-- 思緒標頭 (1, 2, 3...) -->
+                    <div class="p-4 border-b border-slate-100 flex items-start justify-between gap-3 bg-slate-50/50">
+                        <div class="flex items-start gap-3">
+                            <span class="inline-flex items-center justify-center bg-indigo-100 text-indigo-700 font-bold text-sm w-7 h-7 rounded-full shrink-0 mt-0.5">
+                                ${index + 1}
+                            </span>
+                            <h2 class="font-semibold text-slate-800 text-lg leading-snug">${thought.text}</h2>
+                        </div>
+                        <button onclick="deleteThought(${thought.id})" class="text-slate-400 hover:text-red-500 text-sm shrink-0">
+                            刪除思緒
+                        </button>
+                    </div>
+
+                    <!-- 行動拆解 (Breakdown Section) -->
+                    <div class="p-4">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">📋 行動拆解 (Next Action Steps)</h3>
+                        
+                        <ul class="space-y-2 mb-4">
+                            ${stepsHtml || '<li class="text-xs text-slate-400 italic">尚未新增拆解步驟...</li>'}
+                        </ul>
+
+                        <!-- 新增拆解步驟輸入框 -->
+                        <div class="flex gap-2">
+                            <input type="text" id="${stepInputId}" placeholder="+ 新增這點思緒的下一步行動..." 
+                                onkeypress="if(event.key==='Enter') addStep(${thought.id}, '${stepInputId}')"
+                                class="flex-1 px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <button onclick="addStep(${thought.id}, '${stepInputId}')" 
+                                class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">
+                                新增步驟
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // 綁定主輸入框 Enter 鍵觸發
+        document.getElementById('thoughtInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') addThought();
+        });
+
+        // 首次初始化繪製
+        render();
+    </script>
+</body>
+</html>
