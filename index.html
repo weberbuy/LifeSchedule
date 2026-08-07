@@ -12,7 +12,7 @@
         <header class="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">自由調整頁籤順序 · 分層領域管理 · 100% 本地零風險儲存</p>
+                <p class="text-xs text-slate-500 mt-1">分層領域管理 · 步驟日期時間規劃 · 100% 本地零風險儲存</p>
             </div>
             <div class="flex items-center gap-2">
                 <button onclick="exportData()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-xl border border-indigo-200 font-medium transition-colors">📥 匯出備份</button>
@@ -79,8 +79,8 @@
         try { thoughts = JSON.parse(localStorage.getItem('my_thoughts_local')) || []; } catch(e) { thoughts = []; }
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
             thoughts = [
-                { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", goal: "順利完賽 11 月半程馬拉松", targetDate: "2026-11-30", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", done: true }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", goal: "發布支援分頁與本地備份的 App", targetDate: "2026-12-31", steps: [{ id: 1, text: "設計頂層領域分頁 UI", done: true }] }
+                { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", goal: "順利完賽 11 月半程馬拉松", targetDate: "2026-11-30", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "30分鐘", done: true }] },
+                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", goal: "發布支援分頁與本地備份的 App", targetDate: "2026-12-31", steps: [{ id: 1, text: "設計步驟預期時間與日期欄位", stepDate: "2026-08-07", stepTime: "2小時", done: true }] }
             ];
         }
 
@@ -193,13 +193,30 @@
             }
         }
 
-        function addStep(thoughtId, inputId) {
-            const input = document.getElementById(inputId);
-            const text = input ? input.value.trim() : '';
-            if (!text) return;
+        // 新增具備「預期日期」與「預期時間」的拆解步驟
+        function addStep(thoughtId) {
+            const textInput = document.getElementById(`step-text-${thoughtId}`);
+            const dateInput = document.getElementById(`step-date-${thoughtId}`);
+            const timeInput = document.getElementById(`step-time-${thoughtId}`);
+
+            const text = textInput ? textInput.value.trim() : '';
+            const stepDate = dateInput ? dateInput.value : '';
+            const stepTime = timeInput ? timeInput.value.trim() : '';
+
+            if (!text) return alert("請填入步驟內容！");
+
             const t = thoughts.find(x => x.id === thoughtId);
             if (t) {
-                t.steps.push({ id: Date.now(), text: text, done: false });
+                t.steps.push({
+                    id: Date.now(),
+                    text: text,
+                    stepDate: stepDate || '',
+                    stepTime: stepTime || '',
+                    done: false
+                });
+                textInput.value = '';
+                if (dateInput) dateInput.value = '';
+                if (timeInput) timeInput.value = '';
                 saveData();
             }
         }
@@ -252,14 +269,8 @@
         function setCategoryTab(cat) { activeCategory = cat; render(); }
 
         function render() {
-            // 1. 整理與排序領域列表
             const currentCats = Array.from(new Set(thoughts.map(t => t.category || '💼 事業')));
-            
-            // 確保所有現有領域都在 categoryOrder 陣列中
-            currentCats.forEach(c => {
-                if (!categoryOrder.includes(c)) categoryOrder.push(c);
-            });
-            // 移除已不存在的領域
+            currentCats.forEach(c => { if (!categoryOrder.includes(c)) categoryOrder.push(c); });
             categoryOrder = categoryOrder.filter(c => currentCats.includes(c));
 
             const tabsContainer = document.getElementById('categoryTabs');
@@ -292,7 +303,6 @@
                 tabsContainer.appendChild(btn);
             });
 
-            // 2. 渲染思緒列表
             const filtered = activeCategory === '全部' ? thoughts : thoughts.filter(t => (t.category || '💼 事業') === activeCategory);
             const container = document.getElementById('thoughtList');
             container.innerHTML = '';
@@ -306,15 +316,18 @@
                 const card = document.createElement('div');
                 card.className = "bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden";
                 const isEdit = (editingId === thought.id);
-                const stepInputId = `step-input-${thought.id}`;
 
                 const stepsHtml = thought.steps.map(s => `
-                    <li class="flex items-center justify-between py-1.5 px-3 bg-slate-50 rounded-lg group">
+                    <li class="flex flex-col sm:flex-row sm:items-center justify-between py-2 px-3 bg-slate-50 rounded-xl gap-2 group">
                         <label class="flex items-center gap-2.5 cursor-pointer flex-1">
                             <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${thought.id}, ${s.id})" class="w-4 h-4 text-indigo-600 rounded border-slate-300">
-                            <span class="${s.done ? 'line-through text-slate-400' : 'text-slate-700'} text-sm">${s.text}</span>
+                            <span class="${s.done ? 'line-through text-slate-400' : 'text-slate-700'} text-sm font-medium">${s.text}</span>
                         </label>
-                        <button onclick="deleteStep(${thought.id}, ${s.id})" class="text-slate-400 hover:text-red-500 text-xs opacity-0 group-hover:opacity-100">刪除</button>
+                        <div class="flex items-center gap-2 text-[11px] ml-6 sm:ml-0">
+                            ${s.stepDate ? `<span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-md font-medium">📅 ${s.stepDate}</span>` : ''}
+                            ${s.stepTime ? `<span class="bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-md font-medium">⏰ ${s.stepTime}</span>` : ''}
+                            <button onclick="deleteStep(${thought.id}, ${s.id})" class="text-slate-400 hover:text-red-500 text-xs opacity-0 group-hover:opacity-100 transition-opacity ml-1">刪除</button>
+                        </div>
                     </li>
                 `).join('');
 
@@ -373,11 +386,17 @@
                         </div>
 
                         <div class="p-4">
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">📋 行動拆解 (Next Action Steps)</h3>
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">📋 行動拆解步驟與時程</h3>
                             <ul class="space-y-2 mb-4">${stepsHtml || '<li class="text-xs text-slate-400 italic">尚未新增拆解步驟...</li>'}</ul>
-                            <div class="flex gap-2">
-                                <input type="text" id="${stepInputId}" placeholder="+ 新增這點思緒的下一步行動..." onkeypress="if(event.key==='Enter') addStep(${thought.id}, '${stepInputId}')" class="flex-1 px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <button onclick="addStep(${thought.id}, '${stepInputId}')" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium px-3.5 py-1.5 rounded-lg">新增步驟</button>
+                            
+                            <!-- 新增拆解步驟輸入區 (步驟內容 + 預期日期 + 預估時間) -->
+                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-2">
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <input type="text" id="step-text-${thought.id}" placeholder="+ 新增步驟內容..." class="sm:col-span-3 px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <input type="date" id="step-date-${thought.id}" class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <input type="text" id="step-time-${thought.id}" placeholder="預估工時 (如: 2小時或14:00)" class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <button onclick="addStep(${thought.id})" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">＋ 新增步驟</button>
+                                </div>
                             </div>
                         </div>
                     `;
