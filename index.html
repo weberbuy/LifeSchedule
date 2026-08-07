@@ -12,7 +12,7 @@
         <header class="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">分層領域管理 · 頁籤切換 · 100% 本地零風險儲存</p>
+                <p class="text-xs text-slate-500 mt-1">自訂領域類別 · 分頁切換 · 100% 本地零風險儲存</p>
             </div>
             <!-- 匯出與匯入功能按鈕 -->
             <div class="flex items-center gap-2">
@@ -26,20 +26,22 @@
             </div>
         </header>
 
-        <!-- 新增思緒輸入區 (包含上一層領域選擇) -->
+        <!-- 新增思緒輸入區 (支援選取或自訂填寫領域) -->
         <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6 space-y-4">
             <h2 class="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2">💡 記錄新的思緒與目標</h2>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div class="md:col-span-1">
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">上一層領域/類別：</label>
-                    <select id="categorySelect" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
-                        <option value="❤️ 健康">❤️ 健康</option>
-                        <option value="💼 事業" selected>💼 事業</option>
-                        <option value="💰 理財">💰 理財</option>
-                        <option value="🌱 個人成長">🌱 個人成長</option>
-                        <option value="🏠 家庭">🏠 家庭</option>
-                    </select>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">上一層領域 (可選取或自訂)：</label>
+                    <input type="text" id="categoryInput" list="categoryOptions" placeholder="選取或填入領域..." value="💼 事業"
+                        class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                    <datalist id="categoryOptions">
+                        <option value="❤️ 健康"></option>
+                        <option value="💼 事業"></option>
+                        <option value="💰 理財"></option>
+                        <option value="🌱 個人成長"></option>
+                        <option value="🏠 家庭"></option>
+                    </datalist>
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-xs font-semibold text-slate-600 mb-1">思緒 / 想法主題：</label>
@@ -117,12 +119,12 @@
 
         // 新增思緒與目標
         function addThought() {
-            const categorySelect = document.getElementById('categorySelect');
+            const categoryInput = document.getElementById('categoryInput');
             const input = document.getElementById('thoughtInput');
             const goalInput = document.getElementById('goalInput');
             const dateInput = document.getElementById('dateInput');
 
-            const category = categorySelect.value;
+            const category = categoryInput.value.trim() || '💼 事業';
             const text = input.value.trim();
             const goal = goalInput.value.trim();
             const targetDate = dateInput.value;
@@ -134,7 +136,7 @@
 
             thoughts.push({
                 id: Date.now(),
-                category: category || '💼 事業',
+                category: category,
                 text: text,
                 goal: goal || '未設定目標',
                 targetDate: targetDate || '未指定日期',
@@ -173,7 +175,7 @@
 
         // 儲存編輯後的思緒
         function saveEdit(thoughtId) {
-            const categoryVal = document.getElementById(`edit-category-${thoughtId}`).value;
+            const categoryVal = document.getElementById(`edit-category-${thoughtId}`).value.trim();
             const textVal = document.getElementById(`edit-text-${thoughtId}`).value.trim();
             const goalVal = document.getElementById(`edit-goal-${thoughtId}`).value.trim();
             const dateVal = document.getElementById(`edit-date-${thoughtId}`).value;
@@ -185,7 +187,7 @@
 
             const thought = thoughts.find(t => t.id === thoughtId);
             if (thought) {
-                thought.category = categoryVal;
+                thought.category = categoryVal || '💼 事業';
                 thought.text = textVal;
                 thought.goal = goalVal || '未設定目標';
                 thought.targetDate = dateVal || '未指定日期';
@@ -292,6 +294,11 @@
             const categoriesSet = new Set(thoughts.map(t => t.category || '💼 事業'));
             const allCategories = ['全部', ...Array.from(categoriesSet)];
 
+            // 如果目前切換的分類已被刪光，重置為 '全部'
+            if (!allCategories.includes(activeCategory)) {
+                activeCategory = '全部';
+            }
+
             allCategories.forEach(cat => {
                 const count = cat === '全部' ? thoughts.length : thoughts.filter(t => (t.category || '💼 事業') === cat).length;
                 const isActive = (activeCategory === cat);
@@ -357,13 +364,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <div>
                                     <label class="block text-xs font-semibold text-slate-600 mb-1">領域類別：</label>
-                                    <select id="edit-category-${thought.id}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                                        <option value="❤️ 健康" ${thought.category === '❤️ 健康' ? 'selected' : ''}>❤️ 健康</option>
-                                        <option value="💼 事業" ${thought.category === '💼 事業' ? 'selected' : ''}>💼 事業</option>
-                                        <option value="💰 理財" ${thought.category === '💰 理財' ? 'selected' : ''}>💰 理財</option>
-                                        <option value="🌱 個人成長" ${thought.category === '🌱 個人成長' ? 'selected' : ''}>🌱 個人成長</option>
-                                        <option value="🏠 家庭" ${thought.category === '🏠 家庭' ? 'selected' : ''}>🏠 家庭</option>
-                                    </select>
+                                    <input type="text" id="edit-category-${thought.id}" list="categoryOptions" value="${(thought.category || '💼 事業').replace(/"/g, '&quot;')}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                                 </div>
                                 <div class="md:col-span-2">
                                     <label class="block text-xs font-semibold text-slate-600 mb-1">思緒 / 想法主題：</label>
@@ -396,7 +397,7 @@
                                         ${index + 1}
                                     </span>
                                     <div>
-                                        <span class="inline-block bg-slate-200/70 text-slate-700 font-semibold text-[10px] px-2 py-0.5 rounded-md mb-1">
+                                        <span class="inline-block bg-slate-200/80 text-slate-700 font-semibold text-[10px] px-2 py-0.5 rounded-md mb-1">
                                             ${thought.category || '💼 事業'}
                                         </span>
                                         <h2 class="font-bold text-slate-800 text-lg leading-snug">${thought.text}</h2>
