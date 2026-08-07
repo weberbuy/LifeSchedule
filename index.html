@@ -12,7 +12,7 @@
         <header class="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">分層領域管理 · 步驟日期時間規劃 · 100% 本地零風險儲存</p>
+                <p class="text-xs text-slate-500 mt-1">自由調整頁籤順序 · 支援步驟編輯 · 100% 本地零風險儲存</p>
             </div>
             <div class="flex items-center gap-2">
                 <button onclick="exportData()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-xl border border-indigo-200 font-medium transition-colors">📥 匯出備份</button>
@@ -80,7 +80,7 @@
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
             thoughts = [
                 { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", goal: "順利完賽 11 月半程馬拉松", targetDate: "2026-11-30", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "30分鐘", done: true }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", goal: "發布支援分頁與本地備份的 App", targetDate: "2026-12-31", steps: [{ id: 1, text: "設計步驟預期時間與日期欄位", stepDate: "2026-08-07", stepTime: "2小時", done: true }] }
+                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", goal: "發布支援分頁與本地備份的 App", targetDate: "2026-12-31", steps: [{ id: 1, text: "設計步驟編輯與時程功能", stepDate: "2026-08-07", stepTime: "2小時", done: true }] }
             ];
         }
 
@@ -89,6 +89,7 @@
 
         let activeCategory = "全部";
         let editingId = null;
+        let editingStepIdKey = null;
         let isReorderMode = false;
 
         function setCategory(cat) {
@@ -193,7 +194,6 @@
             }
         }
 
-        // 新增具備「預期日期」與「預期時間」的拆解步驟
         function addStep(thoughtId) {
             const textInput = document.getElementById(`step-text-${thoughtId}`);
             const dateInput = document.getElementById(`step-date-${thoughtId}`);
@@ -237,6 +237,37 @@
             }
         }
 
+        function startEditStep(thoughtId, stepId) {
+            editingStepIdKey = `${thoughtId}-${stepId}`;
+            render();
+        }
+
+        function cancelEditStep() {
+            editingStepIdKey = null;
+            render();
+        }
+
+        function saveEditStep(thoughtId, stepId) {
+            const textInput = document.getElementById(`edit-step-text-${thoughtId}-${stepId}`);
+            const dateInput = document.getElementById(`edit-step-date-${thoughtId}-${stepId}`);
+            const timeInput = document.getElementById(`edit-step-time-${thoughtId}-${stepId}`);
+
+            const text = textInput ? textInput.value.trim() : '';
+            if (!text) return alert("步驟內容不能為空！");
+
+            const t = thoughts.find(x => x.id === thoughtId);
+            if (t) {
+                const s = t.steps.find(x => x.id === stepId);
+                if (s) {
+                    s.text = text;
+                    s.stepDate = dateInput ? dateInput.value : '';
+                    s.stepTime = timeInput ? timeInput.value.trim() : '';
+                    editingStepIdKey = null;
+                    saveData();
+                }
+            }
+        }
+
         function exportData() {
             if (thoughts.length === 0) return alert("目前沒有可匯出的思緒資料！");
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(thoughts, null, 2));
@@ -256,6 +287,7 @@
                     if (Array.isArray(data) && confirm("確定匯入並覆蓋當前資料？")) {
                         thoughts = data;
                         editingId = null;
+                        editingStepIdKey = null;
                         activeCategory = "全部";
                         saveData();
                         alert("成功匯入備份資料！");
@@ -317,19 +349,43 @@
                 card.className = "bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden";
                 const isEdit = (editingId === thought.id);
 
-                const stepsHtml = thought.steps.map(s => `
-                    <li class="flex flex-col sm:flex-row sm:items-center justify-between py-2 px-3 bg-slate-50 rounded-xl gap-2 group">
-                        <label class="flex items-center gap-2.5 cursor-pointer flex-1">
-                            <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${thought.id}, ${s.id})" class="w-4 h-4 text-indigo-600 rounded border-slate-300">
-                            <span class="${s.done ? 'line-through text-slate-400' : 'text-slate-700'} text-sm font-medium">${s.text}</span>
-                        </label>
-                        <div class="flex items-center gap-2 text-[11px] ml-6 sm:ml-0">
-                            ${s.stepDate ? `<span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-md font-medium">📅 ${s.stepDate}</span>` : ''}
-                            ${s.stepTime ? `<span class="bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-md font-medium">⏰ ${s.stepTime}</span>` : ''}
-                            <button onclick="deleteStep(${thought.id}, ${s.id})" class="text-slate-400 hover:text-red-500 text-xs opacity-0 group-hover:opacity-100 transition-opacity ml-1">刪除</button>
-                        </div>
-                    </li>
-                `).join('');
+                const stepsHtml = thought.steps.map(s => {
+                    const isEditingThisStep = (editingStepIdKey === `${thought.id}-${s.id}`);
+                    
+                    if (isEditingThisStep) {
+                        return `
+                            <li class="p-2.5 bg-amber-50/60 rounded-xl border border-amber-200 space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[11px] font-bold text-amber-800">✏️ 編輯步驟</span>
+                                    <div class="flex gap-1">
+                                        <button onclick="cancelEditStep()" class="text-[10px] bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-1 rounded">取消</button>
+                                        <button onclick="saveEditStep(${thought.id}, ${s.id})" class="text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded shadow-sm">💾 儲存</button>
+                                    </div>
+                                </div>
+                                <input type="text" id="edit-step-text-${thought.id}-${s.id}" value="${s.text.replace(/"/g, '&quot;')}" class="w-full px-2.5 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <input type="date" id="edit-step-date-${thought.id}-${s.id}" value="${s.stepDate || ''}" class="px-2 py-1 text-xs border border-slate-300 rounded text-slate-700">
+                                    <input type="text" id="edit-step-time-${thought.id}-${s.id}" value="${(s.stepTime || '').replace(/"/g, '&quot;')}" placeholder="工時(如2小時)" class="px-2 py-1 text-xs border border-slate-300 rounded">
+                                </div>
+                            </li>
+                        `;
+                    } else {
+                        return `
+                            <li class="flex flex-col sm:flex-row sm:items-center justify-between py-2 px-3 bg-slate-50 rounded-xl gap-2">
+                                <label class="flex items-center gap-2.5 cursor-pointer flex-1">
+                                    <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${thought.id}, ${s.id})" class="w-4 h-4 text-indigo-600 rounded border-slate-300">
+                                    <span class="${s.done ? 'line-through text-slate-400' : 'text-slate-700'} text-sm font-medium">${s.text}</span>
+                                </label>
+                                <div class="flex items-center gap-1.5 text-[11px] ml-6 sm:ml-0">
+                                    ${s.stepDate ? `<span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-md font-medium">📅 ${s.stepDate}</span>` : ''}
+                                    ${s.stepTime ? `<span class="bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-md font-medium">⏰ ${s.stepTime}</span>` : ''}
+                                    <button onclick="startEditStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors ml-1">✏️ 編輯</button>
+                                    <button onclick="deleteStep(${thought.id}, ${s.id})" class="text-slate-400 hover:text-red-500 px-1 py-0.5">🗑️ 刪除</button>
+                                </div>
+                            </li>
+                        `;
+                    }
+                }).join('');
 
                 if (isEdit) {
                     card.innerHTML = `
@@ -375,7 +431,7 @@
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-2 shrink-0 pt-0.5">
-                                    <button onclick="startEdit(${thought.id})" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1 rounded-md font-medium border border-slate-200">✏️ 編輯</button>
+                                    <button onclick="startEdit(${thought.id})" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1 rounded-md font-medium border border-slate-200">✏️ 編輯卡片</button>
                                     <button onclick="deleteThought(${thought.id})" class="text-xs text-slate-400 hover:text-red-500 px-1 py-1">刪除</button>
                                 </div>
                             </div>
@@ -389,7 +445,7 @@
                             <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">📋 行動拆解步驟與時程</h3>
                             <ul class="space-y-2 mb-4">${stepsHtml || '<li class="text-xs text-slate-400 italic">尚未新增拆解步驟...</li>'}</ul>
                             
-                            <!-- 新增拆解步驟輸入區 (步驟內容 + 預期日期 + 預估時間) -->
+                            <!-- 新增拆解步驟輸入區 -->
                             <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-2">
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                     <input type="text" id="step-text-${thought.id}" placeholder="+ 新增步驟內容..." class="sm:col-span-3 px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
