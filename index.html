@@ -12,7 +12,7 @@
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 支援卡片拖拉改日期 · 大字型清晰時間軸</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 支援任意新日期拖拉 · 跨領域時間對照矩陣</p>
             </div>
             
             <div class="flex items-center gap-2">
@@ -24,15 +24,15 @@
             </div>
         </header>
 
-        <!-- 三模式切換列 (Cards vs Overview vs Timeline Matrix) -->
+        <!-- 三模式切換列 -->
         <div class="mb-6 bg-slate-200/80 p-1.5 rounded-2xl flex items-center shadow-inner border border-slate-300/60 gap-1 overflow-x-auto">
-            <button onclick="setViewMode('overview')" id="btnViewOverview" class="flex-1 py-2.5 px-3 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 bg-white text-indigo-600 shadow-md whitespace-nowrap">
+            <button onclick="setViewMode('overview')" id="btnViewOverview" class="flex-1 py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 bg-white text-indigo-600 shadow-md whitespace-nowrap">
                 🎯 總覽模式 (整體思考)
             </button>
-            <button onclick="setViewMode('cards')" id="btnViewCards" class="flex-1 py-2.5 px-3 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900 whitespace-nowrap">
+            <button onclick="setViewMode('cards')" id="btnViewCards" class="flex-1 py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900 whitespace-nowrap">
                 🎴 看板模式 (完整卡片)
             </button>
-            <button onclick="setViewMode('timeline')" id="btnViewTimeline" class="flex-1 py-2.5 px-3 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900 whitespace-nowrap">
+            <button onclick="setViewMode('timeline')" id="btnViewTimeline" class="flex-1 py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900 whitespace-nowrap">
                 ⏳ 時間軸模式 (拖拉對照矩陣)
             </button>
         </div>
@@ -84,7 +84,7 @@
             </div>
         </div>
 
-        <!-- 主顯示區塊 -->
+        <!-- 主顯示區塊 (總覽、看板或跨領域時間矩陣) -->
         <div id="mainContentList" class="space-y-6"></div>
     </div>
 
@@ -94,10 +94,11 @@
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
             thoughts = [
                 { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", goal: "順利完賽 11 月半程馬拉松", targetDate: "2026-11-30", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "30分鐘", done: true }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", goal: "發布支援拖拉變更日期與大字型的 App", targetDate: "2026-12-31", steps: [{ id: 1, text: "設計 HTML5 拖拉排序與字型優化", stepDate: "2026-08-08", stepTime: "2小時", done: true }] }
+                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", goal: "發布支援跨領域時間矩陣的 App", targetDate: "2026-12-31", steps: [{ id: 1, text: "設計 X 軸領域對照矩陣", stepDate: "2026-08-08", stepTime: "2小時", done: true }] }
             ];
         }
 
+        let customTimelineDates = []; // 儲存手動插入的空日期行
         let categoryOrder = [];
         try { categoryOrder = JSON.parse(localStorage.getItem('my_category_order')) || []; } catch(e) { categoryOrder = []; }
 
@@ -106,7 +107,7 @@
         let editingId = null;
         let editingStepIdKey = null;
         let isReorderMode = false;
-        let draggedItemInfo = null; // 暫存被拖曳的項目資訊
+        let draggedItemInfo = null;
 
         function setCategory(cat) {
             document.getElementById('categoryInput').value = cat;
@@ -155,26 +156,13 @@
             render();
         }
 
-        function moveCategoryLeft(cat, ev) {
-            if (ev) ev.stopPropagation();
-            const idx = categoryOrder.indexOf(cat);
-            if (idx > 0) {
-                const temp = categoryOrder[idx];
-                categoryOrder[idx] = categoryOrder[idx - 1];
-                categoryOrder[idx - 1] = temp;
-                saveCategoryOrder();
-            }
-        }
-
-        function moveCategoryRight(cat, ev) {
-            if (ev) ev.stopPropagation();
-            const idx = categoryOrder.indexOf(cat);
-            if (idx !== -1 && idx < categoryOrder.length - 1) {
-                const temp = categoryOrder[idx];
-                categoryOrder[idx] = categoryOrder[idx + 1];
-                categoryOrder[idx + 1] = temp;
-                saveCategoryOrder();
-            }
+        function addCustomDateRow() {
+            const picker = document.getElementById('newDateRowInput');
+            const val = picker ? picker.value : '';
+            if (!val) return alert("請選擇要插入時間軸的日期！");
+            if (!customTimelineDates.includes(val)) customTimelineDates.push(val);
+            picker.value = '';
+            render();
         }
 
         function addThought() {
@@ -280,59 +268,24 @@
             }
         }
 
-        function startEditStep(thoughtId, stepId) {
-            editingStepIdKey = `${thoughtId}-${stepId}`;
-            render();
-        }
-
-        function cancelEditStep() {
-            editingStepIdKey = null;
-            render();
-        }
-
-        function saveEditStep(thoughtId, stepId) {
-            const textInput = document.getElementById(`edit-step-text-${thoughtId}-${stepId}`);
-            const dateInput = document.getElementById(`edit-step-date-${thoughtId}-${stepId}`);
-            const timeInput = document.getElementById(`edit-step-time-${thoughtId}-${stepId}`);
-
-            const text = textInput ? textInput.value.trim() : '';
-            const stepDate = dateInput ? dateInput.value : '';
-            const stepTime = timeInput ? timeInput.value.trim() : '';
-
-            if (!text) return alert("步驟內容不能為空！");
-
-            const t = thoughts.find(x => x.id === thoughtId);
-            if (t) {
-                if (stepDate && t.targetDate && t.targetDate !== '未指定日期') {
-                    if (stepDate > t.targetDate) {
-                        return alert(`步驟預期日期 (${stepDate}) 不能超過最終目標預期日期 (${t.targetDate})！`);
-                    }
-                }
-
-                const s = t.steps.find(x => x.id === stepId);
-                if (s) {
-                    s.text = text;
-                    s.stepDate = stepDate;
-                    s.stepTime = stepTime;
-                    editingStepIdKey = null;
-                    saveData();
-                }
-            }
-        }
-
-        // 🖱️ 拖拉 API 處理 (Drag & Drop handlers)
         function handleDragStart(ev, type, thoughtId, stepId) {
             draggedItemInfo = { type, thoughtId, stepId };
             ev.dataTransfer.setData("text/plain", JSON.stringify(draggedItemInfo));
         }
 
-        function handleDragOver(ev) {
-            ev.preventDefault();
-        }
+        function handleDragOver(ev) { ev.preventDefault(); }
 
+        // 拖拉放開處理（包含放至新日期區塊）
         function handleDrop(ev, targetDate) {
             ev.preventDefault();
             if (!draggedItemInfo) return;
+
+            // 若拖到 "指定新日期" 放置區，彈出日期選擇
+            if (targetDate === '__prompt_new_date__') {
+                const selected = prompt("請輸入要移動至的新日期 (格式: YYYY-MM-DD)：", new Date().toISOString().slice(0, 10));
+                if (!selected || !selected.trim()) { draggedItemInfo = null; return; }
+                targetDate = selected.trim();
+            }
 
             const { type, thoughtId, stepId } = draggedItemInfo;
             const t = thoughts.find(x => x.id === thoughtId);
@@ -377,7 +330,6 @@
                     if (Array.isArray(data) && confirm("確定匯入並覆蓋當前資料？")) {
                         thoughts = data;
                         editingId = null;
-                        editingStepIdKey = null;
                         activeCategory = "全部";
                         saveData();
                         alert("成功匯入備份資料！");
@@ -403,9 +355,9 @@
             }
         }
 
-        // ⏳ 渲染 X 軸跨領域時間矩陣 (大字型 + 可拖拉變更日期)
+        // ⏳ 渲染時間對照矩陣 (支援插入新日期行與指定新日期放置區)
         function renderTimelineMatrix(container) {
-            const datesSet = new Set();
+            const datesSet = new Set(customTimelineDates);
             const categoriesSet = new Set();
 
             thoughts.forEach(t => {
@@ -420,26 +372,34 @@
             const sortedDates = Array.from(datesSet).sort();
             const categoriesList = Array.from(categoriesSet);
 
-            if (sortedDates.length === 0 || categoriesList.length === 0) {
-                container.innerHTML = `<div class="text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200 text-sm">目前尚無設定預期日期的目標或步驟！請在思緒卡片中加上預期日期即可在時間軸呈現。</div>`;
-                return;
-            }
-
             const wrapper = document.createElement('div');
-            wrapper.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-200 overflow-x-auto";
+            wrapper.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4 overflow-x-auto";
 
             let html = `
-                <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-                    <h2 class="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-2">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                    <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
                         <span>⏳ 跨領域時間對照矩陣</span>
-                        <span class="text-xs font-normal text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-md border border-indigo-100">💡 提示：按住卡片可直接拖曳至其他日期行放開</span>
                     </h2>
+
+                    <!-- 插入新日期行按鈕與工具欄 -->
+                    <div class="flex items-center gap-2">
+                        <input type="date" id="newDateRowInput" class="px-2.5 py-1 text-xs border border-slate-300 rounded-lg text-slate-700">
+                        <button onclick="addCustomDateRow()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-lg border border-indigo-200 transition-colors">
+                            ➕ 插入新日期行
+                        </button>
+                    </div>
                 </div>
 
-                <table class="w-full border-collapse border border-slate-200 text-sm">
+                <!-- 📌 快捷拖拉至指定新日期放置區 (Drop Zone) -->
+                <div ondragover="handleDragOver(event)" ondrop="handleDrop(event, '__prompt_new_date__')" 
+                    class="p-3 border-2 border-dashed border-indigo-300 bg-indigo-50/50 rounded-xl text-center text-xs text-indigo-700 font-bold hover:bg-indigo-100/50 transition-colors cursor-pointer">
+                    📍 拖曳卡片至此處放開 ➔ 快速輸入/指定全新日期
+                </div>
+
+                <table class="w-full border-collapse text-sm border border-slate-200">
                     <thead>
                         <tr class="bg-slate-100 text-slate-800 font-bold text-sm">
-                            <th class="p-3.5 text-left border border-slate-200 w-36 bg-slate-200/70 shrink-0">📅 日期時間 (Y軸)</th>
+                            <th class="p-3.5 text-left border border-slate-200 w-36 bg-slate-200/70 shrink-0">📅 日期 (Y軸)</th>
                             ${categoriesList.map(c => `<th class="p-3.5 text-left border border-slate-200 bg-indigo-100/70 text-indigo-950 min-w-[200px] text-sm font-bold">${c} (X軸)</th>`).join('')}
                         </tr>
                     </thead>
@@ -503,7 +463,7 @@
             container.appendChild(wrapper);
         }
 
-        // 🎯 高階總覽模式
+        // 🎯 渲染高階總覽模式
         function renderOverview(container) {
             if (thoughts.length === 0) {
                 container.innerHTML = `<div class="text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200 text-sm">目前尚無記錄！</div>`;
@@ -567,7 +527,7 @@
             });
         }
 
-        // 🎴 看板模式
+        // 🎴 渲染看板模式
         function renderCards(container) {
             const currentCats = Array.from(new Set(thoughts.map(t => t.category || '💼 事業')));
             currentCats.forEach(c => { if (!categoryOrder.includes(c)) categoryOrder.push(c); });
