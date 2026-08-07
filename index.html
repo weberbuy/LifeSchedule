@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>思緒拆解與時間軸目標規劃</title>
+    <title>思緒拆解與目標規劃</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 min-h-screen py-8 px-4 text-slate-800">
     <div class="max-w-3xl mx-auto">
-        <!-- 頁首與檢視模式切換 / 匯出匯入 -->
+        <!-- 頁首與備份按鈕 -->
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 步驟日期上限防呆 · 雙模式切換</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 三視角切換 · 總覽/看板/時間軸</p>
             </div>
             
             <div class="flex items-center gap-2">
@@ -24,13 +24,16 @@
             </div>
         </header>
 
-        <!-- 檢視模式切換列 (Cards vs Timeline) -->
-        <div class="mb-6 bg-slate-200/80 p-1.5 rounded-2xl flex items-center shadow-inner border border-slate-300/60">
-            <button onclick="setViewMode('cards')" id="btnViewCards" class="flex-1 py-2.5 px-4 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 bg-white text-indigo-600 shadow-md">
-                🎴 分類卡片檢視
+        <!-- 三模式切換列 (Cards vs Overview vs Timeline) -->
+        <div class="mb-6 bg-slate-200/80 p-1.5 rounded-2xl flex items-center shadow-inner border border-slate-300/60 gap-1 overflow-x-auto">
+            <button onclick="setViewMode('overview')" id="btnViewOverview" class="flex-1 py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 bg-white text-indigo-600 shadow-md whitespace-nowrap">
+                🎯 總覽模式 (整體思考)
             </button>
-            <button onclick="setViewMode('timeline')" id="btnViewTimeline" class="flex-1 py-2.5 px-4 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-slate-600 hover:text-slate-900">
-                ⏳ 時間軸檢視
+            <button onclick="setViewMode('cards')" id="btnViewCards" class="flex-1 py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900 whitespace-nowrap">
+                🎴 看板模式 (完整卡片)
+            </button>
+            <button onclick="setViewMode('timeline')" id="btnViewTimeline" class="flex-1 py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900 whitespace-nowrap">
+                ⏳ 時間軸模式 (時程管裡)
             </button>
         </div>
 
@@ -68,8 +71,8 @@
             </div>
         </div>
 
-        <!-- 頁籤列與排序控制 (僅卡片模式顯示) -->
-        <div id="tabsSection" class="mb-6">
+        <!-- 頁籤列與排序控制 (僅看板模式顯示) -->
+        <div id="tabsSection" class="mb-6 hidden">
             <div class="flex items-center justify-between gap-2 mb-2">
                 <span class="text-xs font-bold text-slate-500">📂 領域分頁切換：</span>
                 <button onclick="toggleReorderMode()" id="reorderBtn" class="text-[11px] text-slate-600 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg border border-slate-300 transition-colors">
@@ -81,7 +84,7 @@
             </div>
         </div>
 
-        <!-- 主顯示區塊 -->
+        <!-- 主顯示區塊 (總覽、看板或時間軸) -->
         <div id="mainContentList" class="space-y-6"></div>
     </div>
 
@@ -91,7 +94,7 @@
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
             thoughts = [
                 { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", goal: "順利完賽 11 月半程馬拉松", targetDate: "2026-11-30", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "30分鐘", done: true }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", goal: "發布支援分頁與時間軸的 App", targetDate: "2026-12-31", steps: [{ id: 1, text: "設計步驟日期上限防呆機制", stepDate: "2026-08-08", stepTime: "2小時", done: true }] }
+                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", goal: "發布支援總覽、看板與時間軸的 App", targetDate: "2026-12-31", steps: [{ id: 1, text: "設計高階總覽檢視模式", stepDate: "2026-08-08", stepTime: "2小時", done: true }] }
             ];
         }
 
@@ -99,7 +102,7 @@
         try { categoryOrder = JSON.parse(localStorage.getItem('my_category_order')) || []; } catch(e) { categoryOrder = []; }
 
         let activeCategory = "全部";
-        let viewMode = "cards";
+        let viewMode = "overview"; //預設為總覽模式 'overview' | 'cards' | 'timeline'
         let editingId = null;
         let editingStepIdKey = null;
         let isReorderMode = false;
@@ -110,18 +113,21 @@
 
         function setViewMode(mode) {
             viewMode = mode;
+            const btnOverview = document.getElementById('btnViewOverview');
             const btnCards = document.getElementById('btnViewCards');
             const btnTimeline = document.getElementById('btnViewTimeline');
             const tabsSection = document.getElementById('tabsSection');
 
-            if (mode === 'cards') {
-                btnCards.className = "flex-1 py-2.5 px-4 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 bg-white text-indigo-600 shadow-md";
-                btnTimeline.className = "flex-1 py-2.5 px-4 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-slate-600 hover:text-slate-900";
-                if (tabsSection) tabsSection.classList.remove('hidden');
-            } else {
-                btnTimeline.className = "flex-1 py-2.5 px-4 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 bg-white text-indigo-600 shadow-md";
-                btnCards.className = "flex-1 py-2.5 px-4 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-slate-600 hover:text-slate-900";
-                if (tabsSection) tabsSection.classList.add('hidden');
+            const activeClass = "flex-1 py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 bg-white text-indigo-600 shadow-md whitespace-nowrap";
+            const inactiveClass = "flex-1 py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900 whitespace-nowrap";
+
+            btnOverview.className = (mode === 'overview') ? activeClass : inactiveClass;
+            btnCards.className = (mode === 'cards') ? activeClass : inactiveClass;
+            btnTimeline.className = (mode === 'timeline') ? activeClass : inactiveClass;
+
+            if (tabsSection) {
+                if (mode === 'cards') tabsSection.classList.remove('hidden');
+                else tabsSection.classList.add('hidden');
             }
             render();
         }
@@ -224,7 +230,6 @@
             }
         }
 
-        // 新增步驟（包含日期不可超過目標日期的驗證）
         function addStep(thoughtId) {
             const textInput = document.getElementById(`step-text-${thoughtId}`);
             const dateInput = document.getElementById(`step-date-${thoughtId}`);
@@ -238,7 +243,6 @@
 
             const t = thoughts.find(x => x.id === thoughtId);
             if (t) {
-                // 🛡️ 日期上限防呆驗證
                 if (stepDate && t.targetDate && t.targetDate !== '未指定日期') {
                     if (stepDate > t.targetDate) {
                         return alert(`步驟預期日期 (${stepDate}) 不能超過最終目標預期日期 (${t.targetDate})！`);
@@ -285,7 +289,6 @@
             render();
         }
 
-        // 儲存編輯步驟（包含日期不可超過目標日期的驗證）
         function saveEditStep(thoughtId, stepId) {
             const textInput = document.getElementById(`edit-step-text-${thoughtId}-${stepId}`);
             const dateInput = document.getElementById(`edit-step-date-${thoughtId}-${stepId}`);
@@ -299,7 +302,6 @@
 
             const t = thoughts.find(x => x.id === thoughtId);
             if (t) {
-                // 🛡️ 日期上限防呆驗證
                 if (stepDate && t.targetDate && t.targetDate !== '未指定日期') {
                     if (stepDate > t.targetDate) {
                         return alert(`步驟預期日期 (${stepDate}) 不能超過最終目標預期日期 (${t.targetDate})！`);
@@ -353,11 +355,81 @@
             const container = document.getElementById('mainContentList');
             container.innerHTML = '';
 
-            if (viewMode === 'timeline') {
+            if (viewMode === 'overview') {
+                renderOverview(container);
+            } else if (viewMode === 'timeline') {
                 renderTimeline(container);
             } else {
                 renderCards(container);
             }
+        }
+
+        // 🎯 渲染高階總覽模式 (Overview View) - 乾淨、按類別歸類、收合步驟
+        function renderOverview(container) {
+            if (thoughts.length === 0) {
+                container.innerHTML = `<div class="text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200">目前尚無記錄！</div>`;
+                return;
+            }
+
+            // 按類別進行資料分組
+            const grouped = {};
+            thoughts.forEach(t => {
+                const cat = t.category || '💼 事業';
+                if (!grouped[cat]) grouped[cat] = [];
+                grouped[cat].push(t);
+            });
+
+            // 依據 categoryOrder 排序
+            const categories = Object.keys(grouped);
+
+            categories.forEach(cat => {
+                const catBox = document.createElement('div');
+                cardList = grouped[cat];
+                catBox.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6";
+
+                let html = `
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <span>${cat}</span>
+                            <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-semibold">${cardList.length} 個目標</span>
+                        </h2>
+                    </div>
+                    <div class="space-y-3">
+                `;
+
+                cardList.forEach((t, i) => {
+                    const doneCount = t.steps.filter(s => s.done).length;
+                    const totalCount = t.steps.length;
+                    const percent = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+
+                    html += `
+                        <div class="bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 hover:border-indigo-200 transition-colors">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                                <div class="flex items-start gap-2.5">
+                                    <span class="inline-flex items-center justify-center bg-indigo-100 text-indigo-700 font-bold text-xs w-6 h-6 rounded-full shrink-0 mt-0.5">${i + 1}</span>
+                                    <div>
+                                        <h3 class="font-bold text-slate-800 text-base leading-snug">${t.text}</h3>
+                                        <div class="text-xs text-amber-800 font-medium mt-1">🎯 最終目標：${t.goal || '未設定'}</div>
+                                    </div>
+                                </div>
+                                <div class="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shrink-0 flex items-center justify-between sm:justify-end gap-2">
+                                    <span>📅 ${t.targetDate || '未指定'}</span>
+                                    <span class="text-indigo-600 font-bold">進度: ${doneCount}/${totalCount} (${percent}%)</span>
+                                </div>
+                            </div>
+
+                            <!-- 進度條 -->
+                            <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden mt-3">
+                                <div class="bg-indigo-600 h-full transition-all duration-300" style="width: ${percent}%"></div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+                catBox.innerHTML = html;
+                container.appendChild(catBox);
+            });
         }
 
         function renderTimeline(container) {
@@ -502,8 +574,6 @@
                 const card = document.createElement('div');
                 card.className = "bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden";
                 const isEdit = (editingId === thought.id);
-
-                // 計算該目標是否有設定達成日期 (用於限制步驟日期的上限 max 屬性)
                 const maxDateAttr = (thought.targetDate && thought.targetDate !== '未指定日期') ? `max="${thought.targetDate}"` : '';
 
                 const stepsHtml = thought.steps.map(s => {
@@ -602,7 +672,6 @@
                             <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">📋 行動拆解步驟與時程</h3>
                             <ul class="space-y-2 mb-4">${stepsHtml || '<li class="text-xs text-slate-400 italic">尚未新增拆解步驟...</li>'}</ul>
                             
-                            <!-- 新增拆解步驟輸入區 (步驟日期自動設定 max 限制) -->
                             <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-2">
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                     <input type="text" id="step-text-${thought.id}" placeholder="+ 新增步驟內容..." class="sm:col-span-3 px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
