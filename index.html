@@ -8,23 +8,23 @@
 </head>
 <body class="bg-slate-50 min-h-screen py-8 px-4 text-slate-800">
     <div class="max-w-3xl mx-auto">
-        <!-- 頁首與匯出匯入按鈕 -->
+        <!-- 頁首與檢視模式切換 / 匯出匯入 -->
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 雙模式切換 · 時間軸進度管理</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 步驟日期上限防呆 · 雙模式切換</p>
             </div>
             
             <div class="flex items-center gap-2">
-                <button onclick="exportData()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-xl border border-indigo-200 font-medium transition-colors">📥 匯出備份</button>
+                <button onclick="exportData()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-xl border border-indigo-200 font-medium transition-colors">📥 備份</button>
                 <label class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl border border-slate-300 font-medium transition-colors cursor-pointer">
-                    📤 匯入備份
+                    📤 匯入
                     <input type="file" id="importFile" accept=".json" onchange="importData(event)" class="hidden">
                 </label>
             </div>
         </header>
 
-        <!-- 顯眼的大尺寸檢視模式切換列 (Cards vs Timeline) -->
+        <!-- 檢視模式切換列 (Cards vs Timeline) -->
         <div class="mb-6 bg-slate-200/80 p-1.5 rounded-2xl flex items-center shadow-inner border border-slate-300/60">
             <button onclick="setViewMode('cards')" id="btnViewCards" class="flex-1 py-2.5 px-4 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 bg-white text-indigo-600 shadow-md">
                 🎴 分類卡片檢視
@@ -81,7 +81,7 @@
             </div>
         </div>
 
-        <!-- 主顯示區塊 (卡片或時間軸) -->
+        <!-- 主顯示區塊 -->
         <div id="mainContentList" class="space-y-6"></div>
     </div>
 
@@ -91,7 +91,7 @@
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
             thoughts = [
                 { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", goal: "順利完賽 11 月半程馬拉松", targetDate: "2026-11-30", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "30分鐘", done: true }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", goal: "發布支援分頁與時間軸的 App", targetDate: "2026-12-31", steps: [{ id: 1, text: "設計時間軸 UI 與動態排序", stepDate: "2026-08-08", stepTime: "2小時", done: true }] }
+                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", goal: "發布支援分頁與時間軸的 App", targetDate: "2026-12-31", steps: [{ id: 1, text: "設計步驟日期上限防呆機制", stepDate: "2026-08-08", stepTime: "2小時", done: true }] }
             ];
         }
 
@@ -99,7 +99,7 @@
         try { categoryOrder = JSON.parse(localStorage.getItem('my_category_order')) || []; } catch(e) { categoryOrder = []; }
 
         let activeCategory = "全部";
-        let viewMode = "cards"; // 'cards' 或 'timeline'
+        let viewMode = "cards";
         let editingId = null;
         let editingStepIdKey = null;
         let isReorderMode = false;
@@ -224,6 +224,7 @@
             }
         }
 
+        // 新增步驟（包含日期不可超過目標日期的驗證）
         function addStep(thoughtId) {
             const textInput = document.getElementById(`step-text-${thoughtId}`);
             const dateInput = document.getElementById(`step-date-${thoughtId}`);
@@ -237,6 +238,13 @@
 
             const t = thoughts.find(x => x.id === thoughtId);
             if (t) {
+                // 🛡️ 日期上限防呆驗證
+                if (stepDate && t.targetDate && t.targetDate !== '未指定日期') {
+                    if (stepDate > t.targetDate) {
+                        return alert(`步驟預期日期 (${stepDate}) 不能超過最終目標預期日期 (${t.targetDate})！`);
+                    }
+                }
+
                 t.steps.push({
                     id: Date.now(),
                     text: text,
@@ -277,21 +285,32 @@
             render();
         }
 
+        // 儲存編輯步驟（包含日期不可超過目標日期的驗證）
         function saveEditStep(thoughtId, stepId) {
             const textInput = document.getElementById(`edit-step-text-${thoughtId}-${stepId}`);
             const dateInput = document.getElementById(`edit-step-date-${thoughtId}-${stepId}`);
             const timeInput = document.getElementById(`edit-step-time-${thoughtId}-${stepId}`);
 
             const text = textInput ? textInput.value.trim() : '';
+            const stepDate = dateInput ? dateInput.value : '';
+            const stepTime = timeInput ? timeInput.value.trim() : '';
+
             if (!text) return alert("步驟內容不能為空！");
 
             const t = thoughts.find(x => x.id === thoughtId);
             if (t) {
+                // 🛡️ 日期上限防呆驗證
+                if (stepDate && t.targetDate && t.targetDate !== '未指定日期') {
+                    if (stepDate > t.targetDate) {
+                        return alert(`步驟預期日期 (${stepDate}) 不能超過最終目標預期日期 (${t.targetDate})！`);
+                    }
+                }
+
                 const s = t.steps.find(x => x.id === stepId);
                 if (s) {
                     s.text = text;
-                    s.stepDate = dateInput ? dateInput.value : '';
-                    s.stepTime = timeInput ? timeInput.value.trim() : '';
+                    s.stepDate = stepDate;
+                    s.stepTime = stepTime;
                     editingStepIdKey = null;
                     saveData();
                 }
@@ -484,6 +503,9 @@
                 card.className = "bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden";
                 const isEdit = (editingId === thought.id);
 
+                // 計算該目標是否有設定達成日期 (用於限制步驟日期的上限 max 屬性)
+                const maxDateAttr = (thought.targetDate && thought.targetDate !== '未指定日期') ? `max="${thought.targetDate}"` : '';
+
                 const stepsHtml = thought.steps.map(s => {
                     const isEditingThisStep = (editingStepIdKey === `${thought.id}-${s.id}`);
                     
@@ -499,7 +521,7 @@
                                 </div>
                                 <input type="text" id="edit-step-text-${thought.id}-${s.id}" value="${s.text.replace(/"/g, '&quot;')}" class="w-full px-2.5 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
                                 <div class="grid grid-cols-2 gap-2">
-                                    <input type="date" id="edit-step-date-${thought.id}-${s.id}" value="${s.stepDate || ''}" class="px-2 py-1 text-xs border border-slate-300 rounded text-slate-700">
+                                    <input type="date" id="edit-step-date-${thought.id}-${s.id}" value="${s.stepDate || ''}" ${maxDateAttr} class="px-2 py-1 text-xs border border-slate-300 rounded text-slate-700">
                                     <input type="text" id="edit-step-time-${thought.id}-${s.id}" value="${(s.stepTime || '').replace(/"/g, '&quot;')}" placeholder="工時(如2小時)" class="px-2 py-1 text-xs border border-slate-300 rounded">
                                 </div>
                             </li>
@@ -580,10 +602,11 @@
                             <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">📋 行動拆解步驟與時程</h3>
                             <ul class="space-y-2 mb-4">${stepsHtml || '<li class="text-xs text-slate-400 italic">尚未新增拆解步驟...</li>'}</ul>
                             
+                            <!-- 新增拆解步驟輸入區 (步驟日期自動設定 max 限制) -->
                             <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-2">
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                     <input type="text" id="step-text-${thought.id}" placeholder="+ 新增步驟內容..." class="sm:col-span-3 px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                    <input type="date" id="step-date-${thought.id}" class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <input type="date" id="step-date-${thought.id}" ${maxDateAttr} class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                                     <input type="text" id="step-time-${thought.id}" placeholder="預估工時 (如: 2小時或14:00)" class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
                                     <button onclick="addStep(${thought.id})" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">＋ 新增步驟</button>
                                 </div>
