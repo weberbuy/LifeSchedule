@@ -12,7 +12,7 @@
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 支援夜間時段與步驟順序調換 · 雙模式切換</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 領域頁籤順序修復 · 雙模式切換</p>
             </div>
             
             <div class="flex items-center gap-2">
@@ -190,7 +190,7 @@
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
             thoughts = [
                 { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", detail: "每週固定跑步 3 次。", goal: "順利完賽 11 月半程馬拉松", goalDone: false, targetDate: "2026-11-30", targetTimeSlot: "上午", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "30分鐘", stepTimeSlot: "上午", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", stepTimeSlot: "全天", done: false }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援夜間時段與步驟順序調換。", goal: "發布支援夜間時段與順序調整的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計夜間時段防呆與步驟調換 UI", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "夜間", done: true }] }
+                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援領域分頁排序與雙向聯動。", goal: "發布支援分頁排序修復的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "測試領域頁籤向左向右排序機制", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "夜間", done: true }] }
             ];
         }
 
@@ -216,7 +216,6 @@
         let pendingDropItem = null;
         let pendingTlEdit = null;
 
-        // 時段順序優先權 (全天:0, 上午:1, 下午:2, 晚上:3, 夜間:4)
         const slotPriorityMap = { '全天': 0, '上午': 1, '下午': 2, '晚上': 3, '夜間': 4 };
 
         function getBlockedSlot(dateStr, itemSlot = '全天') {
@@ -226,7 +225,6 @@
 
             for (const b of matches) {
                 if (b.timeSlot === '全天' || itemSlot === '全天') return b;
-                // 晚上與夜間相通相容
                 if (b.timeSlot === itemSlot || (b.timeSlot === '晚上' && itemSlot === '夜間') || (b.timeSlot === '夜間' && itemSlot === '晚上')) return b;
             }
             return null;
@@ -326,7 +324,6 @@
             }
         }
 
-        // 🔼 / 🔽 手動調整步驟順序
         function moveStepUp(thoughtId, stepId) {
             const t = thoughts.find(x => x.id === thoughtId);
             if (!t || !Array.isArray(t.steps)) return;
@@ -348,6 +345,29 @@
                 t.steps[idx] = t.steps[idx + 1];
                 t.steps[idx + 1] = temp;
                 saveData();
+            }
+        }
+
+        // 📂 看板分頁向左/向右調整順序
+        function moveCategoryLeft(cat, ev) {
+            if (ev) ev.stopPropagation();
+            const idx = categoryOrder.indexOf(cat);
+            if (idx > 0) {
+                const temp = categoryOrder[idx];
+                categoryOrder[idx] = categoryOrder[idx - 1];
+                categoryOrder[idx - 1] = temp;
+                saveCategoryOrder();
+            }
+        }
+
+        function moveCategoryRight(cat, ev) {
+            if (ev) ev.stopPropagation();
+            const idx = categoryOrder.indexOf(cat);
+            if (idx !== -1 && idx < categoryOrder.length - 1) {
+                const temp = categoryOrder[idx];
+                categoryOrder[idx] = categoryOrder[idx + 1];
+                categoryOrder[idx + 1] = temp;
+                saveCategoryOrder();
             }
         }
 
@@ -614,7 +634,10 @@
             render();
         }
 
-        function saveCategoryOrder() { localStorage.setItem('my_category_order', JSON.stringify(categoryOrder)); render(); }
+        function saveCategoryOrder() {
+            localStorage.setItem('my_category_order', JSON.stringify(categoryOrder));
+            render();
+        }
 
         function addCustomDateRow() {
             const picker = document.getElementById('newDateRowInput');
@@ -886,7 +909,7 @@
             else renderCards(container);
         }
 
-        // ⏳ 渲染時間對照矩陣 (按時段自動依序排列 + 包含夜間時段)
+        // ⏳ 渲染時間對照矩陣
         function renderTimelineMatrix(container) {
             const datesSet = new Set(customTimelineDates);
             const categoriesSet = new Set();
@@ -1042,7 +1065,6 @@
                         });
                     }
 
-                    // 收集當天當類別的所有目標與步驟，並依時段優先權（全天➔上午➔下午➔晚上➔夜間）排序
                     let cellItems = [];
 
                     const matchingGoals = thoughts.filter(t => (t.category || '💼 事業') === cat && t.targetDate === date);
@@ -1067,7 +1089,6 @@
                         }
                     });
 
-                    // 依據 slotPriorityMap 排序
                     cellItems.sort((a, b) => (slotPriorityMap[a.slot] || 0) - (slotPriorityMap[b.slot] || 0));
 
                     cellItems.forEach(ci => {
@@ -1181,7 +1202,7 @@
             });
         }
 
-        // 🎴 看板模式
+        // 🎴 看板模式 (重構頁籤 DOM 結構，解決排序按鈕衝突)
         function renderCards(container) {
             const currentCats = Array.from(new Set(thoughts.map(t => t.category || '💼 事業')));
             currentCats.forEach(c => { if (!categoryOrder.includes(c)) categoryOrder.push(c); });
@@ -1197,24 +1218,28 @@
                     const count = cat === '全部' ? thoughts.length : thoughts.filter(t => (t.category || '💼 事業') === cat).length;
                     const isActive = (activeCategory === cat);
                     
-                    const btn = document.createElement('button');
-                    btn.onclick = () => setCategoryTab(cat);
-                    btn.className = `px-3.5 py-1.5 text-xs font-semibold rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 ${
-                        isActive ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                    const tabWrapper = document.createElement('div');
+                    tabWrapper.className = `px-3.5 py-1.5 text-xs font-semibold rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 select-none ${
+                        isActive ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200'
                     }`;
 
-                    let arrowsHtml = '';
+                    let tabContentHtml = `
+                        <span onclick="setCategoryTab('${cat}')" class="cursor-pointer flex items-center gap-1">
+                            ${cat} <span class="${isActive ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'} px-1.5 py-0.5 rounded-full text-[10px]">${count}</span>
+                        </span>
+                    `;
+
                     if (isReorderMode && cat !== '全部') {
-                        arrowsHtml = `
+                        tabContentHtml += `
                             <span class="inline-flex gap-1 ml-1 pl-1 border-l ${isActive ? 'border-indigo-400' : 'border-slate-300'}">
-                                <span onclick="moveCategoryLeft('${cat}', event)" class="hover:bg-black/20 rounded px-1 cursor-pointer">‹</span>
-                                <span onclick="moveCategoryRight('${cat}', event)" class="hover:bg-black/20 rounded px-1 cursor-pointer">›</span>
+                                <button type="button" onclick="moveCategoryLeft('${cat}', event)" class="hover:bg-black/20 rounded px-1 font-bold text-xs cursor-pointer" title="向左移">‹</button>
+                                <button type="button" onclick="moveCategoryRight('${cat}', event)" class="hover:bg-black/20 rounded px-1 font-bold text-xs cursor-pointer" title="向右移">›</button>
                             </span>
                         `;
                     }
 
-                    btn.innerHTML = `${cat} <span class="${isActive ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'} px-1.5 py-0.5 rounded-full text-[10px]">${count}</span>${arrowsHtml}`;
-                    tabsContainer.appendChild(btn);
+                    tabWrapper.innerHTML = tabContentHtml;
+                    tabsContainer.appendChild(tabWrapper);
                 });
             }
 
@@ -1266,10 +1291,9 @@
                                     <span class="${s.done ? 'line-through text-slate-400' : 'text-slate-700'} text-sm font-medium">${s.text}</span>
                                 </label>
                                 <div class="flex items-center gap-1.5 text-[11px] ml-6 sm:ml-0 flex-wrap">
-                                    <!-- 🔼 🔽 步驟上下順序微調按鈕 -->
                                     <span class="inline-flex gap-0.5 bg-slate-200/80 rounded px-1 text-slate-600 font-bold">
-                                        <button onclick="moveStepUp(${thought.id}, ${s.id})" class="hover:text-indigo-600 px-0.5" title="往上移">▲</button>
-                                        <button onclick="moveStepDown(${thought.id}, ${s.id})" class="hover:text-indigo-600 px-0.5" title="往下移">▼</button>
+                                        <button type="button" onclick="moveStepUp(${thought.id}, ${s.id})" class="hover:text-indigo-600 px-0.5" title="往上移">▲</button>
+                                        <button type="button" onclick="moveStepDown(${thought.id}, ${s.id})" class="hover:text-indigo-600 px-0.5" title="往下移">▼</button>
                                     </span>
                                     ${s.stepDate ? `<span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-md font-medium">📅 ${s.stepDate} [${s.stepTimeSlot || '全天'}]</span>` : ''}
                                     ${s.stepTime ? `<span class="bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-md font-medium">⏰ ${s.stepTime}</span>` : ''}
