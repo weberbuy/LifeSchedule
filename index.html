@@ -12,7 +12,7 @@
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 待排定區同步凍結頂部 · 跨領域時間對照矩陣</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 可收納表單 · 手機版時間軸優化</p>
             </div>
             
             <div class="flex items-center gap-2">
@@ -24,7 +24,7 @@
             </div>
         </header>
 
-        <!-- 三模式切換列 (Cards vs Overview vs Timeline Matrix) -->
+        <!-- 三模式切換列 (Overview vs Cards vs Timeline) -->
         <div class="mb-6 bg-slate-200/80 p-1.5 rounded-2xl flex items-center shadow-inner border border-slate-300/60 gap-1 overflow-x-auto">
             <button onclick="setViewMode('overview')" id="btnViewOverview" class="flex-1 py-2.5 px-3 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 bg-white text-indigo-600 shadow-md whitespace-nowrap">
                 🎯 總覽模式 (整體思考)
@@ -37,37 +37,47 @@
             </button>
         </div>
 
-        <!-- 表單輸入區 -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6 space-y-4">
-            <h2 class="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2">💡 記錄新的思緒與目標</h2>
+        <!-- 表單輸入區 (支援收納/展開) -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6">
+            <div class="flex items-center justify-between cursor-pointer select-none" onclick="toggleForm()">
+                <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <span>💡 記錄新的思緒與目標</span>
+                    <span class="text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded font-normal">（點擊展開/收納）</span>
+                </h2>
+                <button type="button" id="toggleFormBtn" class="text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl border border-slate-300 transition-colors">
+                    ➕ 展開表單
+                </button>
+            </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div class="md:col-span-1">
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">上一層領域/類別：</label>
-                    <input type="text" id="categoryInput" value="💼 事業" placeholder="輸入或點選標籤" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <div class="flex flex-wrap gap-1 mt-1.5">
-                        <button type="button" onclick="setCategory('❤️ 健康')" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded-md">❤️ 健康</button>
-                        <button type="button" onclick="setCategory('💼 事業')" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded-md">💼 事業</button>
-                        <button type="button" onclick="setCategory('💰 理財')" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded-md">💰 理財</button>
-                        <button type="button" onclick="setCategory('🌱 個人成長')" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded-md">🌱 個人成長</button>
+            <div id="formContent" class="hidden mt-4 space-y-4 pt-3 border-t border-slate-100">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div class="md:col-span-1">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">上一層領域/類別：</label>
+                        <input type="text" id="categoryInput" value="💼 事業" placeholder="輸入或點選標籤" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <div class="flex flex-wrap gap-1 mt-1.5">
+                            <button type="button" onclick="setCategory('❤️ 健康')" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded-md">❤️ 健康</button>
+                            <button type="button" onclick="setCategory('💼 事業')" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded-md">💼 事業</button>
+                            <button type="button" onclick="setCategory('💰 理財')" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded-md">💰 理財</button>
+                            <button type="button" onclick="setCategory('🌱 個人成長')" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded-md">🌱 個人成長</button>
+                        </div>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">思緒 / 想法主題：</label>
+                        <input type="text" id="thoughtInput" placeholder="例如：規畫半馬跑步訓練..." class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">🎯 最終目標：</label>
+                        <input type="text" id="goalInput" placeholder="例如：完成人生第一次半程馬拉松 21K" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div class="md:col-span-1">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">📅 預期達成日期：</label>
+                        <input type="date" id="dateInput" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700">
                     </div>
                 </div>
-                <div class="md:col-span-2">
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">思緒 / 想法主題：</label>
-                    <input type="text" id="thoughtInput" placeholder="例如：規畫半馬跑步訓練..." class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">🎯 最終目標：</label>
-                    <input type="text" id="goalInput" placeholder="例如：完成人生第一次半程馬拉松 21K" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                </div>
-                <div class="md:col-span-1">
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">📅 預期達成日期：</label>
-                    <input type="date" id="dateInput" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700">
-                </div>
-            </div>
 
-            <div class="flex justify-end pt-1">
-                <button onclick="addThought()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-6 py-2.5 rounded-xl transition-colors shadow-sm">＋ 新增思緒目標</button>
+                <div class="flex justify-end pt-1">
+                    <button onclick="addThought()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-6 py-2.5 rounded-xl transition-colors shadow-sm">＋ 新增思緒目標</button>
+                </div>
             </div>
         </div>
 
@@ -94,7 +104,7 @@
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
             thoughts = [
                 { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", goal: "順利完賽 11 月半程馬拉松", targetDate: "2026-11-30", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "30分鐘", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", done: false }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", goal: "發布支援待排定區凍結的 App", targetDate: "2026-12-31", steps: [{ id: 1, text: "設計待排定區釘選頂部 UI", stepDate: "2026-08-08", stepTime: "2小時", done: true }] }
+                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", goal: "發布支援可收納表單與手機版優化的 App", targetDate: "2026-12-31", steps: [{ id: 1, text: "優化手機版 Sticky Table Header 滾動", stepDate: "2026-08-08", stepTime: "2小時", done: true }] }
             ];
         }
 
@@ -104,6 +114,7 @@
 
         let activeCategory = "全部";
         let viewMode = "overview";
+        let isFormOpen = false; // 預設收納表單
         let editingId = null;
         let editingStepIdKey = null;
         let isReorderMode = false;
@@ -111,6 +122,21 @@
 
         const todayObj = new Date();
         const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
+
+        function toggleForm() {
+            isFormOpen = !isFormOpen;
+            const content = document.getElementById('formContent');
+            const btn = document.getElementById('toggleFormBtn');
+            if (content && btn) {
+                if (isFormOpen) {
+                    content.classList.remove('hidden');
+                    btn.innerText = "➖ 收納表單";
+                } else {
+                    content.classList.add('hidden');
+                    btn.innerText = "➕ 展開表單";
+                }
+            }
+        }
 
         function getDateStatus(dateStr) {
             if (!dateStr || dateStr === '未指定日期') return { text: dateStr, style: '', badge: '' };
@@ -349,7 +375,7 @@
             else renderCards(container);
         }
 
-        // ⏳ 渲染時間對照矩陣 (待排定區 + 指定新日期 + 標題列 全數凍結頂部 Sticky)
+        // ⏳ 渲染時間對照矩陣 (手機版滾動相容與純淨 Sticky Header)
         function renderTimelineMatrix(container) {
             const datesSet = new Set(customTimelineDates);
             const categoriesSet = new Set();
@@ -369,15 +395,15 @@
             thoughts.forEach(t => { if (Array.isArray(t.steps)) { t.steps.forEach(s => { if (!s.stepDate) undatedSteps.push({ thought: t, step: s }); }); } });
 
             const wrapper = document.createElement('div');
-            wrapper.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4 max-h-[80vh] overflow-y-auto overflow-x-auto relative";
+            wrapper.className = "bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4";
 
-            // 📌 待排定區 HTML
+            // 📌 待排定區 (自然滾動，釋放手機垂直空間)
             let unscheduledHtml = `
                 <div ondragover="handleDragOver(event)" ondrop="handleDrop(event, '__unscheduled__')"
-                    class="bg-slate-100/95 p-3.5 rounded-xl border-2 border-dashed border-slate-300 space-y-2 max-h-36 overflow-y-auto">
+                    class="bg-slate-100/90 p-3.5 rounded-xl border-2 border-dashed border-slate-300 space-y-2">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-bold text-slate-800">📌 待排定/未指定日期的目標與步驟 (${undatedGoals.length + undatedSteps.length})</span>
-                        <span class="text-[11px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded font-bold">💡 提示：按住卡片拖拉至下方日期即可完成排程</span>
+                        <span class="text-[11px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded font-bold">💡 提示：拖拉至下方日期即可完成排程</span>
                     </div>
                     <div class="flex flex-wrap gap-2 pt-1">
             `;
@@ -394,36 +420,32 @@
             }
             unscheduledHtml += `</div></div>`;
 
-            // ❄️ 凍結頂部視窗區域（含待排定區、指定新日期區與 X 軸標題）
-            let stickyTopSection = `
-                <div class="sticky top-0 z-30 bg-white pt-1 pb-2 space-y-3 border-b-2 border-indigo-100 shadow-sm">
-                    ${unscheduledHtml}
-
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <h2 class="text-sm font-bold text-slate-800">⏳ 跨領域時間對照矩陣</h2>
-                        <div class="flex items-center gap-2">
-                            <input type="date" id="newDateRowInput" class="px-2.5 py-1 text-xs border border-slate-300 rounded-lg text-slate-700">
-                            <button onclick="addCustomDateRow()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-lg border border-indigo-200">➕ 插入新日期行</button>
-                        </div>
-                    </div>
-
-                    <div ondragover="handleDragOver(event)" ondrop="handleDrop(event, '__prompt_new_date__')" class="p-2 border-2 border-dashed border-indigo-300 bg-indigo-50/60 rounded-xl text-center text-xs text-indigo-700 font-bold hover:bg-indigo-100/50 cursor-pointer">
-                        📍 拖曳卡片至此處放開 ➔ 快速指定全新日期
-                    </div>
-                </div>
-            `;
-
-            let html = stickyTopSection;
+            let html = unscheduledHtml;
 
             html += `
-                <table class="w-full border-collapse border border-slate-200 text-sm mt-3">
-                    <thead class="sticky top-[180px] z-20 bg-indigo-100 border-b-2 border-indigo-200 shadow-sm">
-                        <tr class="text-indigo-950 font-bold text-sm">
-                            <th class="p-3.5 text-left border border-indigo-200 w-40 bg-indigo-100 shrink-0 shadow-sm">📅 日期時間</th>
-                            ${categoriesList.map(c => `<th class="p-3.5 text-left border border-indigo-200 bg-indigo-100 text-indigo-950 min-w-[200px] text-sm font-bold shadow-sm">${c}</th>`).join('')}
-                        </tr>
-                    </thead>
-                    <tbody>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3 pt-2">
+                    <h2 class="text-sm font-bold text-slate-800">⏳ 跨領域時間對照矩陣</h2>
+                    <div class="flex items-center gap-2">
+                        <input type="date" id="newDateRowInput" class="px-2.5 py-1 text-xs border border-slate-300 rounded-lg text-slate-700">
+                        <button onclick="addCustomDateRow()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-lg border border-indigo-200">➕ 插入新日期行</button>
+                    </div>
+                </div>
+
+                <!-- 📍 快捷指定全新日期區域 -->
+                <div ondragover="handleDragOver(event)" ondrop="handleDrop(event, '__prompt_new_date__')" class="p-2.5 border-2 border-dashed border-indigo-300 bg-indigo-50/50 rounded-xl text-center text-xs text-indigo-700 font-bold hover:bg-indigo-100/50 cursor-pointer">
+                    📍 拖曳卡片至此處放開 ➔ 快速指定全新日期
+                </div>
+
+                <!-- 滾動表格容器 (表格標題列獨立 Sticky Top) -->
+                <div class="max-h-[60vh] overflow-y-auto overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full border-collapse text-sm">
+                        <thead class="sticky top-0 z-20 bg-indigo-100 border-b-2 border-indigo-200 shadow-sm">
+                            <tr class="text-indigo-950 font-bold text-sm">
+                                <th class="p-3.5 text-left border border-indigo-200 w-36 bg-indigo-100 shrink-0">📅 日期時間</th>
+                                ${categoriesList.map(c => `<th class="p-3.5 text-left border border-indigo-200 bg-indigo-100 text-indigo-950 min-w-[180px] text-sm font-bold">${c}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
             `;
 
             sortedDates.forEach(date => {
@@ -442,7 +464,7 @@
                     matchingGoals.forEach(g => {
                         html += `
                             <div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" 
-                                class="p-3 rounded-xl bg-amber-50 border-2 border-amber-300 text-amber-950 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-all">
+                                class="p-2.5 rounded-xl bg-amber-50 border-2 border-amber-300 text-amber-950 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-all">
                                 <div class="font-bold text-xs text-amber-800 flex items-center justify-between">
                                     <span>🎯 最終目標</span>
                                     <span class="text-[10px] text-amber-600 font-normal">可拖拉</span>
@@ -458,7 +480,7 @@
                             t.steps.filter(s => s.stepDate === date).forEach(s => {
                                 html += `
                                     <div draggable="true" ondragstart="handleDragStart(event, 'step', ${t.id}, ${s.id})" 
-                                        class="p-3 rounded-xl bg-white border border-slate-300 text-slate-900 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-all">
+                                        class="p-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-all">
                                         <label class="flex items-start gap-2 cursor-pointer">
                                             <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${t.id}, ${s.id})" class="mt-0.5 w-4 h-4 text-indigo-600 rounded border-slate-300">
                                             <span class="${s.done ? 'line-through text-slate-400' : 'font-bold text-slate-900'} text-sm leading-snug">${s.text}</span>
@@ -477,12 +499,12 @@
                 html += `</tr>`;
             });
 
-            html += `</tbody></table>`;
+            html += `</tbody></table></div>`;
             wrapper.innerHTML = html;
             container.appendChild(wrapper);
         }
 
-        // 🎯 高階總覽模式
+        // 🎯 總覽模式
         function renderOverview(container) {
             if (thoughts.length === 0) {
                 container.innerHTML = `<div class="text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200 text-sm">目前尚無記錄！</div>`;
