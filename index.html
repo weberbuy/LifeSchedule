@@ -12,7 +12,7 @@
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 上下午/晚上時段防呆 · 獨立可收納面板</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 支援時間軸雙擊卡片快速編輯 · 雙模式切換</p>
             </div>
             
             <div class="flex items-center gap-2">
@@ -24,7 +24,7 @@
             </div>
         </header>
 
-        <!-- 三模式切換列 (Overview vs Cards vs Timeline) -->
+        <!-- 三模式切換列 -->
         <div class="mb-6 bg-slate-200/80 p-1.5 rounded-2xl flex items-center shadow-inner border border-slate-300/60 gap-1 overflow-x-auto">
             <button onclick="setViewMode('overview')" id="btnViewOverview" class="flex-1 py-2.5 px-3 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 bg-white text-indigo-600 shadow-md whitespace-nowrap">
                 🎯 總覽模式 (整體思考)
@@ -37,7 +37,7 @@
             </button>
         </div>
 
-        <!-- 表單輸入區 (支援收納/展開與時段選擇) -->
+        <!-- 表單輸入區 -->
         <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6">
             <div class="flex items-center justify-between cursor-pointer select-none" onclick="toggleForm()">
                 <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -97,7 +97,7 @@
             </div>
         </div>
 
-        <!-- 頁籤列 (僅看板模式顯示) -->
+        <!-- 頁籤列 -->
         <div id="tabsSection" class="mb-6 hidden">
             <div class="flex items-center justify-between gap-2 mb-2">
                 <span class="text-xs font-bold text-slate-500">📂 領域分頁切換：</span>
@@ -133,6 +133,50 @@
             </div>
         </div>
 
+        <!-- ⏳ 時間軸雙擊快速編輯視窗 (Timeline Quick Edit Modal) -->
+        <div id="timelineEditModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+            <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h3 id="tlModalTitle" class="text-base font-bold text-slate-900">✏️ 快速編輯項目</h3>
+                    <button onclick="closeTimelineEditModal()" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">內容 / 名稱：</label>
+                        <input type="text" id="tlEditText" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">📅 預期日期：</label>
+                            <input type="date" id="tlEditDate" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl text-slate-800">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">⏰ 時段：</label>
+                            <select id="tlEditSlot" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white text-slate-800">
+                                <option value="全天">全天</option>
+                                <option value="上午">上午</option>
+                                <option value="下午">下午</option>
+                                <option value="晚上">晚上</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="tlEditTimeContainer" class="hidden">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">預估工時 (如: 2小時)：</label>
+                        <input type="text" id="tlEditTime" placeholder="例如：2小時" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl">
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-2">
+                    <button onclick="deleteTimelineEditItem()" class="px-3.5 py-2 text-xs bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl font-bold transition-colors">🗑️ 刪除此項目</button>
+                    <div class="flex gap-2">
+                        <button onclick="closeTimelineEditModal()" class="px-4 py-2 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors">取消</button>
+                        <button onclick="saveTimelineEdit()" class="px-4 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors shadow-sm">💾 儲存修改</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 主顯示區塊 -->
         <div id="mainContentList" class="space-y-6"></div>
     </div>
@@ -143,7 +187,7 @@
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
             thoughts = [
                 { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", detail: "每週固定跑步 3 次。", goal: "順利完賽 11 月半程馬拉松", targetDate: "2026-11-30", targetTimeSlot: "上午", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "30分鐘", stepTimeSlot: "上午", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", stepTimeSlot: "全天", done: false }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援四時段精準防呆。", goal: "發布支援四時段防呆的 App", targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計上下午/晚上防呆攔截邏輯", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
+                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援時間軸雙擊卡片快速編輯。", goal: "發布支援雙擊編輯的 App", targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計雙擊 Modal 快速編輯視窗", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
             ];
         }
 
@@ -157,17 +201,17 @@
         let activeCategory = "全部";
         let viewMode = "overview";
         let isFormOpen = false;
-        let isBlockPanelOpen = false; // 控制不排事設定區面板折疊/展開
+        let isBlockPanelOpen = false;
         let editingId = null;
         let editingStepIdKey = null;
         let isReorderMode = false;
         let draggedItemInfo = null;
         let pendingDropItem = null;
+        let pendingTlEdit = null; // 暫存時間軸雙擊編輯項目
 
         const todayObj = new Date();
         const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
 
-        // 🛡️ 檢查日期與時段重疊 (時段: 全天 / 上午 / 下午 / 晚上)
         function getBlockedSlot(dateStr, itemSlot = '全天') {
             if (!dateStr || dateStr === '未指定日期') return null;
             const matches = blockedSlots.filter(b => b.date === dateStr);
@@ -180,15 +224,8 @@
             return null;
         }
 
-        function toggleBlockPanel() {
-            isBlockPanelOpen = !isBlockPanelOpen;
-            render();
-        }
-
-        function saveBlockedSlots() {
-            localStorage.setItem('my_blocked_slots', JSON.stringify(blockedSlots));
-            render();
-        }
+        function toggleBlockPanel() { isBlockPanelOpen = !isBlockPanelOpen; render(); }
+        function saveBlockedSlots() { localStorage.setItem('my_blocked_slots', JSON.stringify(blockedSlots)); render(); }
 
         function addBlockedSlot() {
             const dateInput = document.getElementById('blockDateInput');
@@ -202,8 +239,7 @@
             if (!date) return alert("請選擇要設定不排事的日期！");
 
             blockedSlots.push({ id: Date.now(), date, timeSlot, note: note || '忙碌不排事' });
-            dateInput.value = '';
-            if (noteInput) noteInput.value = '';
+            dateInput.value = ''; if (noteInput) noteInput.value = '';
             saveBlockedSlots();
         }
 
@@ -236,7 +272,7 @@
 
             const blocked = getBlockedSlot(selectedDate, selectedSlot);
             if (blocked) {
-                alert(`🚫 警告：${selectedDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})，無法指定至此時段！`);
+                alert(`🚫 警告：${selectedDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})！`);
                 return;
             }
 
@@ -266,17 +302,107 @@
             closeDatePickerModal();
         }
 
+        // 🖱️ 時間軸雙擊編輯功能 (Double Click Quick Edit)
+        function editGoalFromTimeline(thoughtId) {
+            const t = thoughts.find(x => x.id === thoughtId);
+            if (!t) return;
+            pendingTlEdit = { type: 'goal', thoughtId };
+
+            document.getElementById('tlModalTitle').innerText = "✏️ 快速編輯目標";
+            document.getElementById('tlEditText').value = t.goal || t.text;
+            document.getElementById('tlEditDate').value = (t.targetDate !== '未指定日期') ? t.targetDate : '';
+            document.getElementById('tlEditSlot').value = t.targetTimeSlot || '全天';
+            document.getElementById('tlEditTimeContainer').classList.add('hidden');
+
+            document.getElementById('timelineEditModal').classList.remove('hidden');
+        }
+
+        function editStepFromTimeline(thoughtId, stepId) {
+            const t = thoughts.find(x => x.id === thoughtId);
+            if (!t) return;
+            const s = t.steps.find(x => x.id === stepId);
+            if (!s) return;
+            pendingTlEdit = { type: 'step', thoughtId, stepId };
+
+            document.getElementById('tlModalTitle').innerText = "✏️ 快速編輯步驟";
+            document.getElementById('tlEditText').value = s.text;
+            document.getElementById('tlEditDate').value = s.stepDate || '';
+            document.getElementById('tlEditSlot').value = s.stepTimeSlot || '全天';
+            document.getElementById('tlEditTime').value = s.stepTime || '';
+            document.getElementById('tlEditTimeContainer').classList.remove('hidden');
+
+            document.getElementById('timelineEditModal').classList.remove('hidden');
+        }
+
+        function saveTimelineEdit() {
+            if (!pendingTlEdit) return;
+            const text = document.getElementById('tlEditText').value.trim();
+            const date = document.getElementById('tlEditDate').value;
+            const slot = document.getElementById('tlEditSlot').value;
+            const time = document.getElementById('tlEditTime').value.trim();
+
+            if (!text) return alert("內容不能為空！");
+
+            const blocked = getBlockedSlot(date, slot);
+            if (blocked) {
+                return alert(`🚫 警告：${date} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})！`);
+            }
+
+            const t = thoughts.find(x => x.id === pendingTlEdit.thoughtId);
+            if (!t) return;
+
+            if (pendingTlEdit.type === 'goal') {
+                t.goal = text;
+                t.targetDate = date || '未指定日期';
+                t.targetTimeSlot = slot;
+            } else if (pendingTlEdit.type === 'step') {
+                if (date && t.targetDate && t.targetDate !== '未指定日期' && date > t.targetDate) {
+                    return alert(`步驟預期日期 (${date}) 不能超過最終目標預期日期 (${t.targetDate})！`);
+                }
+                const s = t.steps.find(x => x.id === pendingTlEdit.stepId);
+                if (s) {
+                    s.text = text;
+                    s.stepDate = date;
+                    s.stepTimeSlot = slot;
+                    s.stepTime = time;
+                }
+            }
+
+            saveData();
+            closeTimelineEditModal();
+        }
+
+        function deleteTimelineEditItem() {
+            if (!pendingTlEdit) return;
+            if (confirm("確定要在時間軸中刪除此項目？")) {
+                const t = thoughts.find(x => x.id === pendingTlEdit.thoughtId);
+                if (t) {
+                    if (pendingTlEdit.type === 'goal') {
+                        thoughts = thoughts.filter(x => x.id !== pendingTlEdit.thoughtId);
+                    } else if (pendingTlEdit.type === 'step') {
+                        t.steps = t.steps.filter(x => x.id !== pendingTlEdit.stepId);
+                    }
+                    saveData();
+                }
+                closeTimelineEditModal();
+            }
+        }
+
+        function closeTimelineEditModal() {
+            pendingTlEdit = null;
+            const modal = document.getElementById('timelineEditModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
         function toggleForm() {
             isFormOpen = !isFormOpen;
             const content = document.getElementById('formContent');
             const btn = document.getElementById('toggleFormBtn');
             if (content && btn) {
                 if (isFormOpen) {
-                    content.classList.remove('hidden');
-                    btn.innerText = "➖ 收納表單";
+                    content.classList.remove('hidden'); btn.innerText = "➖ 收納表單";
                 } else {
-                    content.classList.add('hidden');
-                    btn.innerText = "➕ 展開表單";
+                    content.classList.add('hidden'); btn.innerText = "➕ 展開表單";
                 }
             }
         }
@@ -601,7 +727,7 @@
             else renderCards(container);
         }
 
-        // ⏳ 渲染時間對照矩陣 (含可收納不排事面板與上下午/晚上精準防呆)
+        // ⏳ 渲染時間對照矩陣 (支援雙擊卡片快速編輯)
         function renderTimelineMatrix(container) {
             const datesSet = new Set(customTimelineDates);
             const categoriesSet = new Set();
@@ -624,7 +750,6 @@
             const wrapper = document.createElement('div');
             wrapper.className = "bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4";
 
-            // 🚫 可收納的不排事面板 (Collapsible Block Panel)
             let blockedManagerHtml = `
                 <div class="bg-rose-50/80 p-3.5 rounded-xl border border-rose-200 space-y-2">
                     <div class="flex items-center justify-between cursor-pointer select-none" onclick="toggleBlockPanel()">
@@ -690,7 +815,10 @@
 
             html += `
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3 pt-2">
-                    <h2 class="text-sm font-bold text-slate-800">⏳ 跨領域時間對照矩陣</h2>
+                    <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <span>⏳ 跨領域時間對照矩陣</span>
+                        <span class="text-xs font-normal text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-md border border-indigo-100">💡 雙擊卡片可快速編輯內容或日期</span>
+                    </h2>
                     <div class="flex items-center gap-2">
                         <input type="date" id="newDateRowInput" class="px-2.5 py-1 text-xs border border-slate-300 rounded-lg text-slate-700">
                         <button onclick="addCustomDateRow()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-lg border border-indigo-200">➕ 插入新日期行</button>
@@ -735,11 +863,11 @@
                     const matchingGoals = thoughts.filter(t => (t.category || '💼 事業') === cat && t.targetDate === date);
                     matchingGoals.forEach(g => {
                         html += `
-                            <div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" 
-                                class="p-2.5 rounded-xl bg-amber-50 border-2 border-amber-300 text-amber-950 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-all">
+                            <div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" ondblclick="editGoalFromTimeline(${g.id})"
+                                class="p-2.5 rounded-xl bg-amber-50 border-2 border-amber-300 text-amber-950 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-all select-none" title="雙擊可編輯此目標">
                                 <div class="font-bold text-xs text-amber-800 flex items-center justify-between">
                                     <span>🎯 最終目標 [${g.targetTimeSlot || '全天'}]</span>
-                                    <span class="text-[10px] text-amber-600 font-normal">可拖拉</span>
+                                    <span class="text-[10px] text-amber-600 font-normal">可拖拉/雙擊</span>
                                 </div>
                                 <div class="font-bold text-sm mt-1 text-slate-900">${g.goal || g.text}</div>
                                 <div class="text-xs text-amber-800/80 mt-1">主題: ${g.text}</div>
@@ -751,8 +879,8 @@
                         if (Array.isArray(t.steps)) {
                             t.steps.filter(s => s.stepDate === date).forEach(s => {
                                 html += `
-                                    <div draggable="true" ondragstart="handleDragStart(event, 'step', ${t.id}, ${s.id})" 
-                                        class="p-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-all">
+                                    <div draggable="true" ondragstart="handleDragStart(event, 'step', ${t.id}, ${s.id})" ondblclick="editStepFromTimeline(${t.id}, ${s.id})"
+                                        class="p-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-all select-none" title="雙擊可編輯此步驟">
                                         <label class="flex items-start gap-2 cursor-pointer">
                                             <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${t.id}, ${s.id})" class="mt-0.5 w-4 h-4 text-indigo-600 rounded border-slate-300">
                                             <span class="${s.done ? 'line-through text-slate-400' : 'font-bold text-slate-900'} text-sm leading-snug">${s.text}</span>
