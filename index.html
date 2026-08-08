@@ -12,7 +12,7 @@
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 支援目標與步驟一鍵複製 · 雙模式切換</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 日期月曆彈窗選擇 · 跨領域時間對照矩陣</p>
             </div>
             
             <div class="flex items-center gap-2">
@@ -101,6 +101,23 @@
             </div>
         </div>
 
+        <!-- 日期選擇器彈出視窗 (Date Picker Modal) -->
+        <div id="datePickerModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+            <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100 space-y-4">
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <span>📅 請點選新預期日期</span>
+                </h3>
+                <p class="text-xs text-slate-500">將卡片指定至全新的時間軸日期：</p>
+                <div>
+                    <input type="date" id="modalDatePicker" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 font-medium">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button onclick="closeDatePickerModal()" class="px-4 py-2 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors">取消</button>
+                    <button onclick="confirmModalDate()" class="px-4 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors shadow-sm">💾 確定指定</button>
+                </div>
+            </div>
+        </div>
+
         <!-- 主顯示區塊 -->
         <div id="mainContentList" class="space-y-6"></div>
     </div>
@@ -111,7 +128,7 @@
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
             thoughts = [
                 { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", detail: "希望透過 3 個月的漸進式訓練，提升心肺耐力並保護膝蓋。\n每週固定跑步 3 次，配速保持在 6:30 分/公里。", goal: "順利完賽 11 月半程馬拉松", targetDate: "2026-11-30", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "30分鐘", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", done: false }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "打造一個包含目標管理、多行備忘、步驟拆解與時間軸對照的個人化網頁應用。", goal: "發布支援複製功能與本地備份的 App", targetDate: "2026-12-31", steps: [{ id: 1, text: "設計目標與步驟一鍵複製功能", stepDate: "2026-08-08", stepTime: "2小時", done: true }] }
+                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "打造一個包含目標管理、多行備忘、步驟拆解與時間軸對照的個人化網頁應用。", goal: "發布支援月曆彈窗選擇與本地備份的 App", targetDate: "2026-12-31", steps: [{ id: 1, text: "設計月曆日期彈窗 Modal UI", stepDate: "2026-08-08", stepTime: "2小時", done: true }] }
             ];
         }
 
@@ -126,9 +143,53 @@
         let editingStepIdKey = null;
         let isReorderMode = false;
         let draggedItemInfo = null;
+        let pendingDropItem = null;
 
         const todayObj = new Date();
         const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
+
+        function openDatePickerModal(type, thoughtId, stepId) {
+            pendingDropItem = { type, thoughtId, stepId };
+            const modal = document.getElementById('datePickerModal');
+            const picker = document.getElementById('modalDatePicker');
+            if (picker) picker.value = new Date().toISOString().slice(0, 10);
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeDatePickerModal() {
+            pendingDropItem = null;
+            const modal = document.getElementById('datePickerModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function confirmModalDate() {
+            const picker = document.getElementById('modalDatePicker');
+            const selectedDate = picker ? picker.value : '';
+            if (!selectedDate) return alert("請選擇有效日期！");
+
+            if (pendingDropItem) {
+                const { type, thoughtId, stepId } = pendingDropItem;
+                const t = thoughts.find(x => x.id === thoughtId);
+                if (t) {
+                    if (type === 'goal') {
+                        t.targetDate = selectedDate;
+                        saveData();
+                    } else if (type === 'step') {
+                        if (selectedDate && t.targetDate && t.targetDate !== '未指定日期' && selectedDate > t.targetDate) {
+                            alert(`步驟預期日期 (${selectedDate}) 不能超過最終目標預期日期 (${t.targetDate})！`);
+                            closeDatePickerModal();
+                            return;
+                        }
+                        const s = t.steps.find(x => x.id === stepId);
+                        if (s) {
+                            s.stepDate = selectedDate;
+                            saveData();
+                        }
+                    }
+                }
+            }
+            closeDatePickerModal();
+        }
 
         function toggleForm() {
             isFormOpen = !isFormOpen;
@@ -237,7 +298,6 @@
             saveData();
         }
 
-        // 📋 複製目標卡片 (包含詳細備忘與步驟)
         function duplicateThought(id) {
             const original = thoughts.find(t => t.id === id);
             if (!original) return;
@@ -313,7 +373,6 @@
             }
         }
 
-        // 📋 複製細節步驟
         function duplicateStep(thoughtId, stepId) {
             const t = thoughts.find(x => x.id === thoughtId);
             if (!t) return;
@@ -377,9 +436,10 @@
             if (!draggedItemInfo) return;
 
             if (targetDate === '__prompt_new_date__') {
-                const selected = prompt("請輸入要移動至的新日期 (格式: YYYY-MM-DD)：", new Date().toISOString().slice(0, 10));
-                if (!selected || !selected.trim()) { draggedItemInfo = null; return; }
-                targetDate = selected.trim();
+                const { type, thoughtId, stepId } = draggedItemInfo;
+                openDatePickerModal(type, thoughtId, stepId);
+                draggedItemInfo = null;
+                return;
             }
 
             const { type, thoughtId, stepId } = draggedItemInfo;
@@ -485,7 +545,7 @@
                 </div>
 
                 <div ondragover="handleDragOver(event)" ondrop="handleDrop(event, '__prompt_new_date__')" class="p-2.5 border-2 border-dashed border-indigo-300 bg-indigo-50/50 rounded-xl text-center text-xs text-indigo-700 font-bold hover:bg-indigo-100/50 cursor-pointer">
-                    📍 拖曳卡片至此處放開 ➔ 快速指定全新日期
+                    📍 拖曳卡片至此處放開 ➔ 快速點選月曆指定全新日期
                 </div>
 
                 <div class="max-h-[60vh] overflow-y-auto overflow-x-auto rounded-xl border border-slate-200">
