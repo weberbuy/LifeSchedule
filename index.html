@@ -12,7 +12,7 @@
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 步驟另存目標與雙向聯動 · 雙模式切換</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 獨立目標與子步驟衝突檢查 · 雙模式切換</p>
             </div>
             
             <div class="flex items-center gap-2">
@@ -187,7 +187,7 @@
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
             thoughts = [
                 { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", detail: "每週固定跑步 3 次。", goal: "順利完賽 11 月半程馬拉松", goalDone: false, targetDate: "2026-11-30", targetTimeSlot: "上午", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "30分鐘", stepTimeSlot: "上午", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", stepTimeSlot: "全天", done: false }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援步驟另存目標與雙向聯動。", goal: "發布支援步驟雙向同步的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計步驟另存為目標與雙向同步邏輯", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
+                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援獨立目標子步驟日期衝突檢查。", goal: "發布支援階層防呆的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計階層子步驟日期衝突防呆邏輯", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
             ];
         }
 
@@ -213,46 +213,45 @@
         let pendingDropItem = null;
         let pendingTlEdit = null;
 
-        // 🔗 雙向同步核心邏輯：同步關聯項目之完成狀態與預期日期/時段
+        // 🛡️ 階層日期衝突檢測：檢查目標底下的子步驟是否有晚於該目標設定日期的情況
+        function validateChildStepsDate(targetThoughtId, newTargetDate) {
+            if (!newTargetDate || newTargetDate === '未指定日期') return true;
+
+            const targetThought = thoughts.find(x => x.id === targetThoughtId);
+            if (!targetThought || !Array.isArray(targetThought.steps)) return true;
+
+            for (const s of targetThought.steps) {
+                if (s.stepDate && s.stepDate > newTargetDate) {
+                    alert(`🚫 阻擋變更：無法將日期設定為 ${newTargetDate}！因為獨立目標「${targetThought.goal || targetThought.text}」底下已有排定在 ${s.stepDate} 的子步驟「${s.text}」，目標日期不能早於其子步驟日期！`);
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // 🔗 雙向同步核心邏輯
         function syncLinkedData() {
             thoughts.forEach(t => {
-                // 1. 若該目標是由母步驟另存而來 (含有 parentStepInfo)
                 if (t.parentStepInfo) {
                     const parentThought = thoughts.find(x => x.id === t.parentStepInfo.parentThoughtId);
                     if (parentThought && Array.isArray(parentThought.steps)) {
                         const parentStep = parentThought.steps.find(s => s.id === t.parentStepInfo.parentStepId);
                         if (parentStep) {
-                            // 雙向同步：完成狀態
-                            if (t.goalDone !== parentStep.done) {
-                                parentStep.done = t.goalDone;
-                            }
-                            // 雙向同步：日期
-                            if (t.targetDate !== '未指定日期' && t.targetDate !== parentStep.stepDate) {
-                                parentStep.stepDate = (t.targetDate !== '未指定日期') ? t.targetDate : '';
-                            }
-                            // 雙向同步：時段
-                            if (t.targetTimeSlot && t.targetTimeSlot !== parentStep.stepTimeSlot) {
-                                parentStep.stepTimeSlot = t.targetTimeSlot;
-                            }
+                            if (t.goalDone !== parentStep.done) parentStep.done = t.goalDone;
+                            if (t.targetDate !== '未指定日期' && t.targetDate !== parentStep.stepDate) parentStep.stepDate = (t.targetDate !== '未指定日期') ? t.targetDate : '';
+                            if (t.targetTimeSlot && t.targetTimeSlot !== parentStep.stepTimeSlot) parentStep.stepTimeSlot = t.targetTimeSlot;
                         }
                     }
                 }
 
-                // 2. 檢查含有 linkedThoughtId 的步驟
                 if (Array.isArray(t.steps)) {
                     t.steps.forEach(s => {
                         if (s.linkedThoughtId) {
                             const childThought = thoughts.find(x => x.id === s.linkedThoughtId);
                             if (childThought) {
-                                if (s.done !== childThought.goalDone) {
-                                    childThought.goalDone = s.done;
-                                }
-                                if (s.stepDate && s.stepDate !== childThought.targetDate) {
-                                    childThought.targetDate = s.stepDate;
-                                }
-                                if (s.stepTimeSlot && s.stepTimeSlot !== childThought.targetTimeSlot) {
-                                    childThought.targetTimeSlot = s.stepTimeSlot;
-                                }
+                                if (s.done !== childThought.goalDone) childThought.goalDone = s.done;
+                                if (s.stepDate && s.stepDate !== childThought.targetDate) childThought.targetDate = s.stepDate;
+                                if (s.stepTimeSlot && s.stepTimeSlot !== childThought.targetTimeSlot) childThought.targetTimeSlot = s.stepTimeSlot;
                             }
                         }
                     });
@@ -267,9 +266,7 @@
             const step = parentThought.steps.find(s => s.id === stepId);
             if (!step) return;
 
-            if (step.linkedThoughtId) {
-                return alert("此步驟已經另存為獨立目標囉！");
-            }
+            if (step.linkedThoughtId) return alert("此步驟已經另存為獨立目標囉！");
 
             const newThoughtId = Date.now();
             const newGoalThought = {
@@ -392,6 +389,7 @@
                 const t = thoughts.find(x => x.id === thoughtId);
                 if (t) {
                     if (type === 'goal') {
+                        if (!validateChildStepsDate(t.id, selectedDate)) return;
                         t.targetDate = selectedDate;
                         t.targetTimeSlot = selectedSlot;
                         saveData();
@@ -403,6 +401,7 @@
                         }
                         const s = t.steps.find(x => x.id === stepId);
                         if (s) {
+                            if (s.linkedThoughtId && !validateChildStepsDate(s.linkedThoughtId, selectedDate)) return;
                             s.stepDate = selectedDate;
                             s.stepTimeSlot = selectedSlot;
                             saveData();
@@ -462,6 +461,7 @@
             if (!t) return;
 
             if (pendingTlEdit.type === 'goal') {
+                if (!validateChildStepsDate(t.id, date)) return;
                 t.goal = text;
                 t.targetDate = date || '未指定日期';
                 t.targetTimeSlot = slot;
@@ -471,6 +471,7 @@
                 }
                 const s = t.steps.find(x => x.id === pendingTlEdit.stepId);
                 if (s) {
+                    if (s.linkedThoughtId && !validateChildStepsDate(s.linkedThoughtId, date)) return;
                     s.text = text;
                     s.stepDate = date;
                     s.stepTimeSlot = slot;
@@ -580,7 +581,7 @@
         }
 
         function saveData() {
-            syncLinkedData(); // 儲存前先同步雙向聯動資料
+            syncLinkedData();
             localStorage.setItem('my_thoughts_local', JSON.stringify(thoughts));
             render();
         }
@@ -675,6 +676,8 @@
                 return alert(`🚫 警告：${date} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})！`);
             }
 
+            if (!validateChildStepsDate(id, date)) return;
+
             const t = thoughts.find(x => x.id === id);
             if (t) {
                 t.category = cat || '💼 事業'; t.text = text; t.detail = detail || ''; t.goal = goal || '未設定目標'; t.targetDate = date || '未指定日期'; t.targetTimeSlot = targetTimeSlot;
@@ -758,7 +761,10 @@
                     return alert(`步驟預期日期 (${stepDate}) 不能超過最終目標預期日期 (${t.targetDate})！`);
                 }
                 const s = t.steps.find(x => x.id === stepId);
-                if (s) { s.text = text; s.stepDate = stepDate; s.stepTime = stepTime; s.stepTimeSlot = stepTimeSlot; editingStepIdKey = null; saveData(); }
+                if (s) {
+                    if (s.linkedThoughtId && !validateChildStepsDate(s.linkedThoughtId, stepDate)) return;
+                    s.text = text; s.stepDate = stepDate; s.stepTime = stepTime; s.stepTimeSlot = stepTimeSlot; editingStepIdKey = null; saveData();
+                }
             }
         }
 
@@ -800,6 +806,9 @@
             }
 
             if (type === 'goal') {
+                if (targetDate !== '__unscheduled__' && !validateChildStepsDate(t.id, targetDate)) {
+                    draggedItemInfo = null; return;
+                }
                 t.targetDate = (targetDate === '__unscheduled__') ? '未指定日期' : targetDate;
                 saveData();
             } else if (type === 'step') {
@@ -809,7 +818,12 @@
                     draggedItemInfo = null; return;
                 }
                 const s = t.steps.find(x => x.id === stepId);
-                if (s) { s.stepDate = newStepDate; saveData(); }
+                if (s) {
+                    if (s.linkedThoughtId && newStepDate && !validateChildStepsDate(s.linkedThoughtId, newStepDate)) {
+                        draggedItemInfo = null; return;
+                    }
+                    s.stepDate = newStepDate; saveData();
+                }
             }
             draggedItemInfo = null;
         }
@@ -837,14 +851,13 @@
         function setCategoryTab(cat) { activeCategory = cat; render(); }
 
         function render() {
-            syncLinkedData(); // 渲染前進行雙向數據同步
+            syncLinkedData();
             const container = document.getElementById('mainContentList'); container.innerHTML = '';
             if (viewMode === 'overview') renderOverview(container);
             else if (viewMode === 'timeline') renderTimelineMatrix(container);
             else renderCards(container);
         }
 
-        // ⏳ 渲染時間對照矩陣
         function renderTimelineMatrix(container) {
             const datesSet = new Set(customTimelineDates);
             const categoriesSet = new Set();
