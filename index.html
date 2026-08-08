@@ -12,7 +12,7 @@
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 不排事/忙碌時段防呆 · 雙模式切換</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 上下午/晚上時段防呆 · 獨立可收納面板</p>
             </div>
             
             <div class="flex items-center gap-2">
@@ -24,7 +24,7 @@
             </div>
         </header>
 
-        <!-- 三模式切換列 -->
+        <!-- 三模式切換列 (Overview vs Cards vs Timeline) -->
         <div class="mb-6 bg-slate-200/80 p-1.5 rounded-2xl flex items-center shadow-inner border border-slate-300/60 gap-1 overflow-x-auto">
             <button onclick="setViewMode('overview')" id="btnViewOverview" class="flex-1 py-2.5 px-3 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 bg-white text-indigo-600 shadow-md whitespace-nowrap">
                 🎯 總覽模式 (整體思考)
@@ -37,7 +37,7 @@
             </button>
         </div>
 
-        <!-- 表單輸入區 (支援收納/展開與多行詳細思緒欄位) -->
+        <!-- 表單輸入區 (支援收納/展開與時段選擇) -->
         <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6">
             <div class="flex items-center justify-between cursor-pointer select-none" onclick="toggleForm()">
                 <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -72,13 +72,22 @@
                             class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
                     </div>
 
-                    <div class="md:col-span-2">
+                    <div class="md:col-span-1">
                         <label class="block text-xs font-semibold text-slate-600 mb-1">🎯 最終目標：</label>
-                        <input type="text" id="goalInput" placeholder="例如：完成人生第一次半程馬拉松 21K" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="text" id="goalInput" placeholder="例如：完賽 21K" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
                     <div class="md:col-span-1">
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">📅 預期達成日期：</label>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">📅 預期日期：</label>
                         <input type="date" id="dateInput" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700">
+                    </div>
+                    <div class="md:col-span-1">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">⏰ 目標時程區段：</label>
+                        <select id="goalSlotSelect" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700 bg-white">
+                            <option value="全天">全天</option>
+                            <option value="上午">上午 (08:00-12:00)</option>
+                            <option value="下午">下午 (13:00-18:00)</option>
+                            <option value="晚上">晚上 (18:00-24:00)</option>
+                        </select>
                     </div>
                 </div>
 
@@ -88,7 +97,7 @@
             </div>
         </div>
 
-        <!-- 頁籤列與排序控制 (僅看板模式顯示) -->
+        <!-- 頁籤列 (僅看板模式顯示) -->
         <div id="tabsSection" class="mb-6 hidden">
             <div class="flex items-center justify-between gap-2 mb-2">
                 <span class="text-xs font-bold text-slate-500">📂 領域分頁切換：</span>
@@ -105,11 +114,17 @@
         <div id="datePickerModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
             <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100 space-y-4">
                 <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <span>📅 請點選新預期日期</span>
+                    <span>📅 請點選新預期日期與時段</span>
                 </h3>
                 <p class="text-xs text-slate-500">將卡片指定至全新的時間軸日期：</p>
-                <div>
+                <div class="space-y-2">
                     <input type="date" id="modalDatePicker" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 font-medium">
+                    <select id="modalSlotSelect" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 bg-white font-medium">
+                        <option value="全天">全天</option>
+                        <option value="上午">上午</option>
+                        <option value="下午">下午</option>
+                        <option value="晚上">晚上</option>
+                    </select>
                 </div>
                 <div class="flex justify-end gap-2 pt-2">
                     <button onclick="closeDatePickerModal()" class="px-4 py-2 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors">取消</button>
@@ -127,12 +142,11 @@
         try { thoughts = JSON.parse(localStorage.getItem('my_thoughts_local')) || []; } catch(e) { thoughts = []; }
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
             thoughts = [
-                { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", detail: "每週固定跑步 3 次，配速保持在 6:30 分/公里。", goal: "順利完賽 11 月半程馬拉松", targetDate: "2026-11-30", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "30分鐘", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", done: false }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援忙碌不排事時段防呆攔截。", goal: "發布支援忙碌時段攔截的 App", targetDate: "2026-12-31", steps: [{ id: 1, text: "設計不排事時段防呆與欄位", stepDate: "2026-08-08", stepTime: "2小時", done: true }] }
+                { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", detail: "每週固定跑步 3 次。", goal: "順利完賽 11 月半程馬拉松", targetDate: "2026-11-30", targetTimeSlot: "上午", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "30分鐘", stepTimeSlot: "上午", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", stepTimeSlot: "全天", done: false }] },
+                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援四時段精準防呆。", goal: "發布支援四時段防呆的 App", targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計上下午/晚上防呆攔截邏輯", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
             ];
         }
 
-        // 不排事/忙碌時段資料清單 (Blackout Slots)
         let blockedSlots = [];
         try { blockedSlots = JSON.parse(localStorage.getItem('my_blocked_slots')) || []; } catch(e) { blockedSlots = []; }
 
@@ -143,6 +157,7 @@
         let activeCategory = "全部";
         let viewMode = "overview";
         let isFormOpen = false;
+        let isBlockPanelOpen = false; // 控制不排事設定區面板折疊/展開
         let editingId = null;
         let editingStepIdKey = null;
         let isReorderMode = false;
@@ -152,10 +167,22 @@
         const todayObj = new Date();
         const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
 
-        // 🛡️ 檢查日期是否被設為不排事/忙碌時段
-        function getBlockedSlot(dateStr) {
+        // 🛡️ 檢查日期與時段重疊 (時段: 全天 / 上午 / 下午 / 晚上)
+        function getBlockedSlot(dateStr, itemSlot = '全天') {
             if (!dateStr || dateStr === '未指定日期') return null;
-            return blockedSlots.find(b => b.date === dateStr) || null;
+            const matches = blockedSlots.filter(b => b.date === dateStr);
+            if (matches.length === 0) return null;
+
+            for (const b of matches) {
+                if (b.timeSlot === '全天' || itemSlot === '全天') return b;
+                if (b.timeSlot === itemSlot) return b;
+            }
+            return null;
+        }
+
+        function toggleBlockPanel() {
+            isBlockPanelOpen = !isBlockPanelOpen;
+            render();
         }
 
         function saveBlockedSlots() {
@@ -174,7 +201,7 @@
 
             if (!date) return alert("請選擇要設定不排事的日期！");
 
-            blockedSlots.push({ id: Date.now(), date, timeSlot, note: note || '個人忙碌不排事' });
+            blockedSlots.push({ id: Date.now(), date, timeSlot, note: note || '忙碌不排事' });
             dateInput.value = '';
             if (noteInput) noteInput.value = '';
             saveBlockedSlots();
@@ -201,13 +228,15 @@
 
         function confirmModalDate() {
             const picker = document.getElementById('modalDatePicker');
+            const slotSelect = document.getElementById('modalSlotSelect');
             const selectedDate = picker ? picker.value : '';
+            const selectedSlot = slotSelect ? slotSelect.value : '全天';
+
             if (!selectedDate) return alert("請選擇有效日期！");
 
-            // 🛡️ 防呆：檢查是否不排事
-            const blocked = getBlockedSlot(selectedDate);
+            const blocked = getBlockedSlot(selectedDate, selectedSlot);
             if (blocked) {
-                alert(`🚫 警告：${selectedDate} 已設定為 [不排事/忙碌時段 (${blocked.timeSlot} - ${blocked.note})]，無法排程！`);
+                alert(`🚫 警告：${selectedDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})，無法指定至此時段！`);
                 return;
             }
 
@@ -217,6 +246,7 @@
                 if (t) {
                     if (type === 'goal') {
                         t.targetDate = selectedDate;
+                        t.targetTimeSlot = selectedSlot;
                         saveData();
                     } else if (type === 'step') {
                         if (selectedDate && t.targetDate && t.targetDate !== '未指定日期' && selectedDate > t.targetDate) {
@@ -227,6 +257,7 @@
                         const s = t.steps.find(x => x.id === stepId);
                         if (s) {
                             s.stepDate = selectedDate;
+                            s.stepTimeSlot = selectedSlot;
                             saveData();
                         }
                     }
@@ -330,16 +361,17 @@
             const detail = document.getElementById('detailInput').value.trim();
             const goal = document.getElementById('goalInput').value.trim();
             const date = document.getElementById('dateInput').value;
+            const slotSelect = document.getElementById('goalSlotSelect');
+            const targetTimeSlot = slotSelect ? slotSelect.value : '全天';
 
             if (!text) return alert("請填入思緒/想法主題！");
 
-            // 🛡️ 防呆：檢查日期是否不排事
-            const blocked = getBlockedSlot(date);
+            const blocked = getBlockedSlot(date, targetTimeSlot);
             if (blocked) {
-                return alert(`🚫 警告：${date} 已設定為 [不排事/忙碌時段 (${blocked.timeSlot} - ${blocked.note})]，無法設定為目標日期！`);
+                return alert(`🚫 警告：${date} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})，無法設定為目標日期！`);
             }
 
-            thoughts.push({ id: Date.now(), category: cat, text: text, detail: detail || '', goal: goal || '未設定目標', targetDate: date || '未指定日期', steps: [] });
+            thoughts.push({ id: Date.now(), category: cat, text: text, detail: detail || '', goal: goal || '未設定目標', targetDate: date || '未指定日期', targetTimeSlot: targetTimeSlot, steps: [] });
             document.getElementById('thoughtInput').value = '';
             document.getElementById('detailInput').value = '';
             document.getElementById('goalInput').value = '';
@@ -357,6 +389,7 @@
                 text: s.text,
                 stepDate: s.stepDate || '',
                 stepTime: s.stepTime || '',
+                stepTimeSlot: s.stepTimeSlot || '全天',
                 done: false
             }));
 
@@ -367,6 +400,7 @@
                 detail: original.detail || '',
                 goal: original.goal || '',
                 targetDate: original.targetDate || '未指定日期',
+                targetTimeSlot: original.targetTimeSlot || '全天',
                 steps: clonedSteps
             });
             saveData();
@@ -389,17 +423,19 @@
             const detail = document.getElementById(`edit-detail-${id}`).value.trim();
             const goal = document.getElementById(`edit-goal-${id}`).value.trim();
             const date = document.getElementById(`edit-date-${id}`).value;
+            const slotSelect = document.getElementById(`edit-slot-${id}`);
+            const targetTimeSlot = slotSelect ? slotSelect.value : '全天';
 
             if (!text) return alert("思緒主題不能為空！");
 
-            const blocked = getBlockedSlot(date);
+            const blocked = getBlockedSlot(date, targetTimeSlot);
             if (blocked) {
-                return alert(`🚫 警告：${date} 已設定為 [不排事/忙碌時段 (${blocked.timeSlot} - ${blocked.note})]，無法設定為目標日期！`);
+                return alert(`🚫 警告：${date} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})，無法設定為目標日期！`);
             }
 
             const t = thoughts.find(x => x.id === id);
             if (t) {
-                t.category = cat || '💼 事業'; t.text = text; t.detail = detail || ''; t.goal = goal || '未設定目標'; t.targetDate = date || '未指定日期';
+                t.category = cat || '💼 事業'; t.text = text; t.detail = detail || ''; t.goal = goal || '未設定目標'; t.targetDate = date || '未指定日期'; t.targetTimeSlot = targetTimeSlot;
                 editingId = null; saveData();
             }
         }
@@ -408,16 +444,18 @@
             const textInput = document.getElementById(`step-text-${thoughtId}`);
             const dateInput = document.getElementById(`step-date-${thoughtId}`);
             const timeInput = document.getElementById(`step-time-${thoughtId}`);
+            const slotSelect = document.getElementById(`step-slot-${thoughtId}`);
 
             const text = textInput ? textInput.value.trim() : '';
             const stepDate = dateInput ? dateInput.value : '';
             const stepTime = timeInput ? timeInput.value.trim() : '';
+            const stepTimeSlot = slotSelect ? slotSelect.value : '全天';
 
             if (!text) return alert("請填入步驟內容！");
 
-            const blocked = getBlockedSlot(stepDate);
+            const blocked = getBlockedSlot(stepDate, stepTimeSlot);
             if (blocked) {
-                return alert(`🚫 警告：${stepDate} 已設定為 [不排事/忙碌時段 (${blocked.timeSlot} - ${blocked.note})]，無法排定步驟！`);
+                return alert(`🚫 警告：${stepDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})，無法排定步驟！`);
             }
 
             const t = thoughts.find(x => x.id === thoughtId);
@@ -425,7 +463,7 @@
                 if (stepDate && t.targetDate && t.targetDate !== '未指定日期' && stepDate > t.targetDate) {
                     return alert(`步驟預期日期 (${stepDate}) 不能超過最終目標預期日期 (${t.targetDate})！`);
                 }
-                t.steps.push({ id: Date.now(), text: text, stepDate: stepDate || '', stepTime: stepTime || '', done: false });
+                t.steps.push({ id: Date.now(), text: text, stepDate: stepDate || '', stepTime: stepTime || '', stepTimeSlot: stepTimeSlot, done: false });
                 textInput.value = ''; if (dateInput) dateInput.value = ''; if (timeInput) timeInput.value = '';
                 saveData();
             }
@@ -437,7 +475,7 @@
             const s = t.steps.find(x => x.id === stepId);
             if (!s) return;
 
-            t.steps.push({ id: Date.now(), text: s.text, stepDate: s.stepDate || '', stepTime: s.stepTime || '', done: false });
+            t.steps.push({ id: Date.now(), text: s.text, stepDate: s.stepDate || '', stepTime: s.stepTime || '', stepTimeSlot: s.stepTimeSlot || '全天', done: false });
             saveData();
         }
 
@@ -458,16 +496,18 @@
             const textInput = document.getElementById(`edit-step-text-${thoughtId}-${stepId}`);
             const dateInput = document.getElementById(`edit-step-date-${thoughtId}-${stepId}`);
             const timeInput = document.getElementById(`edit-step-time-${thoughtId}-${stepId}`);
+            const slotSelect = document.getElementById(`edit-step-slot-${thoughtId}-${stepId}`);
 
             const text = textInput ? textInput.value.trim() : '';
             const stepDate = dateInput ? dateInput.value : '';
             const stepTime = timeInput ? timeInput.value.trim() : '';
+            const stepTimeSlot = slotSelect ? slotSelect.value : '全天';
 
             if (!text) return alert("步驟內容不能為空！");
 
-            const blocked = getBlockedSlot(stepDate);
+            const blocked = getBlockedSlot(stepDate, stepTimeSlot);
             if (blocked) {
-                return alert(`🚫 警告：${stepDate} 已設定為 [不排事/忙碌時段 (${blocked.timeSlot} - ${blocked.note})]，無法排定步驟！`);
+                return alert(`🚫 警告：${stepDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})，無法排定步驟！`);
             }
 
             const t = thoughts.find(x => x.id === thoughtId);
@@ -476,7 +516,7 @@
                     return alert(`步驟預期日期 (${stepDate}) 不能超過最終目標預期日期 (${t.targetDate})！`);
                 }
                 const s = t.steps.find(x => x.id === stepId);
-                if (s) { s.text = text; s.stepDate = stepDate; s.stepTime = stepTime; editingStepIdKey = null; saveData(); }
+                if (s) { s.text = text; s.stepDate = stepDate; s.stepTime = stepTime; s.stepTimeSlot = stepTimeSlot; editingStepIdKey = null; saveData(); }
             }
         }
 
@@ -487,7 +527,6 @@
 
         function handleDragOver(ev) { ev.preventDefault(); }
 
-        // 拖拉放開時進行防呆攔截
         function handleDrop(ev, targetDate) {
             ev.preventDefault();
             if (!draggedItemInfo) return;
@@ -499,19 +538,24 @@
                 return;
             }
 
-            // 🛡️ 拖放不排事防呆檢查
-            if (targetDate !== '__unscheduled__') {
-                const blocked = getBlockedSlot(targetDate);
-                if (blocked) {
-                    alert(`🚫 警告：${targetDate} 已設定為 [不排事/忙碌時段 (${blocked.timeSlot} - ${blocked.note})]，無法放置卡片！`);
-                    draggedItemInfo = null;
-                    return;
-                }
-            }
-
             const { type, thoughtId, stepId } = draggedItemInfo;
             const t = thoughts.find(x => x.id === thoughtId);
             if (!t) return;
+
+            let itemSlot = '全天';
+            if (type === 'goal') itemSlot = t.targetTimeSlot || '全天';
+            else if (type === 'step') {
+                const s = t.steps.find(x => x.id === stepId);
+                if (s) itemSlot = s.stepTimeSlot || '全天';
+            }
+
+            if (targetDate !== '__unscheduled__') {
+                const blocked = getBlockedSlot(targetDate, itemSlot);
+                if (blocked) {
+                    alert(`🚫 警告：${targetDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})，無法放置！`);
+                    draggedItemInfo = null; return;
+                }
+            }
 
             if (type === 'goal') {
                 t.targetDate = (targetDate === '__unscheduled__') ? '未指定日期' : targetDate;
@@ -557,14 +601,12 @@
             else renderCards(container);
         }
 
-        // ⏳ 渲染時間對照矩陣 (含不排事時段設定區與斜紋高亮標示)
+        // ⏳ 渲染時間對照矩陣 (含可收納不排事面板與上下午/晚上精準防呆)
         function renderTimelineMatrix(container) {
             const datesSet = new Set(customTimelineDates);
             const categoriesSet = new Set();
 
-            // 將不排事日期也加入日期列集合中
             blockedSlots.forEach(b => datesSet.add(b.date));
-
             thoughts.forEach(t => {
                 const cat = t.category || '💼 事業';
                 categoriesSet.add(cat);
@@ -582,39 +624,43 @@
             const wrapper = document.createElement('div');
             wrapper.className = "bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4";
 
-            // 🚫 不排事/忙碌時段管理區 (Blackout Slot Management)
+            // 🚫 可收納的不排事面板 (Collapsible Block Panel)
             let blockedManagerHtml = `
-                <div class="bg-rose-50/70 p-3.5 rounded-xl border border-rose-200 space-y-2">
-                    <div class="flex items-center justify-between">
+                <div class="bg-rose-50/80 p-3.5 rounded-xl border border-rose-200 space-y-2">
+                    <div class="flex items-center justify-between cursor-pointer select-none" onclick="toggleBlockPanel()">
                         <span class="text-xs font-bold text-rose-900 flex items-center gap-1.5">
                             <span>🚫 設定不排事/忙碌時段 (${blockedSlots.length} 個設定)</span>
+                            <span class="text-[10px] text-rose-700 bg-white px-2 py-0.5 rounded font-normal border border-rose-200">（點擊展開/收納）</span>
                         </span>
-                        <span class="text-[10px] text-rose-700 bg-white px-2 py-0.5 rounded font-medium border border-rose-200">🛡️ 防呆：被標示的時段將禁止拖拉與排程</span>
+                        <button type="button" class="text-[11px] font-bold text-rose-800 bg-white hover:bg-rose-100 px-2.5 py-1 rounded-lg border border-rose-300 transition-colors">
+                            ${isBlockPanelOpen ? '➖ 收納設定' : '➕ 展開設定'}
+                        </button>
                     </div>
 
-                    <!-- 新增不排事時段表單 -->
-                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-1">
-                        <input type="date" id="blockDateInput" class="px-2 py-1 text-xs border border-rose-300 rounded-lg text-slate-800">
-                        <select id="blockTimeSlotSelect" class="px-2 py-1 text-xs border border-rose-300 rounded-lg bg-white text-slate-800">
-                            <option value="全天">全天 (00:00 - 24:00)</option>
-                            <option value="上午">上午 (08:00 - 12:00)</option>
-                            <option value="下午">下午 (13:00 - 18:00)</option>
-                        </select>
-                        <input type="text" id="blockNoteInput" placeholder="原因 (如:休假/會議)" class="px-2 py-1 text-xs border border-rose-300 rounded-lg text-slate-800">
-                        <button onclick="addBlockedSlot()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3 py-1 rounded-lg transition-colors">＋ 設定不排事</button>
-                    </div>
-
-                    <!-- 不排事清單標籤 -->
-                    ${blockedSlots.length > 0 ? `
-                        <div class="flex flex-wrap gap-1.5 pt-1">
-                            ${blockedSlots.map(b => `
-                                <span class="inline-flex items-center gap-1 text-[11px] bg-white text-rose-800 border border-rose-200 px-2 py-0.5 rounded-md font-medium">
-                                    🚫 ${b.date} [${b.timeSlot}] (${b.note})
-                                    <button onclick="deleteBlockedSlot(${b.id})" class="text-rose-400 hover:text-rose-700 font-bold ml-1">✕</button>
-                                </span>
-                            `).join('')}
+                    <div class="${isBlockPanelOpen ? 'block' : 'hidden'} pt-2 border-t border-rose-200/80 space-y-2">
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                            <input type="date" id="blockDateInput" class="px-2 py-1 text-xs border border-rose-300 rounded-lg text-slate-800">
+                            <select id="blockTimeSlotSelect" class="px-2 py-1 text-xs border border-rose-300 rounded-lg bg-white text-slate-800 font-medium">
+                                <option value="全天">全天 (00:00 - 24:00)</option>
+                                <option value="上午">上午 (08:00 - 12:00)</option>
+                                <option value="下午">下午 (13:00 - 18:00)</option>
+                                <option value="晚上">晚上 (18:00 - 24:00)</option>
+                            </select>
+                            <input type="text" id="blockNoteInput" placeholder="原因 (如:休假/重要會議)" class="px-2 py-1 text-xs border border-rose-300 rounded-lg text-slate-800">
+                            <button onclick="addBlockedSlot()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3 py-1 rounded-lg transition-colors">＋ 設定不排事</button>
                         </div>
-                    ` : ''}
+
+                        ${blockedSlots.length > 0 ? `
+                            <div class="flex flex-wrap gap-1.5 pt-1">
+                                ${blockedSlots.map(b => `
+                                    <span class="inline-flex items-center gap-1 text-[11px] bg-white text-rose-800 border border-rose-200 px-2 py-0.5 rounded-md font-medium">
+                                        🚫 ${b.date} [${b.timeSlot}] (${b.note})
+                                        <button onclick="deleteBlockedSlot(${b.id})" class="text-rose-400 hover:text-rose-700 font-bold ml-1">✕</button>
+                                    </span>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
                 </div>
             `;
 
@@ -632,10 +678,10 @@
                 unscheduledHtml += `<span class="text-xs text-slate-400 italic">所有目標與步驟皆已完成日期排程！</span>`;
             } else {
                 undatedGoals.forEach(g => {
-                    unscheduledHtml += `<div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" class="p-2 bg-amber-100 border border-amber-300 rounded-lg text-amber-950 text-xs font-bold shadow-sm cursor-grab">🎯 [${g.category}] ${g.goal || g.text}</div>`;
+                    unscheduledHtml += `<div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" class="p-2 bg-amber-100 border border-amber-300 rounded-lg text-amber-950 text-xs font-bold shadow-sm cursor-grab">🎯 [${g.category}] ${g.goal || g.text} <span class="text-[10px] text-amber-700">(${g.targetTimeSlot || '全天'})</span></div>`;
                 });
                 undatedSteps.forEach(item => {
-                    unscheduledHtml += `<div draggable="true" ondragstart="handleDragStart(event, 'step', ${item.thought.id}, ${item.step.id})" class="p-2 bg-white border border-slate-300 rounded-lg text-slate-800 text-xs font-bold shadow-sm cursor-grab">📋 [${item.thought.category}] ${item.step.text}</div>`;
+                    unscheduledHtml += `<div draggable="true" ondragstart="handleDragStart(event, 'step', ${item.thought.id}, ${item.step.id})" class="p-2 bg-white border border-slate-300 rounded-lg text-slate-800 text-xs font-bold shadow-sm cursor-grab">📋 [${item.thought.category}] ${item.step.text} <span class="text-[10px] text-indigo-600">(${item.step.stepTimeSlot || '全天'})</span></div>`;
                 });
             }
             unscheduledHtml += `</div></div>`;
@@ -652,7 +698,7 @@
                 </div>
 
                 <div ondragover="handleDragOver(event)" ondrop="handleDrop(event, '__prompt_new_date__')" class="p-2.5 border-2 border-dashed border-indigo-300 bg-indigo-50/50 rounded-xl text-center text-xs text-indigo-700 font-bold hover:bg-indigo-100/50 cursor-pointer">
-                    📍 拖曳卡片至此處放開 ➔ 快速點選月曆指定全新日期
+                    📍 拖曳卡片至此處放開 ➔ 快速點選月曆指定全新日期與時段
                 </div>
 
                 <div class="max-h-[60vh] overflow-y-auto overflow-x-auto rounded-xl border border-slate-200">
@@ -668,20 +714,22 @@
 
             sortedDates.forEach(date => {
                 const dateInfo = getDateStatus(date);
-                const blocked = getBlockedSlot(date);
+                const dayBlocks = blockedSlots.filter(b => b.date === date);
 
                 html += `<tr ondragover="handleDragOver(event)" ondrop="handleDrop(event, '${date}')" class="hover:bg-slate-100/50 transition-colors">`;
                 html += `<td class="p-3.5 border border-slate-200 font-bold text-sm ${dateInfo.style} align-top shrink-0">
                     <div>${date}</div>
                     <div>${dateInfo.badge}</div>
-                    ${blocked ? `<div class="mt-1 text-[10px] bg-rose-600 text-white font-bold px-1.5 py-0.5 rounded-md inline-block">🚫 不排事 (${blocked.timeSlot})</div>` : ''}
+                    ${dayBlocks.length > 0 ? `<div class="mt-1 flex flex-wrap gap-1">${dayBlocks.map(b => `<span class="text-[10px] bg-rose-600 text-white font-bold px-1.5 py-0.5 rounded-md">🚫 不排事 (${b.timeSlot})</span>`).join('')}</div>` : ''}
                 </td>`;
 
                 categoriesList.forEach(cat => {
-                    html += `<td class="p-3 border border-slate-200 align-top space-y-2 ${blocked ? 'bg-rose-50/40 border-rose-200' : (dateInfo.isToday ? 'bg-emerald-50/20' : (dateInfo.isPast ? 'bg-slate-50/40' : 'bg-white'))}">`;
+                    html += `<td class="p-3 border border-slate-200 align-top space-y-2 ${dayBlocks.length > 0 ? 'bg-rose-50/30' : (dateInfo.isToday ? 'bg-emerald-50/20' : (dateInfo.isPast ? 'bg-slate-50/40' : 'bg-white'))}">`;
 
-                    if (blocked) {
-                        html += `<div class="p-2 rounded-lg bg-rose-100/80 text-rose-900 border border-rose-200 text-xs font-bold text-center">🚫 不排事/忙碌 (${blocked.timeSlot}: ${blocked.note})</div>`;
+                    if (dayBlocks.length > 0) {
+                        dayBlocks.forEach(b => {
+                            html += `<div class="p-1.5 rounded-lg bg-rose-100/80 text-rose-900 border border-rose-200 text-[11px] font-bold">🚫 不排事: ${b.timeSlot} (${b.note})</div>`;
+                        });
                     }
 
                     const matchingGoals = thoughts.filter(t => (t.category || '💼 事業') === cat && t.targetDate === date);
@@ -690,7 +738,7 @@
                             <div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" 
                                 class="p-2.5 rounded-xl bg-amber-50 border-2 border-amber-300 text-amber-950 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-all">
                                 <div class="font-bold text-xs text-amber-800 flex items-center justify-between">
-                                    <span>🎯 最終目標</span>
+                                    <span>🎯 最終目標 [${g.targetTimeSlot || '全天'}]</span>
                                     <span class="text-[10px] text-amber-600 font-normal">可拖拉</span>
                                 </div>
                                 <div class="font-bold text-sm mt-1 text-slate-900">${g.goal || g.text}</div>
@@ -709,7 +757,10 @@
                                             <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${t.id}, ${s.id})" class="mt-0.5 w-4 h-4 text-indigo-600 rounded border-slate-300">
                                             <span class="${s.done ? 'line-through text-slate-400' : 'font-bold text-slate-900'} text-sm leading-snug">${s.text}</span>
                                         </label>
-                                        ${s.stepTime ? `<div class="text-xs text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded-md border border-amber-200 inline-block mt-1.5 font-bold">⏰ ${s.stepTime}</div>` : ''}
+                                        <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                                            <span class="text-xs text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 font-bold">⏰ ${s.stepTimeSlot || '全天'}</span>
+                                            ${s.stepTime ? `<span class="text-xs text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-200 font-bold">${s.stepTime}</span>` : ''}
+                                        </div>
                                         <div class="text-xs text-slate-500 mt-1">歸屬: ${t.text}</div>
                                     </div>
                                 `;
@@ -773,7 +824,7 @@
                                     </div>
                                 </div>
                                 <div class="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shrink-0 flex items-center justify-between sm:justify-end gap-2">
-                                    <span>📅 ${t.targetDate || '未指定'}</span>
+                                    <span>📅 ${t.targetDate || '未指定'} (${t.targetTimeSlot || '全天'})</span>
                                     <span class="text-indigo-600 font-bold">進度: ${doneCount}/${totalCount} (${percent}%)</span>
                                 </div>
                             </div>
@@ -855,8 +906,14 @@
                                     </div>
                                 </div>
                                 <input type="text" id="edit-step-text-${thought.id}-${s.id}" value="${s.text.replace(/"/g, '&quot;')}" class="w-full px-2.5 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                                <div class="grid grid-cols-2 gap-2">
+                                <div class="grid grid-cols-3 gap-2">
                                     <input type="date" id="edit-step-date-${thought.id}-${s.id}" value="${s.stepDate || ''}" ${maxDateAttr} class="px-2 py-1 text-xs border border-slate-300 rounded text-slate-700">
+                                    <select id="edit-step-slot-${thought.id}-${s.id}" class="px-2 py-1 text-xs border border-slate-300 rounded bg-white text-slate-800">
+                                        <option value="全天" ${s.stepTimeSlot === '全天' ? 'selected' : ''}>全天</option>
+                                        <option value="上午" ${s.stepTimeSlot === '上午' ? 'selected' : ''}>上午</option>
+                                        <option value="下午" ${s.stepTimeSlot === '下午' ? 'selected' : ''}>下午</option>
+                                        <option value="晚上" ${s.stepTimeSlot === '晚上' ? 'selected' : ''}>晚上</option>
+                                    </select>
                                     <input type="text" id="edit-step-time-${thought.id}-${s.id}" value="${(s.stepTime || '').replace(/"/g, '&quot;')}" placeholder="工時(如2小時)" class="px-2 py-1 text-xs border border-slate-300 rounded">
                                 </div>
                             </li>
@@ -869,7 +926,7 @@
                                     <span class="${s.done ? 'line-through text-slate-400' : 'text-slate-700'} text-sm font-medium">${s.text}</span>
                                 </label>
                                 <div class="flex items-center gap-1.5 text-[11px] ml-6 sm:ml-0">
-                                    ${s.stepDate ? `<span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-md font-medium">📅 ${s.stepDate}</span>` : ''}
+                                    ${s.stepDate ? `<span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-md font-medium">📅 ${s.stepDate} [${s.stepTimeSlot || '全天'}]</span>` : ''}
                                     ${s.stepTime ? `<span class="bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-md font-medium">⏰ ${s.stepTime}</span>` : ''}
                                     <button onclick="startEditStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors ml-1">✏️ 編輯</button>
                                     <button onclick="duplicateStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors">📋 複製</button>
@@ -904,7 +961,7 @@
                                     <textarea id="edit-detail-${thought.id}" rows="3" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg">${thought.detail || ''}</textarea>
                                 </div>
                             </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <div>
                                     <label class="block text-xs font-semibold text-slate-600 mb-1">🎯 最終目標：</label>
                                     <input type="text" id="edit-goal-${thought.id}" value="${(thought.goal || '').replace(/"/g, '&quot;')}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg">
@@ -912,6 +969,15 @@
                                 <div>
                                     <label class="block text-xs font-semibold text-slate-600 mb-1">📅 預期達成日期：</label>
                                     <input type="date" id="edit-date-${thought.id}" value="${thought.targetDate !== '未指定日期' ? (thought.targetDate || '') : ''}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">⏰ 目標時段：</label>
+                                    <select id="edit-slot-${thought.id}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white">
+                                        <option value="全天" ${thought.targetTimeSlot === '全天' ? 'selected' : ''}>全天</option>
+                                        <option value="上午" ${thought.targetTimeSlot === '上午' ? 'selected' : ''}>上午</option>
+                                        <option value="下午" ${thought.targetTimeSlot === '下午' ? 'selected' : ''}>下午</option>
+                                        <option value="晚上" ${thought.targetTimeSlot === '晚上' ? 'selected' : ''}>晚上</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -937,7 +1003,7 @@
                                 ${thought.detail ? `<p class="text-xs text-slate-600 bg-white/80 p-2.5 rounded-xl whitespace-pre-wrap leading-relaxed border border-slate-200/60">📝 ${thought.detail}</p>` : ''}
                                 <div class="flex flex-wrap gap-2 text-xs">
                                     <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-200/60 px-2.5 py-1 rounded-md font-medium">🎯 最終目標：${thought.goal || '未設定'}</span>
-                                    <span class="inline-flex items-center gap-1 bg-indigo-50 text-indigo-800 border border-indigo-200/60 px-2.5 py-1 rounded-md font-medium">📅 預期日期：${thought.targetDate || '未指定'}</span>
+                                    <span class="inline-flex items-center gap-1 bg-indigo-50 text-indigo-800 border border-indigo-200/60 px-2.5 py-1 rounded-md font-medium">📅 預期日期：${thought.targetDate || '未指定'} [${thought.targetTimeSlot || '全天'}]</span>
                                 </div>
                             </div>
                         </div>
@@ -947,10 +1013,16 @@
                             <ul class="space-y-2 mb-4">${stepsHtml || '<li class="text-xs text-slate-400 italic">尚未新增拆解步驟...</li>'}</ul>
                             
                             <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-2">
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                    <input type="text" id="step-text-${thought.id}" placeholder="+ 新增步驟內容..." class="sm:col-span-3 px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                                    <input type="text" id="step-text-${thought.id}" placeholder="+ 新增步驟內容..." class="sm:col-span-4 px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
                                     <input type="date" id="step-date-${thought.id}" ${maxDateAttr} class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                    <input type="text" id="step-time-${thought.id}" placeholder="預估工時 (如: 2小時或14:00)" class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <select id="step-slot-${thought.id}" class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                        <option value="全天">全天</option>
+                                        <option value="上午">上午</option>
+                                        <option value="下午">下午</option>
+                                        <option value="晚上">晚上</option>
+                                    </select>
+                                    <input type="text" id="step-time-${thought.id}" placeholder="預估工時(如2小時)" class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
                                     <button onclick="addStep(${thought.id})" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">＋ 新增步驟</button>
                                 </div>
                             </div>
