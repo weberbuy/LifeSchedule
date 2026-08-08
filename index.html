@@ -12,7 +12,7 @@
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 領域頁籤順序修復 · 雙模式切換</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 單日工時上限防呆 · 時間軸自動檢查過期</p>
             </div>
             
             <div class="flex items-center gap-2">
@@ -189,8 +189,8 @@
         try { thoughts = JSON.parse(localStorage.getItem('my_thoughts_local')) || []; } catch(e) { thoughts = []; }
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
             thoughts = [
-                { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", detail: "每週固定跑步 3 次。", goal: "順利完賽 11 月半程馬拉松", goalDone: false, targetDate: "2026-11-30", targetTimeSlot: "上午", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "30分鐘", stepTimeSlot: "上午", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", stepTimeSlot: "全天", done: false }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援領域分頁排序與雙向聯動。", goal: "發布支援分頁排序修復的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "測試領域頁籤向左向右排序機制", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "夜間", done: true }] }
+                { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", detail: "每週固定跑步 3 次。", goal: "順利完賽 11 月半程馬拉松", goalDone: false, targetDate: "2026-11-30", targetTimeSlot: "上午", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "1.5小時", stepTimeSlot: "上午", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", stepTimeSlot: "全天", done: false }] },
+                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援單日總工時上限與時間軸自動檢查過期。", goal: "發布支援工時防呆的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計單日總工時上限加總與自動過期檢查邏輯", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
             ];
         }
 
@@ -200,6 +200,9 @@
         let customTimelineDates = [];
         let categoryOrder = [];
         try { categoryOrder = JSON.parse(localStorage.getItem('my_category_order')) || []; } catch(e) { categoryOrder = []; }
+
+        // ⏱️ 單日最大工時上限 (預設 8 小時)
+        let maxDailyHours = parseFloat(localStorage.getItem('my_max_daily_hours')) || 8;
 
         const todayObj = new Date();
         const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
@@ -217,6 +220,42 @@
         let pendingTlEdit = null;
 
         const slotPriorityMap = { '全天': 0, '上午': 1, '下午': 2, '晚上': 3, '夜間': 4 };
+
+        // ⏱️ 工時解析助手函數 (將 "2小時", "1.5h", "30分鐘" 轉為小數數字)
+        function parseHours(timeStr) {
+            if (!timeStr) return 0;
+            let s = timeStr.trim();
+            if (s.includes('分')) {
+                const mins = parseFloat(s) || 0;
+                return mins / 60;
+            }
+            return parseFloat(s) || 0;
+        }
+
+        // ⏱️ 計算指定日期下跨領域、跨目標的所有步驟累計工時
+        function getDailyTotalHours(dateStr, excludeStepId = null) {
+            if (!dateStr || dateStr === '未指定日期') return 0;
+            let total = 0;
+            thoughts.forEach(t => {
+                if (Array.isArray(t.steps)) {
+                    t.steps.forEach(s => {
+                        if (s.stepDate === dateStr && s.id !== excludeStepId) {
+                            total += parseHours(s.stepTime);
+                        }
+                    });
+                }
+            });
+            return total;
+        }
+
+        function updateMaxDailyHours(val) {
+            const parsed = parseFloat(val);
+            if (!isNaN(parsed) && parsed > 0) {
+                maxDailyHours = parsed;
+                localStorage.setItem('my_max_daily_hours', maxDailyHours);
+                render();
+            }
+        }
 
         function getBlockedSlot(dateStr, itemSlot = '全天') {
             if (!dateStr || dateStr === '未指定日期') return null;
@@ -301,6 +340,27 @@
             alert(`已將步驟「${step.text}」另存為獨立目標！兩者將保持狀態與日期雙向聯動。`);
         }
 
+        // ⚡ 自動檢查過期未完成的目標/步驟移至「待排定區」
+        function autoCheckExpiredInTimeline() {
+            let count = 0;
+            thoughts.forEach(t => {
+                if (t.targetDate && t.targetDate !== '未指定日期' && t.targetDate < todayStr && !t.goalDone) {
+                    t.targetDate = '未指定日期'; count++;
+                }
+                if (Array.isArray(t.steps)) {
+                    t.steps.forEach(s => {
+                        if (s.stepDate && s.stepDate < todayStr && !s.done) {
+                            s.stepDate = ''; count++;
+                        }
+                    });
+                }
+            });
+
+            if (count > 0) {
+                saveData();
+            }
+        }
+
         function convertExpiredToUnscheduled() {
             let count = 0;
             thoughts.forEach(t => {
@@ -318,7 +378,7 @@
 
             if (count > 0) {
                 saveData();
-                alert(`已成功將 ${count} 個過期未完成的目標/步驟移至「待排定事項區」！`);
+                alert(`已成功將 ${count} 個過期未完成的目標/步驟移動至「待排定事項區」！`);
             } else {
                 alert("目前沒有過期且未完成的目標或步驟！");
             }
@@ -329,10 +389,7 @@
             if (!t || !Array.isArray(t.steps)) return;
             const idx = t.steps.findIndex(s => s.id === stepId);
             if (idx > 0) {
-                const temp = t.steps[idx];
-                t.steps[idx] = t.steps[idx - 1];
-                t.steps[idx - 1] = temp;
-                saveData();
+                const temp = t.steps[idx]; t.steps[idx] = t.steps[idx - 1]; t.steps[idx - 1] = temp; saveData();
             }
         }
 
@@ -341,22 +398,15 @@
             if (!t || !Array.isArray(t.steps)) return;
             const idx = t.steps.findIndex(s => s.id === stepId);
             if (idx !== -1 && idx < t.steps.length - 1) {
-                const temp = t.steps[idx];
-                t.steps[idx] = t.steps[idx + 1];
-                t.steps[idx + 1] = temp;
-                saveData();
+                const temp = t.steps[idx]; t.steps[idx] = t.steps[idx + 1]; t.steps[idx + 1] = temp; saveData();
             }
         }
 
-        // 📂 看板分頁向左/向右調整順序
         function moveCategoryLeft(cat, ev) {
             if (ev) ev.stopPropagation();
             const idx = categoryOrder.indexOf(cat);
             if (idx > 0) {
-                const temp = categoryOrder[idx];
-                categoryOrder[idx] = categoryOrder[idx - 1];
-                categoryOrder[idx - 1] = temp;
-                saveCategoryOrder();
+                const temp = categoryOrder[idx]; categoryOrder[idx] = categoryOrder[idx - 1]; categoryOrder[idx - 1] = temp; saveCategoryOrder();
             }
         }
 
@@ -364,10 +414,7 @@
             if (ev) ev.stopPropagation();
             const idx = categoryOrder.indexOf(cat);
             if (idx !== -1 && idx < categoryOrder.length - 1) {
-                const temp = categoryOrder[idx];
-                categoryOrder[idx] = categoryOrder[idx + 1];
-                categoryOrder[idx + 1] = temp;
-                saveCategoryOrder();
+                const temp = categoryOrder[idx]; categoryOrder[idx] = categoryOrder[idx + 1]; categoryOrder[idx + 1] = temp; saveCategoryOrder();
             }
         }
 
@@ -517,6 +564,18 @@
                 if (date && t.targetDate && t.targetDate !== '未指定日期' && date > t.targetDate) {
                     return alert(`步驟日期 (${date}) 不能超過目標日期 (${t.targetDate})！`);
                 }
+
+                // ⏱️ 單日工時上限防呆檢測
+                if (date) {
+                    const currentDailyTotal = getDailyTotalHours(date, pendingTlEdit.stepId);
+                    const newHours = parseHours(time);
+                    if (currentDailyTotal + newHours > maxDailyHours) {
+                        if (!confirm(`⚠️ 提醒：${date} 跨領域累計總工時將達 ${(currentDailyTotal + newHours).toFixed(1)} 小時，已超過設定單日上限 (${maxDailyHours} 小時)！確定要儲存嗎？`)) {
+                            return;
+                        }
+                    }
+                }
+
                 const s = t.steps.find(x => x.id === pendingTlEdit.stepId);
                 if (s) {
                     if (s.linkedThoughtId && !validateChildStepsDate(s.linkedThoughtId, date)) return;
@@ -613,6 +672,12 @@
                 if (mode === 'cards') tabsSection.classList.remove('hidden');
                 else tabsSection.classList.add('hidden');
             }
+
+            // ⚡ 切換至時間軸模式時，自動檢查並轉換過期未完成項目
+            if (mode === 'timeline') {
+                autoCheckExpiredInTimeline();
+            }
+
             render();
         }
 
@@ -754,6 +819,17 @@
                 return alert(`🚫 警告：${stepDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})！`);
             }
 
+            // ⏱️ 單日總工時上限防呆檢測
+            if (stepDate) {
+                const currentDailyTotal = getDailyTotalHours(stepDate);
+                const addedHours = parseHours(stepTime);
+                if (currentDailyTotal + addedHours > maxDailyHours) {
+                    if (!confirm(`⚠️ 提醒：${stepDate} 跨領域累計總工時將達 ${(currentDailyTotal + addedHours).toFixed(1)} 小時，已超過設定單日上限 (${maxDailyHours} 小時)！確定要新增嗎？`)) {
+                        return;
+                    }
+                }
+            }
+
             const t = thoughts.find(x => x.id === thoughtId);
             if (t) {
                 if (stepDate && t.targetDate && t.targetDate !== '未指定日期' && stepDate > t.targetDate) {
@@ -804,6 +880,17 @@
             const blocked = getBlockedSlot(stepDate, stepTimeSlot);
             if (blocked) {
                 return alert(`🚫 警告：${stepDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})！`);
+            }
+
+            // ⏱️ 單日總工時上限防呆檢測
+            if (stepDate) {
+                const currentDailyTotal = getDailyTotalHours(stepDate, stepId);
+                const newHours = parseHours(stepTime);
+                if (currentDailyTotal + newHours > maxDailyHours) {
+                    if (!confirm(`⚠️ 提醒：${stepDate} 跨領域累計總工時將達 ${(currentDailyTotal + newHours).toFixed(1)} 小時，已超過設定單日上限 (${maxDailyHours} 小時)！確定要儲存嗎？`)) {
+                        return;
+                    }
+                }
             }
 
             const t = thoughts.find(x => x.id === thoughtId);
@@ -939,13 +1026,17 @@
             let dateFilterControlHtml = `
                 <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-100/90 p-3 rounded-xl border border-slate-200">
                     <div class="flex items-center gap-2">
-                        <span class="text-xs font-bold text-slate-700">📅 時間軸起始日期：</span>
+                        <span class="text-xs font-bold text-slate-700">📅 起始日期：</span>
                         <input type="date" value="${timelineStartDate}" onchange="changeTimelineStartDate(this.value)" class="px-2.5 py-1 text-xs border border-slate-300 rounded-lg text-slate-800 font-medium bg-white">
                     </div>
-                    <div class="flex items-center gap-1.5 flex-wrap">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <div class="flex items-center gap-1">
+                            <span class="text-xs font-bold text-slate-700">⏱️ 單日工時上限：</span>
+                            <input type="number" min="1" max="24" step="0.5" value="${maxDailyHours}" onchange="updateMaxDailyHours(this.value)" class="w-16 px-2 py-1 text-xs border border-slate-300 rounded-lg text-slate-800 font-bold bg-white text-center">
+                            <span class="text-xs text-slate-500">小時</span>
+                        </div>
                         <button onclick="setTimelineStartToToday()" class="text-xs bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold px-3 py-1 rounded-lg border border-emerald-300 transition-colors">🌟 從今天開始</button>
                         <button onclick="showAllTimelineHistory()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-3 py-1 rounded-lg transition-colors">📜 顯示全部歷史</button>
-                        <button onclick="convertExpiredToUnscheduled()" class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-3 py-1 rounded-lg border border-amber-300 transition-colors shadow-sm">⚡ 檢查過期未完成 ➔ 轉為待排定</button>
                     </div>
                 </div>
             `;
@@ -1048,11 +1139,18 @@
             sortedDates.forEach(date => {
                 const dateInfo = getDateStatus(date);
                 const dayBlocks = blockedSlots.filter(b => b.date === date);
+                const totalHoursOnDate = getDailyTotalHours(date);
+                const isOverHoursLimit = totalHoursOnDate > maxDailyHours;
 
                 html += `<tr ondragover="handleDragOver(event)" ondrop="handleDrop(event, '${date}')" class="hover:bg-slate-100/50 transition-colors">`;
                 html += `<td class="p-3.5 border border-slate-200 font-bold text-sm ${dateInfo.style} align-top shrink-0">
                     <div>${date}</div>
                     <div>${dateInfo.badge}</div>
+                    ${totalHoursOnDate > 0 ? `
+                        <div class="mt-1 text-[10px] ${isOverHoursLimit ? 'bg-amber-600 text-white font-bold' : 'bg-indigo-100 text-indigo-900 font-semibold'} px-1.5 py-0.5 rounded-md inline-block">
+                            ⏱️ 總工時: ${totalHoursOnDate.toFixed(1)}h ${isOverHoursLimit ? '⚠️已超標' : ''}
+                        </div>
+                    ` : ''}
                     ${dayBlocks.length > 0 ? `<div class="mt-1 flex flex-wrap gap-1">${dayBlocks.map(b => `<span class="text-[10px] bg-rose-600 text-white font-bold px-1.5 py-0.5 rounded-md">🚫 不排事 (${b.timeSlot})</span>`).join('')}</div>` : ''}
                 </td>`;
 
@@ -1202,7 +1300,7 @@
             });
         }
 
-        // 🎴 看板模式 (重構頁籤 DOM 結構，解決排序按鈕衝突)
+        // 🎴 看板模式 (獨立頁籤 DOM 結構，解決排序按鈕衝突)
         function renderCards(container) {
             const currentCats = Array.from(new Set(thoughts.map(t => t.category || '💼 事業')));
             currentCats.forEach(c => { if (!categoryOrder.includes(c)) categoryOrder.push(c); });
