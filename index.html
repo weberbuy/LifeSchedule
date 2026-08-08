@@ -12,7 +12,7 @@
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 獨立目標與子步驟衝突檢查 · 雙模式切換</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 支援夜間時段與步驟順序調換 · 雙模式切換</p>
             </div>
             
             <div class="flex items-center gap-2">
@@ -86,7 +86,8 @@
                             <option value="全天">全天</option>
                             <option value="上午">上午 (08:00-12:00)</option>
                             <option value="下午">下午 (13:00-18:00)</option>
-                            <option value="晚上">晚上 (18:00-24:00)</option>
+                            <option value="晚上">晚上 (18:00-22:00)</option>
+                            <option value="夜間">夜間 (22:00-08:00)</option>
                         </select>
                     </div>
                 </div>
@@ -124,6 +125,7 @@
                         <option value="上午">上午</option>
                         <option value="下午">下午</option>
                         <option value="晚上">晚上</option>
+                        <option value="夜間">夜間</option>
                     </select>
                 </div>
                 <div class="flex justify-end gap-2 pt-2">
@@ -158,6 +160,7 @@
                                 <option value="上午">上午</option>
                                 <option value="下午">下午</option>
                                 <option value="晚上">晚上</option>
+                                <option value="夜間">夜間</option>
                             </select>
                         </div>
                     </div>
@@ -187,7 +190,7 @@
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
             thoughts = [
                 { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", detail: "每週固定跑步 3 次。", goal: "順利完賽 11 月半程馬拉松", goalDone: false, targetDate: "2026-11-30", targetTimeSlot: "上午", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "30分鐘", stepTimeSlot: "上午", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", stepTimeSlot: "全天", done: false }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援獨立目標子步驟日期衝突檢查。", goal: "發布支援階層防呆的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計階層子步驟日期衝突防呆邏輯", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
+                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援夜間時段與步驟順序調換。", goal: "發布支援夜間時段與順序調整的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計夜間時段防呆與步驟調換 UI", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "夜間", done: true }] }
             ];
         }
 
@@ -213,10 +216,24 @@
         let pendingDropItem = null;
         let pendingTlEdit = null;
 
-        // 🛡️ 階層日期衝突檢測：檢查目標底下的子步驟是否有晚於該目標設定日期的情況
+        // 時段順序優先權 (全天:0, 上午:1, 下午:2, 晚上:3, 夜間:4)
+        const slotPriorityMap = { '全天': 0, '上午': 1, '下午': 2, '晚上': 3, '夜間': 4 };
+
+        function getBlockedSlot(dateStr, itemSlot = '全天') {
+            if (!dateStr || dateStr === '未指定日期') return null;
+            const matches = blockedSlots.filter(b => b.date === dateStr);
+            if (matches.length === 0) return null;
+
+            for (const b of matches) {
+                if (b.timeSlot === '全天' || itemSlot === '全天') return b;
+                // 晚上與夜間相通相容
+                if (b.timeSlot === itemSlot || (b.timeSlot === '晚上' && itemSlot === '夜間') || (b.timeSlot === '夜間' && itemSlot === '晚上')) return b;
+            }
+            return null;
+        }
+
         function validateChildStepsDate(targetThoughtId, newTargetDate) {
             if (!newTargetDate || newTargetDate === '未指定日期') return true;
-
             const targetThought = thoughts.find(x => x.id === targetThoughtId);
             if (!targetThought || !Array.isArray(targetThought.steps)) return true;
 
@@ -229,7 +246,6 @@
             return true;
         }
 
-        // 🔗 雙向同步核心邏輯
         function syncLinkedData() {
             thoughts.forEach(t => {
                 if (t.parentStepInfo) {
@@ -259,7 +275,6 @@
             });
         }
 
-        // 🌱 將步驟另存為獨立目標
         function promoteStepToGoal(thoughtId, stepId) {
             const parentThought = thoughts.find(x => x.id === thoughtId);
             if (!parentThought) return;
@@ -288,18 +303,6 @@
             alert(`已將步驟「${step.text}」另存為獨立目標！兩者將保持狀態與日期雙向聯動。`);
         }
 
-        function getBlockedSlot(dateStr, itemSlot = '全天') {
-            if (!dateStr || dateStr === '未指定日期') return null;
-            const matches = blockedSlots.filter(b => b.date === dateStr);
-            if (matches.length === 0) return null;
-
-            for (const b of matches) {
-                if (b.timeSlot === '全天' || itemSlot === '全天') return b;
-                if (b.timeSlot === itemSlot) return b;
-            }
-            return null;
-        }
-
         function convertExpiredToUnscheduled() {
             let count = 0;
             thoughts.forEach(t => {
@@ -320,6 +323,31 @@
                 alert(`已成功將 ${count} 個過期未完成的目標/步驟移至「待排定事項區」！`);
             } else {
                 alert("目前沒有過期且未完成的目標或步驟！");
+            }
+        }
+
+        // 🔼 / 🔽 手動調整步驟順序
+        function moveStepUp(thoughtId, stepId) {
+            const t = thoughts.find(x => x.id === thoughtId);
+            if (!t || !Array.isArray(t.steps)) return;
+            const idx = t.steps.findIndex(s => s.id === stepId);
+            if (idx > 0) {
+                const temp = t.steps[idx];
+                t.steps[idx] = t.steps[idx - 1];
+                t.steps[idx - 1] = temp;
+                saveData();
+            }
+        }
+
+        function moveStepDown(thoughtId, stepId) {
+            const t = thoughts.find(x => x.id === thoughtId);
+            if (!t || !Array.isArray(t.steps)) return;
+            const idx = t.steps.findIndex(s => s.id === stepId);
+            if (idx !== -1 && idx < t.steps.length - 1) {
+                const temp = t.steps[idx];
+                t.steps[idx] = t.steps[idx + 1];
+                t.steps[idx + 1] = temp;
+                saveData();
             }
         }
 
@@ -858,6 +886,7 @@
             else renderCards(container);
         }
 
+        // ⏳ 渲染時間對照矩陣 (按時段自動依序排列 + 包含夜間時段)
         function renderTimelineMatrix(container) {
             const datesSet = new Set(customTimelineDates);
             const categoriesSet = new Set();
@@ -917,7 +946,8 @@
                                 <option value="全天">全天 (00:00 - 24:00)</option>
                                 <option value="上午">上午 (08:00 - 12:00)</option>
                                 <option value="下午">下午 (13:00 - 18:00)</option>
-                                <option value="晚上">晚上 (18:00 - 24:00)</option>
+                                <option value="晚上">晚上 (18:00 - 22:00)</option>
+                                <option value="夜間">夜間 (22:00 - 08:00)</option>
                             </select>
                             <input type="text" id="blockNoteInput" placeholder="原因 (如:休假/重要會議)" class="px-2 py-1 text-xs border border-rose-300 rounded-lg text-slate-800">
                             <button onclick="addBlockedSlot()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3 py-1 rounded-lg transition-colors">＋ 設定不排事</button>
@@ -1012,42 +1042,68 @@
                         });
                     }
 
+                    // 收集當天當類別的所有目標與步驟，並依時段優先權（全天➔上午➔下午➔晚上➔夜間）排序
+                    let cellItems = [];
+
                     const matchingGoals = thoughts.filter(t => (t.category || '💼 事業') === cat && t.targetDate === date);
                     matchingGoals.forEach(g => {
-                        html += `
-                            <div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" ondblclick="editGoalFromTimeline(${g.id})"
-                                class="p-2.5 rounded-xl bg-amber-50 border-2 border-amber-300 text-amber-950 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-all select-none" title="雙擊可編輯此目標">
-                                <div class="font-bold text-xs text-amber-800 flex items-center justify-between">
-                                    <label class="flex items-center gap-1.5 cursor-pointer">
-                                        <input type="checkbox" ${g.goalDone ? 'checked' : ''} onchange="toggleGoalDone(${g.id})" class="w-3.5 h-3.5 text-amber-600 rounded">
-                                        <span class="${g.goalDone ? 'line-through text-slate-400 font-normal' : 'font-bold'}">🎯 最終目標 [${g.targetTimeSlot || '全天'}]</span>
-                                    </label>
-                                    <span class="text-[10px] text-amber-600 font-normal">可拖拉/雙擊</span>
-                                </div>
-                                <div class="font-bold text-sm mt-1 ${g.goalDone ? 'line-through text-slate-400' : 'text-slate-900'}">${g.goal || g.text}</div>
-                                <div class="text-xs text-amber-800/80 mt-1">主題: ${g.text}</div>
-                            </div>
-                        `;
+                        cellItems.push({
+                            type: 'goal',
+                            slot: g.targetTimeSlot || '全天',
+                            item: g
+                        });
                     });
 
                     thoughts.filter(t => (t.category || '💼 事業') === cat).forEach(t => {
                         if (Array.isArray(t.steps)) {
                             t.steps.filter(s => s.stepDate === date).forEach(s => {
-                                html += `
-                                    <div draggable="true" ondragstart="handleDragStart(event, 'step', ${t.id}, ${s.id})" ondblclick="editStepFromTimeline(${t.id}, ${s.id})"
-                                        class="p-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-all select-none" title="雙擊可編輯此步驟">
-                                        <label class="flex items-start gap-2 cursor-pointer">
-                                            <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${t.id}, ${s.id})" class="mt-0.5 w-4 h-4 text-indigo-600 rounded border-slate-300">
-                                            <span class="${s.done ? 'line-through text-slate-400' : 'font-bold text-slate-900'} text-sm leading-snug">${s.text}</span>
-                                        </label>
-                                        <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                                            <span class="text-xs text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 font-bold">⏰ ${s.stepTimeSlot || '全天'}</span>
-                                            ${s.stepTime ? `<span class="text-xs text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-200 font-bold">${s.stepTime}</span>` : ''}
-                                        </div>
-                                        <div class="text-xs text-slate-500 mt-1">歸屬: ${t.text}</div>
-                                    </div>
-                                `;
+                                cellItems.push({
+                                    type: 'step',
+                                    slot: s.stepTimeSlot || '全天',
+                                    parentThought: t,
+                                    item: s
+                                });
                             });
+                        }
+                    });
+
+                    // 依據 slotPriorityMap 排序
+                    cellItems.sort((a, b) => (slotPriorityMap[a.slot] || 0) - (slotPriorityMap[b.slot] || 0));
+
+                    cellItems.forEach(ci => {
+                        if (ci.type === 'goal') {
+                            const g = ci.item;
+                            html += `
+                                <div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" ondblclick="editGoalFromTimeline(${g.id})"
+                                    class="p-2.5 rounded-xl bg-amber-50 border-2 border-amber-300 text-amber-950 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-all select-none" title="雙擊可編輯此目標">
+                                    <div class="font-bold text-xs text-amber-800 flex items-center justify-between">
+                                        <label class="flex items-center gap-1.5 cursor-pointer">
+                                            <input type="checkbox" ${g.goalDone ? 'checked' : ''} onchange="toggleGoalDone(${g.id})" class="w-3.5 h-3.5 text-amber-600 rounded">
+                                            <span class="${g.goalDone ? 'line-through text-slate-400 font-normal' : 'font-bold'}">🎯 最終目標 [${g.targetTimeSlot || '全天'}]</span>
+                                        </label>
+                                        <span class="text-[10px] text-amber-600 font-normal">可拖拉/雙擊</span>
+                                    </div>
+                                    <div class="font-bold text-sm mt-1 ${g.goalDone ? 'line-through text-slate-400' : 'text-slate-900'}">${g.goal || g.text}</div>
+                                    <div class="text-xs text-amber-800/80 mt-1">主題: ${g.text}</div>
+                                </div>
+                            `;
+                        } else if (ci.type === 'step') {
+                            const s = ci.item;
+                            const t = ci.parentThought;
+                            html += `
+                                <div draggable="true" ondragstart="handleDragStart(event, 'step', ${t.id}, ${s.id})" ondblclick="editStepFromTimeline(${t.id}, ${s.id})"
+                                    class="p-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-all select-none" title="雙擊可編輯此步驟">
+                                    <label class="flex items-start gap-2 cursor-pointer">
+                                        <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${t.id}, ${s.id})" class="mt-0.5 w-4 h-4 text-indigo-600 rounded border-slate-300">
+                                        <span class="${s.done ? 'line-through text-slate-400' : 'font-bold text-slate-900'} text-sm leading-snug">${s.text}</span>
+                                    </label>
+                                    <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                                        <span class="text-xs text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 font-bold">⏰ ${s.stepTimeSlot || '全天'}</span>
+                                        ${s.stepTime ? `<span class="text-xs text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-200 font-bold">${s.stepTime}</span>` : ''}
+                                    </div>
+                                    <div class="text-xs text-slate-500 mt-1">歸屬: ${t.text}</div>
+                                </div>
+                            `;
                         }
                     });
 
@@ -1175,7 +1231,7 @@
                 const isEdit = (editingId === thought.id);
                 const maxDateAttr = (thought.targetDate && thought.targetDate !== '未指定日期') ? `max="${thought.targetDate}"` : '';
 
-                const stepsHtml = thought.steps.map(s => {
+                const stepsHtml = thought.steps.map((s, stepIdx) => {
                     const isEditingThisStep = (editingStepIdKey === `${thought.id}-${s.id}`);
                     
                     if (isEditingThisStep) {
@@ -1196,6 +1252,7 @@
                                         <option value="上午" ${s.stepTimeSlot === '上午' ? 'selected' : ''}>上午</option>
                                         <option value="下午" ${s.stepTimeSlot === '下午' ? 'selected' : ''}>下午</option>
                                         <option value="晚上" ${s.stepTimeSlot === '晚上' ? 'selected' : ''}>晚上</option>
+                                        <option value="夜間" ${s.stepTimeSlot === '夜間' ? 'selected' : ''}>夜間</option>
                                     </select>
                                     <input type="text" id="edit-step-time-${thought.id}-${s.id}" value="${(s.stepTime || '').replace(/"/g, '&quot;')}" placeholder="工時(如2小時)" class="px-2 py-1 text-xs border border-slate-300 rounded">
                                 </div>
@@ -1209,9 +1266,14 @@
                                     <span class="${s.done ? 'line-through text-slate-400' : 'text-slate-700'} text-sm font-medium">${s.text}</span>
                                 </label>
                                 <div class="flex items-center gap-1.5 text-[11px] ml-6 sm:ml-0 flex-wrap">
+                                    <!-- 🔼 🔽 步驟上下順序微調按鈕 -->
+                                    <span class="inline-flex gap-0.5 bg-slate-200/80 rounded px-1 text-slate-600 font-bold">
+                                        <button onclick="moveStepUp(${thought.id}, ${s.id})" class="hover:text-indigo-600 px-0.5" title="往上移">▲</button>
+                                        <button onclick="moveStepDown(${thought.id}, ${s.id})" class="hover:text-indigo-600 px-0.5" title="往下移">▼</button>
+                                    </span>
                                     ${s.stepDate ? `<span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-md font-medium">📅 ${s.stepDate} [${s.stepTimeSlot || '全天'}]</span>` : ''}
                                     ${s.stepTime ? `<span class="bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-md font-medium">⏰ ${s.stepTime}</span>` : ''}
-                                    <button onclick="startEditStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors ml-1">✏️ 編輯</button>
+                                    <button onclick="startEditStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors">✏️ 編輯</button>
                                     <button onclick="promoteStepToGoal(${thought.id}, ${s.id})" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-md font-bold transition-colors">🌱 轉目標</button>
                                     <button onclick="duplicateStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors">📋 複製</button>
                                     <button onclick="deleteStep(${thought.id}, ${s.id})" class="text-slate-400 hover:text-red-500 px-1 py-0.5">🗑️ 刪除</button>
@@ -1261,6 +1323,7 @@
                                         <option value="上午" ${thought.targetTimeSlot === '上午' ? 'selected' : ''}>上午</option>
                                         <option value="下午" ${thought.targetTimeSlot === '下午' ? 'selected' : ''}>下午</option>
                                         <option value="晚上" ${thought.targetTimeSlot === '晚上' ? 'selected' : ''}>晚上</option>
+                                        <option value="夜間" ${thought.targetTimeSlot === '夜間' ? 'selected' : ''}>夜間</option>
                                     </select>
                                 </div>
                             </div>
@@ -1308,6 +1371,7 @@
                                         <option value="上午">上午</option>
                                         <option value="下午">下午</option>
                                         <option value="晚上">晚上</option>
+                                        <option value="夜間">夜間</option>
                                     </select>
                                     <input type="text" id="step-time-${thought.id}" placeholder="預估工時(如2小時)" class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
                                     <button onclick="addStep(${thought.id})" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">＋ 新增步驟</button>
