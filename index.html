@@ -12,7 +12,7 @@
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 里程碑完成勾選 · 過期未完成自動轉待排定</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 步驟另存目標與雙向聯動 · 雙模式切換</p>
             </div>
             
             <div class="flex items-center gap-2">
@@ -24,7 +24,7 @@
             </div>
         </header>
 
-        <!-- 三模式切換列 (Overview vs Cards vs Timeline) -->
+        <!-- 三模式切換列 -->
         <div class="mb-6 bg-slate-200/80 p-1.5 rounded-2xl flex items-center shadow-inner border border-slate-300/60 gap-1 overflow-x-auto">
             <button onclick="setViewMode('overview')" id="btnViewOverview" class="flex-1 py-2.5 px-3 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 bg-white text-indigo-600 shadow-md whitespace-nowrap">
                 🎯 總覽模式 (整體思考)
@@ -37,7 +37,7 @@
             </button>
         </div>
 
-        <!-- 表單輸入區 (支援收納/展開與多行詳細思緒欄位) -->
+        <!-- 表單輸入區 -->
         <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6">
             <div class="flex items-center justify-between cursor-pointer select-none" onclick="toggleForm()">
                 <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -187,7 +187,7 @@
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
             thoughts = [
                 { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", detail: "每週固定跑步 3 次。", goal: "順利完賽 11 月半程馬拉松", goalDone: false, targetDate: "2026-11-30", targetTimeSlot: "上午", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "30分鐘", stepTimeSlot: "上午", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", stepTimeSlot: "全天", done: false }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援過期未完成自動轉待排定。", goal: "發布支援過期檢查的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計過期未完成轉待排定邏輯", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
+                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援步驟另存目標與雙向聯動。", goal: "發布支援步驟雙向同步的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計步驟另存為目標與雙向同步邏輯", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
             ];
         }
 
@@ -213,6 +213,84 @@
         let pendingDropItem = null;
         let pendingTlEdit = null;
 
+        // 🔗 雙向同步核心邏輯：同步關聯項目之完成狀態與預期日期/時段
+        function syncLinkedData() {
+            thoughts.forEach(t => {
+                // 1. 若該目標是由母步驟另存而來 (含有 parentStepInfo)
+                if (t.parentStepInfo) {
+                    const parentThought = thoughts.find(x => x.id === t.parentStepInfo.parentThoughtId);
+                    if (parentThought && Array.isArray(parentThought.steps)) {
+                        const parentStep = parentThought.steps.find(s => s.id === t.parentStepInfo.parentStepId);
+                        if (parentStep) {
+                            // 雙向同步：完成狀態
+                            if (t.goalDone !== parentStep.done) {
+                                parentStep.done = t.goalDone;
+                            }
+                            // 雙向同步：日期
+                            if (t.targetDate !== '未指定日期' && t.targetDate !== parentStep.stepDate) {
+                                parentStep.stepDate = (t.targetDate !== '未指定日期') ? t.targetDate : '';
+                            }
+                            // 雙向同步：時段
+                            if (t.targetTimeSlot && t.targetTimeSlot !== parentStep.stepTimeSlot) {
+                                parentStep.stepTimeSlot = t.targetTimeSlot;
+                            }
+                        }
+                    }
+                }
+
+                // 2. 檢查含有 linkedThoughtId 的步驟
+                if (Array.isArray(t.steps)) {
+                    t.steps.forEach(s => {
+                        if (s.linkedThoughtId) {
+                            const childThought = thoughts.find(x => x.id === s.linkedThoughtId);
+                            if (childThought) {
+                                if (s.done !== childThought.goalDone) {
+                                    childThought.goalDone = s.done;
+                                }
+                                if (s.stepDate && s.stepDate !== childThought.targetDate) {
+                                    childThought.targetDate = s.stepDate;
+                                }
+                                if (s.stepTimeSlot && s.stepTimeSlot !== childThought.targetTimeSlot) {
+                                    childThought.targetTimeSlot = s.stepTimeSlot;
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        // 🌱 將步驟另存為獨立目標
+        function promoteStepToGoal(thoughtId, stepId) {
+            const parentThought = thoughts.find(x => x.id === thoughtId);
+            if (!parentThought) return;
+            const step = parentThought.steps.find(s => s.id === stepId);
+            if (!step) return;
+
+            if (step.linkedThoughtId) {
+                return alert("此步驟已經另存為獨立目標囉！");
+            }
+
+            const newThoughtId = Date.now();
+            const newGoalThought = {
+                id: newThoughtId,
+                category: parentThought.category || '💼 事業',
+                text: `拆解目標: ${step.text}`,
+                detail: `來自母目標「${parentThought.goal || parentThought.text}」的延伸拆解步驟。`,
+                goal: step.text,
+                goalDone: step.done || false,
+                targetDate: step.stepDate || parentThought.targetDate || '未指定日期',
+                targetTimeSlot: step.stepTimeSlot || '全天',
+                parentStepInfo: { parentThoughtId: thoughtId, parentStepId: stepId },
+                steps: []
+            };
+
+            step.linkedThoughtId = newThoughtId;
+            thoughts.push(newGoalThought);
+            saveData();
+            alert(`已將步驟「${step.text}」另存為獨立目標！兩者將保持狀態與日期雙向聯動。`);
+        }
+
         function getBlockedSlot(dateStr, itemSlot = '全天') {
             if (!dateStr || dateStr === '未指定日期') return null;
             const matches = blockedSlots.filter(b => b.date === dateStr);
@@ -225,22 +303,16 @@
             return null;
         }
 
-        // ⚡ 檢查並將過期未完成的目標/步驟移至「待排定區」
         function convertExpiredToUnscheduled() {
             let count = 0;
             thoughts.forEach(t => {
-                // 檢查目標
                 if (t.targetDate && t.targetDate !== '未指定日期' && t.targetDate < todayStr && !t.goalDone) {
-                    t.targetDate = '未指定日期';
-                    count++;
+                    t.targetDate = '未指定日期'; count++;
                 }
-
-                // 檢查步驟
                 if (Array.isArray(t.steps)) {
                     t.steps.forEach(s => {
                         if (s.stepDate && s.stepDate < todayStr && !s.done) {
-                            s.stepDate = '';
-                            count++;
+                            s.stepDate = ''; count++;
                         }
                     });
                 }
@@ -248,7 +320,7 @@
 
             if (count > 0) {
                 saveData();
-                alert(`已成功將 ${count} 個過期且未完成的目標/步驟移動至「待排定事項區」！`);
+                alert(`已成功將 ${count} 個過期未完成的目標/步驟移至「待排定事項區」！`);
             } else {
                 alert("目前沒有過期且未完成的目標或步驟！");
             }
@@ -256,10 +328,7 @@
 
         function toggleGoalDone(thoughtId) {
             const t = thoughts.find(x => x.id === thoughtId);
-            if (t) {
-                t.goalDone = !t.goalDone;
-                saveData();
-            }
+            if (t) { t.goalDone = !t.goalDone; saveData(); }
         }
 
         function setTimelineStartToToday() { timelineStartDate = todayStr; render(); }
@@ -510,7 +579,12 @@
             render();
         }
 
-        function saveData() { localStorage.setItem('my_thoughts_local', JSON.stringify(thoughts)); render(); }
+        function saveData() {
+            syncLinkedData(); // 儲存前先同步雙向聯動資料
+            localStorage.setItem('my_thoughts_local', JSON.stringify(thoughts));
+            render();
+        }
+
         function saveCategoryOrder() { localStorage.setItem('my_category_order', JSON.stringify(categoryOrder)); render(); }
 
         function addCustomDateRow() {
@@ -720,7 +794,7 @@
             if (targetDate !== '__unscheduled__') {
                 const blocked = getBlockedSlot(targetDate, itemSlot);
                 if (blocked) {
-                    alert(`🚫 警告：${targetDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})，無法放置！`);
+                    alert(`🚫 警告：${targetDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})！`);
                     draggedItemInfo = null; return;
                 }
             }
@@ -763,6 +837,7 @@
         function setCategoryTab(cat) { activeCategory = cat; render(); }
 
         function render() {
+            syncLinkedData(); // 渲染前進行雙向數據同步
             const container = document.getElementById('mainContentList'); container.innerHTML = '';
             if (viewMode === 'overview') renderOverview(container);
             else if (viewMode === 'timeline') renderTimelineMatrix(container);
@@ -1120,10 +1195,11 @@
                                     <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${thought.id}, ${s.id})" class="w-4 h-4 text-indigo-600 rounded border-slate-300">
                                     <span class="${s.done ? 'line-through text-slate-400' : 'text-slate-700'} text-sm font-medium">${s.text}</span>
                                 </label>
-                                <div class="flex items-center gap-1.5 text-[11px] ml-6 sm:ml-0">
+                                <div class="flex items-center gap-1.5 text-[11px] ml-6 sm:ml-0 flex-wrap">
                                     ${s.stepDate ? `<span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-md font-medium">📅 ${s.stepDate} [${s.stepTimeSlot || '全天'}]</span>` : ''}
                                     ${s.stepTime ? `<span class="bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-md font-medium">⏰ ${s.stepTime}</span>` : ''}
                                     <button onclick="startEditStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors ml-1">✏️ 編輯</button>
+                                    <button onclick="promoteStepToGoal(${thought.id}, ${s.id})" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-md font-bold transition-colors">🌱 轉目標</button>
                                     <button onclick="duplicateStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors">📋 複製</button>
                                     <button onclick="deleteStep(${thought.id}, ${s.id})" class="text-slate-400 hover:text-red-500 px-1 py-0.5">🗑️ 刪除</button>
                                 </div>
