@@ -12,7 +12,7 @@
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 支援時間軸雙擊卡片快速編輯 · 雙模式切換</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 預設從今天起檢索 · 雙模式切換</p>
             </div>
             
             <div class="flex items-center gap-2">
@@ -133,7 +133,7 @@
             </div>
         </div>
 
-        <!-- ⏳ 時間軸雙擊快速編輯視窗 (Timeline Quick Edit Modal) -->
+        <!-- 時間軸雙擊快速編輯視窗 -->
         <div id="timelineEditModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
             <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -187,7 +187,7 @@
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
             thoughts = [
                 { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", detail: "每週固定跑步 3 次。", goal: "順利完賽 11 月半程馬拉松", targetDate: "2026-11-30", targetTimeSlot: "上午", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "30分鐘", stepTimeSlot: "上午", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", stepTimeSlot: "全天", done: false }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援時間軸雙擊卡片快速編輯。", goal: "發布支援雙擊編輯的 App", targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計雙擊 Modal 快速編輯視窗", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
+                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援時間軸起始日期檢索。", goal: "發布支援今天起檢索的 App", targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計時間軸起始日期選擇與過濾", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
             ];
         }
 
@@ -198,8 +198,12 @@
         let categoryOrder = [];
         try { categoryOrder = JSON.parse(localStorage.getItem('my_category_order')) || []; } catch(e) { categoryOrder = []; }
 
+        const todayObj = new Date();
+        const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
+
         let activeCategory = "全部";
         let viewMode = "overview";
+        let timelineStartDate = todayStr; // 預設時間軸起始日期為「今天」
         let isFormOpen = false;
         let isBlockPanelOpen = false;
         let editingId = null;
@@ -207,10 +211,7 @@
         let isReorderMode = false;
         let draggedItemInfo = null;
         let pendingDropItem = null;
-        let pendingTlEdit = null; // 暫存時間軸雙擊編輯項目
-
-        const todayObj = new Date();
-        const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
+        let pendingTlEdit = null;
 
         function getBlockedSlot(dateStr, itemSlot = '全天') {
             if (!dateStr || dateStr === '未指定日期') return null;
@@ -222,6 +223,21 @@
                 if (b.timeSlot === itemSlot) return b;
             }
             return null;
+        }
+
+        function setTimelineStartToToday() {
+            timelineStartDate = todayStr;
+            render();
+        }
+
+        function showAllTimelineHistory() {
+            timelineStartDate = ''; // 清除起始日期，顯示全部歷史
+            render();
+        }
+
+        function changeTimelineStartDate(val) {
+            timelineStartDate = val || '';
+            render();
         }
 
         function toggleBlockPanel() { isBlockPanelOpen = !isBlockPanelOpen; render(); }
@@ -302,7 +318,6 @@
             closeDatePickerModal();
         }
 
-        // 🖱️ 時間軸雙擊編輯功能 (Double Click Quick Edit)
         function editGoalFromTimeline(thoughtId) {
             const t = thoughts.find(x => x.id === thoughtId);
             if (!t) return;
@@ -357,7 +372,7 @@
                 t.targetTimeSlot = slot;
             } else if (pendingTlEdit.type === 'step') {
                 if (date && t.targetDate && t.targetDate !== '未指定日期' && date > t.targetDate) {
-                    return alert(`步驟預期日期 (${date}) 不能超過最終目標預期日期 (${t.targetDate})！`);
+                    return alert(`步驟日期 (${date}) 不能超過目標日期 (${t.targetDate})！`);
                 }
                 const s = t.steps.find(x => x.id === pendingTlEdit.stepId);
                 if (s) {
@@ -494,7 +509,7 @@
 
             const blocked = getBlockedSlot(date, targetTimeSlot);
             if (blocked) {
-                return alert(`🚫 警告：${date} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})，無法設定為目標日期！`);
+                return alert(`🚫 警告：${date} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})！`);
             }
 
             thoughts.push({ id: Date.now(), category: cat, text: text, detail: detail || '', goal: goal || '未設定目標', targetDate: date || '未指定日期', targetTimeSlot: targetTimeSlot, steps: [] });
@@ -556,7 +571,7 @@
 
             const blocked = getBlockedSlot(date, targetTimeSlot);
             if (blocked) {
-                return alert(`🚫 警告：${date} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})，無法設定為目標日期！`);
+                return alert(`🚫 警告：${date} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})！`);
             }
 
             const t = thoughts.find(x => x.id === id);
@@ -581,7 +596,7 @@
 
             const blocked = getBlockedSlot(stepDate, stepTimeSlot);
             if (blocked) {
-                return alert(`🚫 警告：${stepDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})，無法排定步驟！`);
+                return alert(`🚫 警告：${stepDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})！`);
             }
 
             const t = thoughts.find(x => x.id === thoughtId);
@@ -633,7 +648,7 @@
 
             const blocked = getBlockedSlot(stepDate, stepTimeSlot);
             if (blocked) {
-                return alert(`🚫 警告：${stepDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})，無法排定步驟！`);
+                return alert(`🚫 警告：${stepDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})！`);
             }
 
             const t = thoughts.find(x => x.id === thoughtId);
@@ -678,7 +693,7 @@
             if (targetDate !== '__unscheduled__') {
                 const blocked = getBlockedSlot(targetDate, itemSlot);
                 if (blocked) {
-                    alert(`🚫 警告：${targetDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})，無法放置！`);
+                    alert(`🚫 警告：${targetDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})！`);
                     draggedItemInfo = null; return;
                 }
             }
@@ -727,7 +742,7 @@
             else renderCards(container);
         }
 
-        // ⏳ 渲染時間對照矩陣 (支援雙擊卡片快速編輯)
+        // ⏳ 渲染時間對照矩陣 (支援起始日期過濾與預設從今天起)
         function renderTimelineMatrix(container) {
             const datesSet = new Set(customTimelineDates);
             const categoriesSet = new Set();
@@ -740,7 +755,12 @@
                 if (Array.isArray(t.steps)) { t.steps.forEach(s => { if (s.stepDate) datesSet.add(s.stepDate); }); }
             });
 
-            const sortedDates = Array.from(datesSet).sort();
+            // 📅 起始日期檢索過濾 (預設從今天開始)
+            let sortedDates = Array.from(datesSet).sort();
+            if (timelineStartDate) {
+                sortedDates = sortedDates.filter(d => d >= timelineStartDate);
+            }
+
             const categoriesList = Array.from(categoriesSet);
 
             const undatedGoals = thoughts.filter(t => !t.targetDate || t.targetDate === '未指定日期');
@@ -749,6 +769,20 @@
 
             const wrapper = document.createElement('div');
             wrapper.className = "bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4";
+
+            // 📅 起始日期篩選控制列
+            let dateFilterControlHtml = `
+                <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-100/90 p-3 rounded-xl border border-slate-200">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-slate-700">📅 時間軸起始日期：</span>
+                        <input type="date" value="${timelineStartDate}" onchange="changeTimelineStartDate(this.value)" class="px-2.5 py-1 text-xs border border-slate-300 rounded-lg text-slate-800 font-medium bg-white">
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="setTimelineStartToToday()" class="text-xs bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold px-3 py-1 rounded-lg border border-emerald-300 transition-colors">🌟 從今天開始</button>
+                        <button onclick="showAllTimelineHistory()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-3 py-1 rounded-lg transition-colors">📜 顯示全部歷史</button>
+                    </div>
+                </div>
+            `;
 
             let blockedManagerHtml = `
                 <div class="bg-rose-50/80 p-3.5 rounded-xl border border-rose-200 space-y-2">
@@ -811,7 +845,7 @@
             }
             unscheduledHtml += `</div></div>`;
 
-            let html = blockedManagerHtml + unscheduledHtml;
+            let html = dateFilterControlHtml + blockedManagerHtml + unscheduledHtml;
 
             html += `
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3 pt-2">
@@ -839,6 +873,10 @@
                         </thead>
                         <tbody>
             `;
+
+            if (sortedDates.length === 0) {
+                html += `<tr><td colspan="${categoriesList.length + 1}" class="text-center py-8 text-slate-400 text-xs">起始日期以內尚無任何目標排程。點擊「📜 顯示全部歷史」可查閱過往記錄。</td></tr>`;
+            }
 
             sortedDates.forEach(date => {
                 const dateInfo = getDateStatus(date);
