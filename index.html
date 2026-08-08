@@ -6,18 +6,19 @@
     <title>思緒拆解與時間軸目標規劃</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-50 min-h-screen py-8 px-4 text-slate-800">
-    <div class="max-w-4xl mx-auto">
+<body class="bg-slate-50 min-h-screen py-6 px-3 sm:px-6 text-slate-800">
+    <!-- 寬螢幕極致滿版容器 (max-w-[98%]) -->
+    <div class="max-w-[98%] mx-auto w-full">
         <!-- 頁首與備份按鈕 -->
-        <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+        <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 單日工時上限防呆 · 時間軸自動檢查過期</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 全模式領域順序統一 · 寬螢幕適應版面</p>
             </div>
             
             <div class="flex items-center gap-2">
-                <button onclick="exportData()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-xl border border-indigo-200 font-medium transition-colors">📥 備份</button>
-                <label class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl border border-slate-300 font-medium transition-colors cursor-pointer">
+                <button onclick="exportData()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3.5 py-2 rounded-xl border border-indigo-200 font-medium transition-colors">📥 備份</button>
+                <label class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-xl border border-slate-300 font-medium transition-colors cursor-pointer">
                     📤 匯入
                     <input type="file" id="importFile" accept=".json" onchange="importData(event)" class="hidden">
                 </label>
@@ -190,7 +191,7 @@
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
             thoughts = [
                 { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", detail: "每週固定跑步 3 次。", goal: "順利完賽 11 月半程馬拉松", goalDone: false, targetDate: "2026-11-30", targetTimeSlot: "上午", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "1.5小時", stepTimeSlot: "上午", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", stepTimeSlot: "全天", done: false }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援單日總工時上限與時間軸自動檢查過期。", goal: "發布支援工時防呆的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計單日總工時上限加總與自動過期檢查邏輯", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
+                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援全模式領域順序統一與寬螢幕滿版適應。", goal: "發布支援寬螢幕與領域同步的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計領域排序統一助手函數與寬螢幕滿版 CSS", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
             ];
         }
 
@@ -201,7 +202,6 @@
         let categoryOrder = [];
         try { categoryOrder = JSON.parse(localStorage.getItem('my_category_order')) || []; } catch(e) { categoryOrder = []; }
 
-        // ⏱️ 單日最大工時上限 (預設 8 小時)
         let maxDailyHours = parseFloat(localStorage.getItem('my_max_daily_hours')) || 8;
 
         const todayObj = new Date();
@@ -221,7 +221,14 @@
 
         const slotPriorityMap = { '全天': 0, '上午': 1, '下午': 2, '晚上': 3, '夜間': 4 };
 
-        // ⏱️ 工時解析助手函數 (將 "2小時", "1.5h", "30分鐘" 轉為小數數字)
+        // 📂 核心領域排序助手：確保全模式 (看板/總覽/時間軸X軸) 領域順序 100% 統一
+        function getOrderedCategories() {
+            const currentCats = Array.from(new Set(thoughts.map(t => t.category || '💼 事業')));
+            currentCats.forEach(c => { if (!categoryOrder.includes(c)) categoryOrder.push(c); });
+            categoryOrder = categoryOrder.filter(c => currentCats.includes(c));
+            return categoryOrder;
+        }
+
         function parseHours(timeStr) {
             if (!timeStr) return 0;
             let s = timeStr.trim();
@@ -232,7 +239,6 @@
             return parseFloat(s) || 0;
         }
 
-        // ⏱️ 計算指定日期下跨領域、跨目標的所有步驟累計工時
         function getDailyTotalHours(dateStr, excludeStepId = null) {
             if (!dateStr || dateStr === '未指定日期') return 0;
             let total = 0;
@@ -340,7 +346,6 @@
             alert(`已將步驟「${step.text}」另存為獨立目標！兩者將保持狀態與日期雙向聯動。`);
         }
 
-        // ⚡ 自動檢查過期未完成的目標/步驟移至「待排定區」
         function autoCheckExpiredInTimeline() {
             let count = 0;
             thoughts.forEach(t => {
@@ -404,6 +409,7 @@
 
         function moveCategoryLeft(cat, ev) {
             if (ev) ev.stopPropagation();
+            getOrderedCategories();
             const idx = categoryOrder.indexOf(cat);
             if (idx > 0) {
                 const temp = categoryOrder[idx]; categoryOrder[idx] = categoryOrder[idx - 1]; categoryOrder[idx - 1] = temp; saveCategoryOrder();
@@ -412,6 +418,7 @@
 
         function moveCategoryRight(cat, ev) {
             if (ev) ev.stopPropagation();
+            getOrderedCategories();
             const idx = categoryOrder.indexOf(cat);
             if (idx !== -1 && idx < categoryOrder.length - 1) {
                 const temp = categoryOrder[idx]; categoryOrder[idx] = categoryOrder[idx + 1]; categoryOrder[idx + 1] = temp; saveCategoryOrder();
@@ -565,7 +572,6 @@
                     return alert(`步驟日期 (${date}) 不能超過目標日期 (${t.targetDate})！`);
                 }
 
-                // ⏱️ 單日工時上限防呆檢測
                 if (date) {
                     const currentDailyTotal = getDailyTotalHours(date, pendingTlEdit.stepId);
                     const newHours = parseHours(time);
@@ -673,7 +679,6 @@
                 else tabsSection.classList.add('hidden');
             }
 
-            // ⚡ 切換至時間軸模式時，自動檢查並轉換過期未完成項目
             if (mode === 'timeline') {
                 autoCheckExpiredInTimeline();
             }
@@ -819,7 +824,6 @@
                 return alert(`🚫 警告：${stepDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})！`);
             }
 
-            // ⏱️ 單日總工時上限防呆檢測
             if (stepDate) {
                 const currentDailyTotal = getDailyTotalHours(stepDate);
                 const addedHours = parseHours(stepTime);
@@ -882,7 +886,6 @@
                 return alert(`🚫 警告：${stepDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})！`);
             }
 
-            // ⏱️ 單日總工時上限防呆檢測
             if (stepDate) {
                 const currentDailyTotal = getDailyTotalHours(stepDate, stepId);
                 const newHours = parseHours(stepTime);
@@ -996,15 +999,13 @@
             else renderCards(container);
         }
 
-        // ⏳ 渲染時間對照矩陣
+        // ⏳ 渲染時間對照矩陣 (X軸領域順序比照看板模式 + 寬螢幕適應)
         function renderTimelineMatrix(container) {
             const datesSet = new Set(customTimelineDates);
-            const categoriesSet = new Set();
+            const categoriesList = getOrderedCategories();
 
             blockedSlots.forEach(b => datesSet.add(b.date));
             thoughts.forEach(t => {
-                const cat = t.category || '💼 事業';
-                categoriesSet.add(cat);
                 if (t.targetDate && t.targetDate !== '未指定日期') datesSet.add(t.targetDate);
                 if (Array.isArray(t.steps)) { t.steps.forEach(s => { if (s.stepDate) datesSet.add(s.stepDate); }); }
             });
@@ -1014,14 +1015,12 @@
                 sortedDates = sortedDates.filter(d => d >= timelineStartDate);
             }
 
-            const categoriesList = Array.from(categoriesSet);
-
             const undatedGoals = thoughts.filter(t => !t.targetDate || t.targetDate === '未指定日期');
             const undatedSteps = [];
             thoughts.forEach(t => { if (Array.isArray(t.steps)) { t.steps.forEach(s => { if (!s.stepDate) undatedSteps.push({ thought: t, step: s }); }); } });
 
             const wrapper = document.createElement('div');
-            wrapper.className = "bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4";
+            wrapper.className = "bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4 w-full";
 
             let dateFilterControlHtml = `
                 <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-100/90 p-3 rounded-xl border border-slate-200">
@@ -1121,12 +1120,12 @@
                     📍 拖曳卡片至此處放開 ➔ 快速點選月曆指定全新日期與時段
                 </div>
 
-                <div class="max-h-[60vh] overflow-y-auto overflow-x-auto rounded-xl border border-slate-200">
-                    <table class="w-full border-collapse text-sm">
+                <div class="max-h-[70vh] overflow-y-auto overflow-x-auto rounded-xl border border-slate-200 w-full">
+                    <table class="w-full border-collapse text-sm min-w-full">
                         <thead class="sticky top-0 z-20 bg-indigo-100 border-b-2 border-indigo-200 shadow-sm">
                             <tr class="text-indigo-950 font-bold text-sm">
                                 <th class="p-3.5 text-left border border-indigo-200 w-36 bg-indigo-100 shrink-0">📅 日期時間</th>
-                                ${categoriesList.map(c => `<th class="p-3.5 text-left border border-indigo-200 bg-indigo-100 text-indigo-950 min-w-[180px] text-sm font-bold">${c}</th>`).join('')}
+                                ${categoriesList.map(c => `<th class="p-3.5 text-left border border-indigo-200 bg-indigo-100 text-indigo-950 min-w-[160px] font-bold text-sm">${c}</th>`).join('')}
                             </tr>
                         </thead>
                         <tbody>
@@ -1237,23 +1236,20 @@
             container.appendChild(wrapper);
         }
 
-        // 🎯 總覽模式
+        // 🎯 總覽模式 (領域順序與看板模式同步)
         function renderOverview(container) {
             if (thoughts.length === 0) {
                 container.innerHTML = `<div class="text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200 text-sm">目前尚無記錄！</div>`;
                 return;
             }
 
-            const grouped = {};
-            thoughts.forEach(t => {
-                const cat = t.category || '💼 事業';
-                if (!grouped[cat]) grouped[cat] = [];
-                grouped[cat].push(t);
-            });
+            const categoriesList = getOrderedCategories();
 
-            Object.keys(grouped).forEach(cat => {
+            categoriesList.forEach(cat => {
+                const cardList = thoughts.filter(t => (t.category || '💼 事業') === cat);
+                if (cardList.length === 0) return;
+
                 const catBox = document.createElement('div');
-                const cardList = grouped[cat];
                 catBox.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6";
 
                 let html = `
@@ -1302,14 +1298,12 @@
 
         // 🎴 看板模式 (獨立頁籤 DOM 結構，解決排序按鈕衝突)
         function renderCards(container) {
-            const currentCats = Array.from(new Set(thoughts.map(t => t.category || '💼 事業')));
-            currentCats.forEach(c => { if (!categoryOrder.includes(c)) categoryOrder.push(c); });
-            categoryOrder = categoryOrder.filter(c => currentCats.includes(c));
+            const categoriesList = getOrderedCategories();
 
             const tabsContainer = document.getElementById('categoryTabs');
             if (tabsContainer) {
                 tabsContainer.innerHTML = '';
-                const displayCategories = ['全部', ...categoryOrder];
+                const displayCategories = ['全部', ...categoriesList];
                 if (!displayCategories.includes(activeCategory)) activeCategory = '全部';
 
                 displayCategories.forEach((cat) => {
@@ -1495,7 +1489,7 @@
                                         <option value="晚上">晚上</option>
                                         <option value="夜間">夜間</option>
                                     </select>
-                                    <input type="text" id="step-time-${thought.id}" placeholder="預估工時(如2小時)" class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <input type="text" id="step-time-${thought.id}" placeholder="預估工時(如2小時)" class="px-2.5 py-1.5 text-xs border border-slate-300 rounded class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
                                     <button onclick="addStep(${thought.id})" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">＋ 新增步驟</button>
                                 </div>
                             </div>
