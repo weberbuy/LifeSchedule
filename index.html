@@ -13,7 +13,7 @@
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 總覽圖表統計分析 · 全模式適應</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 總覽 X/Y 軸矩陣 · 簡化圖表儀表板</p>
             </div>
             
             <div class="flex items-center gap-2">
@@ -198,11 +198,10 @@
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
             thoughts = [
                 { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", detail: "每週固定跑步 3 次。", goal: "順利完賽 11 月半程馬拉松", goalDone: false, targetDate: "2026-11-30", targetTimeSlot: "上午", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "1.5小時", stepTimeSlot: "上午", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", stepTimeSlot: "全天", done: false }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援總覽模式圖表統計與週工時上限警示。", goal: "發布支援領域統計與週工時管理的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計總覽模式 SVG 環形圖與週工時統計面板", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
+                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援總覽模式領域 X/Y 軸矩陣與精簡圖表。", goal: "發布支援總覽矩陣分析的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計總覽模式 X 軸領域與 Y 軸目標對照矩陣", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
             ];
         }
 
-        // 🛡️ 資料格式安全性相容檢查
         thoughts.forEach(t => {
             if (!Array.isArray(t.steps)) t.steps = [];
             if (t.goalDone === undefined) t.goalDone = false;
@@ -241,7 +240,6 @@
 
         const slotPriorityMap = { '全天': 0, '上午': 1, '下午': 2, '晚上': 3, '夜間': 4 };
 
-        // 📊 計算單一領域統計數據 (總目標、完成目標、總工時、已完成工時)
         function getCategoryStats(cat) {
             const goals = thoughts.filter(t => (t.category || '💼 事業') === cat);
             const totalGoals = goals.length;
@@ -263,7 +261,6 @@
             return { totalGoals, completedGoals, totalHours, completedHours };
         }
 
-        // 📊 計算當前日期所屬週的週一至週日日期區間
         function getCurrentWeekRange() {
             const d = new Date();
             const day = d.getDay();
@@ -281,7 +278,6 @@
             return { mondayStr, sundayStr };
         }
 
-        // 📊 計算本週 (週一至週日) 跨領域累計總工時
         function getWeeklyTotalHours(excludeStepId = null) {
             const { mondayStr, sundayStr } = getCurrentWeekRange();
             let total = 0;
@@ -306,7 +302,6 @@
             }
         }
 
-        // 📊 渲染本週總工時統計與超標警示儀表板
         function renderWeeklyStatsPanel() {
             const panel = document.getElementById('weeklyStatsPanel');
             if (!panel) return;
@@ -342,7 +337,7 @@
             if (!container) return;
 
             if (viewMode === 'overview') {
-                container.className = "max-w-4xl mx-auto w-full transition-all duration-300";
+                container.className = "max-w-6xl mx-auto w-full transition-all duration-300";
             } else if (viewMode === 'cards') {
                 container.className = "max-w-5xl mx-auto w-full transition-all duration-300";
             } else if (viewMode === 'timeline') {
@@ -1083,7 +1078,7 @@
             const t = thoughts.find(x => x.id === thoughtId);
             if (t) {
                 if (stepDate && t.targetDate && t.targetDate !== '未指定日期' && stepDate > t.targetDate) {
-                    return alert(`步驟預期日期 (${stepDate}) 不能超過最終目標預期日期 (${t.targetDate})！`);
+                    return alert(`步驟日期 (${stepDate}) 不能超過目標日期 (${t.targetDate})！`);
                 }
                 const s = t.steps.find(x => x.id === stepId);
                 if (s) {
@@ -1422,7 +1417,7 @@
             container.appendChild(wrapper);
         }
 
-        // 🎯 總覽模式 (視覺化 SVG Donut 環形圖與工時圖表統計儀表板)
+        // 🎯 總覽模式 (精簡圖表儀表板 + X軸領域與Y軸目標對照矩陣)
         function renderOverview(container) {
             if (thoughts.length === 0) {
                 container.innerHTML = `<div class="text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200 text-sm">目前尚無記錄！</div>`;
@@ -1431,19 +1426,18 @@
 
             const categoriesList = getOrderedCategories();
 
-            // 📊 建立領域統計圖表分析儀表板
+            // 1. 📊 精簡圖表儀表板：將工時與目標達成率完美融入圖表內部
             const dashboardBox = document.createElement('div');
-            dashboardBox.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6 space-y-4";
+            dashboardBox.className = "bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 mb-6 space-y-3";
 
             let dashboardHtml = `
-                <div class="border-b border-slate-100 pb-3">
+                <div class="border-b border-slate-100 pb-2.5">
                     <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                        <span>📊 各領域工時與目標達成圖表儀表板</span>
+                        <span>📊 各領域目標與工時精簡儀表板</span>
                     </h2>
-                    <p class="text-xs text-slate-500 mt-0.5">即時統計各領域之設定總工時、完成工時與目標達成率</p>
+                    <p class="text-xs text-slate-500 mt-0.5">即時統計各領域之目標達成率與工時完成狀況</p>
                 </div>
 
-                <!-- 🍩 各領域目標完成率 SVG 環形餅圖網格 -->
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     ${categoriesList.map(cat => {
                         const stats = getCategoryStats(cat);
@@ -1451,40 +1445,18 @@
                         const strokeDash = Math.round((percentGoals / 100) * 100);
 
                         return `
-                            <div class="bg-slate-50/90 p-3.5 rounded-xl border border-slate-200 text-center flex flex-col items-center justify-between">
-                                <div class="relative w-16 h-16 flex items-center justify-center mb-1.5">
+                            <div class="bg-slate-50/90 p-3.5 rounded-xl border border-slate-200 text-center flex flex-col items-center justify-between space-y-2">
+                                <div class="relative w-14 h-14 flex items-center justify-center">
                                     <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                                         <path class="text-slate-200" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                                         <path class="text-indigo-600 stroke-current transition-all duration-500" stroke-width="3.5" stroke-dasharray="${strokeDash}, 100" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                                     </svg>
                                     <span class="absolute text-xs font-extrabold text-slate-800">${percentGoals}%</span>
                                 </div>
-                                <div class="font-bold text-xs text-slate-900">${cat}</div>
-                                <div class="text-[10px] text-slate-500 mt-0.5 font-medium">${stats.completedGoals}/${stats.totalGoals} 目標完成</div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-
-                <!-- 📊 各領域工時進度比較條形圖 -->
-                <div class="space-y-2.5 pt-2 border-t border-slate-100">
-                    <div class="text-xs font-bold text-slate-600 mb-1">⏱️ 各領域工作時間統計 (完成工時 / 總工時)：</div>
-                    ${categoriesList.map(cat => {
-                        const stats = getCategoryStats(cat);
-                        const percentHours = stats.totalHours > 0 ? Math.round((stats.completedHours / stats.totalHours) * 100) : 0;
-
-                        return `
-                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1.5">
-                                    <div class="font-bold text-xs text-slate-800 flex items-center gap-2">
-                                        <span>${cat}</span>
-                                    </div>
-                                    <div class="text-xs font-semibold text-slate-600">
-                                        已完成: <span class="text-emerald-600 font-bold">${stats.completedHours.toFixed(1)}h</span> / 預估總工時: <span class="font-bold text-slate-800">${stats.totalHours.toFixed(1)}h</span> (${percentHours}%)
-                                    </div>
-                                </div>
-                                <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden flex">
-                                    <div class="bg-emerald-500 h-full transition-all duration-500" style="width: ${percentHours}%"></div>
+                                <div class="font-bold text-xs text-slate-900 truncate w-full">${cat}</div>
+                                <div class="space-y-0.5 text-[11px] w-full">
+                                    <div class="text-slate-600 font-medium">🎯 目標: <span class="font-bold text-slate-800">${stats.completedGoals}/${stats.totalGoals}</span></div>
+                                    <div class="text-slate-600 font-medium">⏱️ 工時: <span class="font-bold text-emerald-600">${stats.completedHours.toFixed(1)}h</span> / ${stats.totalHours.toFixed(1)}h</div>
                                 </div>
                             </div>
                         `;
@@ -1495,57 +1467,75 @@
             dashboardBox.innerHTML = dashboardHtml;
             container.appendChild(dashboardBox);
 
-            // 依領域顯示目標卡片清單
-            categoriesList.forEach(cat => {
-                const cardList = thoughts.filter(t => (t.category || '💼 事業') === cat);
-                if (cardList.length === 0) return;
+            // 2. 🎯 X軸 (領域) × Y軸 (各領域目標) 矩陣視圖
+            const matrixWrapper = document.createElement('div');
+            matrixWrapper.className = "space-y-2";
 
-                const catBox = document.createElement('div');
-                catBox.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6";
+            let matrixHtml = `
+                <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
+                    <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <span>🎯 領域 (X軸) × 目標 (Y軸) 矩陣視圖</span>
+                    </h2>
+                    <span class="text-xs text-slate-500">左右滑動以檢視更多領域欄位</span>
+                </div>
 
-                let html = `
-                    <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-                        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                            <span>${cat}</span>
-                            <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-semibold">${cardList.length} 個目標</span>
-                        </h2>
-                    </div>
-                    <div class="space-y-3">
-                `;
+                <div class="overflow-x-auto pb-4 scroll-smooth w-full">
+                    <div class="flex gap-4 items-start min-w-max">
+                        ${categoriesList.map(cat => {
+                            const cardList = thoughts.filter(t => (t.category || '💼 事業') === cat);
 
-                cardList.forEach((t, i) => {
-                    const steps = Array.isArray(t.steps) ? t.steps : [];
-                    const doneCount = steps.filter(s => s.done).length;
-                    const totalCount = steps.length;
-                    const percent = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+                            return `
+                                <div class="w-72 sm:w-80 bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3 shrink-0">
+                                    <!-- X軸 領域標題 -->
+                                    <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                                        <h3 class="font-bold text-sm text-slate-900 flex items-center gap-1.5">
+                                            <span>${cat}</span>
+                                        </h3>
+                                        <span class="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-bold border border-indigo-100">${cardList.length} 個目標</span>
+                                    </div>
 
-                    html += `
-                        <div class="bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 hover:border-indigo-200 transition-colors">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                                <div class="flex items-start gap-2.5">
-                                    <span class="inline-flex items-center justify-center bg-indigo-100 text-indigo-700 font-bold text-xs w-6 h-6 rounded-full shrink-0 mt-0.5">${i + 1}</span>
-                                    <div>
-                                        <h3 class="font-bold text-slate-800 text-base leading-snug">${t.text}</h3>
-                                        <div class="text-xs text-amber-800 font-medium mt-1">🎯 最終目標：<span class="${t.goalDone ? 'line-through text-slate-400' : ''}">${t.goal || '未設定'}</span></div>
+                                    <!-- Y軸 該領域下的目標清單 -->
+                                    <div class="space-y-3">
+                                        ${cardList.length === 0 ? `<div class="text-xs text-slate-400 italic py-4 text-center">尚無目標</div>` : ''}
+                                        ${cardList.map((t, i) => {
+                                            const steps = Array.isArray(t.steps) ? t.steps : [];
+                                            const doneCount = steps.filter(s => s.done).length;
+                                            const totalCount = steps.length;
+                                            const percent = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+
+                                            return `
+                                                <div class="bg-slate-50/90 p-3.5 rounded-xl border border-slate-200/80 hover:border-indigo-300 transition-all space-y-2">
+                                                    <div class="flex items-start gap-2">
+                                                        <span class="inline-flex items-center justify-center bg-indigo-100 text-indigo-700 font-bold text-xs w-5 h-5 rounded-full shrink-0 mt-0.5">${i + 1}</span>
+                                                        <div class="flex-1 min-w-0">
+                                                            <h4 class="font-bold text-slate-900 text-sm leading-snug">${t.text}</h4>
+                                                            <div class="text-xs text-amber-800 font-medium mt-1">🎯 <span class="${t.goalDone ? 'line-through text-slate-400' : ''}">${t.goal || '未設定'}</span></div>
+                                                        </div>
+                                                    </div>
+
+                                                    ${t.detail ? `<p class="text-[11px] text-slate-600 bg-white/80 p-2 rounded-lg whitespace-pre-wrap leading-relaxed border border-slate-200/60">📝 ${t.detail}</p>` : ''}
+
+                                                    <div class="flex items-center justify-between text-[11px] text-slate-500 font-medium pt-1">
+                                                        <span>📅 ${t.targetDate || '未指定'} (${t.targetTimeSlot || '全天'})</span>
+                                                        <span class="text-indigo-600 font-bold">${doneCount}/${totalCount} (${percent}%)</span>
+                                                    </div>
+
+                                                    <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                                                        <div class="bg-indigo-600 h-full transition-all duration-300" style="width: ${percent}%"></div>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }).join('')}
                                     </div>
                                 </div>
-                                <div class="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shrink-0 flex items-center justify-between sm:justify-end gap-2">
-                                    <span>📅 ${t.targetDate || '未指定'} (${t.targetTimeSlot || '全天'})</span>
-                                    <span class="text-indigo-600 font-bold">進度: ${doneCount}/${totalCount} (${percent}%)</span>
-                                </div>
-                            </div>
-                            ${t.detail ? `<p class="text-xs text-slate-600 bg-white/80 p-2.5 rounded-xl whitespace-pre-wrap leading-relaxed mt-2 border border-slate-200/60">📝 ${t.detail}</p>` : ''}
-                            <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden mt-3">
-                                <div class="bg-indigo-600 h-full transition-all duration-300" style="width: ${percent}%"></div>
-                            </div>
-                        </div>
-                    `;
-                });
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
 
-                html += `</div>`;
-                catBox.innerHTML = html;
-                container.appendChild(catBox);
-            });
+            matrixWrapper.innerHTML = matrixHtml;
+            container.appendChild(matrixWrapper);
         }
 
         // 🎴 看板模式
@@ -1647,7 +1637,7 @@
                                     <button onclick="startEditStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors">✏️ 編輯</button>
                                     <button onclick="promoteStepToGoal(${thought.id}, ${s.id})" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-md font-bold transition-colors">🌱 轉目標</button>
                                     <button onclick="duplicateStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors">📋 複製</button>
-                                    <button onclick="deleteStep(${thought.id}, ${s.id})" class="text-slate-400 hover:text-red-500 px-1 py-0.5">🗑️ 刪除</button>
+                                    <button onclick="deleteStep(${thought.id}, ${s.id})" class="text-slate-400 hover:text-red-500 px-1 py-1">🗑️ 刪除</button>
                                 </div>
                             </li>
                         `;
