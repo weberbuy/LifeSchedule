@@ -13,7 +13,7 @@
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 備份檔名格式：BL-YYYYMMDD-HHMMSS</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 支援完整備份資料與領域順序設定</p>
             </div>
             
             <div class="flex items-center gap-2">
@@ -1197,7 +1197,17 @@
             const ss = String(now.getSeconds()).padStart(2, '0');
 
             const fileName = `BL-${yyyy}${mm}${dd}-${hh}${min}${ss}.json`;
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(thoughts, null, 2));
+            
+            // 完整包裹資料與設定
+            const exportPayload = {
+                thoughts: thoughts,
+                categoryOrder: categoryOrder,
+                blockedSlots: blockedSlots,
+                maxDailyHours: maxDailyHours,
+                maxWeeklyHours: maxWeeklyHours
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportPayload, null, 2));
             const a = document.createElement('a'); a.href = dataStr;
             a.download = fileName; a.click();
         }
@@ -1208,11 +1218,54 @@
             reader.onload = function(evt) {
                 try {
                     const data = JSON.parse(evt.target.result);
-                    if (Array.isArray(data) && confirm("確定匯入並覆蓋當前資料？")) {
-                        thoughts = data; editingId = null; activeCategory = "全部"; saveData(); alert("成功匯入備份資料！");
+                    
+                    let importedThoughts = null;
+                    let importedCategoryOrder = null;
+                    let importedBlockedSlots = null;
+                    let importedMaxDaily = null;
+                    let importedMaxWeekly = null;
+
+                    if (Array.isArray(data)) {
+                        importedThoughts = data;
+                    } else if (data && typeof data === 'object') {
+                        if (Array.isArray(data.thoughts)) importedThoughts = data.thoughts;
+                        if (Array.isArray(data.categoryOrder)) importedCategoryOrder = data.categoryOrder;
+                        if (Array.isArray(data.blockedSlots)) importedBlockedSlots = data.blockedSlots;
+                        if (typeof data.maxDailyHours === 'number') importedMaxDaily = data.maxDailyHours;
+                        if (typeof data.maxWeeklyHours === 'number') importedMaxWeekly = data.maxWeeklyHours;
+                    }
+
+                    if (importedThoughts && confirm("確定匯入並覆蓋當前資料與領域順序設定？")) {
+                        thoughts = importedThoughts;
+                        
+                        if (importedCategoryOrder) {
+                            categoryOrder = importedCategoryOrder;
+                            localStorage.setItem('my_category_order', JSON.stringify(categoryOrder));
+                        }
+                        if (importedBlockedSlots) {
+                            blockedSlots = importedBlockedSlots;
+                            localStorage.setItem('my_blocked_slots', JSON.stringify(blockedSlots));
+                        }
+                        if (importedMaxDaily) {
+                            maxDailyHours = importedMaxDaily;
+                            localStorage.setItem('my_max_daily_hours', maxDailyHours);
+                        }
+                        if (importedMaxWeekly) {
+                            maxWeeklyHours = importedMaxWeekly;
+                            localStorage.setItem('my_max_weekly_hours', maxWeeklyHours);
+                        }
+
+                        editingId = null;
+                        activeCategory = "全部";
+                        saveData();
+                        alert("成功匯入備份資料與領域順序設定！");
+                    } else if (!importedThoughts) {
+                        alert("備份檔案內容無效。");
                     }
                 } catch(err) { alert("備份檔案格式不正確。"); }
-            }; reader.readAsText(file); e.target.value = '';
+            }; 
+            reader.readAsText(file); 
+            e.target.value = '';
         }
 
         function setCategoryTab(cat) { activeCategory = cat; render(); }
