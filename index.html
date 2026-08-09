@@ -7,13 +7,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 min-h-screen py-6 px-4 text-slate-800">
-    <!-- 動態模式寬度容器：依模式自動切換 max-w-4xl / max-w-5xl / max-w-7xl -->
+    <!-- 動態模式寬度容器 -->
     <div id="appContainer" class="max-w-4xl mx-auto w-full transition-all duration-300">
         <!-- 頁首與備份按鈕 -->
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 動態模式最佳寬度 · 雙模式切換</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 頁籤橫向滾動優化 · 選單錨定修復</p>
             </div>
             
             <div class="flex items-center gap-2">
@@ -81,7 +81,7 @@
                         <label class="block text-xs font-semibold text-slate-600 mb-1">📅 預期日期：</label>
                         <input type="date" id="dateInput" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700">
                     </div>
-                    <div class="md:col-span-1">
+                    <div class="md:col-span-1 relative">
                         <label class="block text-xs font-semibold text-slate-600 mb-1">⏰ 目標時程區段：</label>
                         <select id="goalSlotSelect" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700 bg-white">
                             <option value="全天">全天</option>
@@ -99,16 +99,20 @@
             </div>
         </div>
 
-        <!-- 頁籤列 -->
+        <!-- 頁籤列 (新增左右滾動按鈕與滾輪捲動) -->
         <div id="tabsSection" class="mb-6 hidden">
             <div class="flex items-center justify-between gap-2 mb-2">
                 <span class="text-xs font-bold text-slate-500">📂 領域分頁切換：</span>
-                <button onclick="toggleReorderMode()" id="reorderBtn" class="text-[11px] text-slate-600 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg border border-slate-300 transition-colors">
-                    ⚙️ 調整頁籤順序
-                </button>
+                <div class="flex items-center gap-1.5">
+                    <button onclick="scrollTabsLeft()" class="text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-lg border border-slate-300 font-bold" title="向左捲動">◀</button>
+                    <button onclick="scrollTabsRight()" class="text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-lg border border-slate-300 font-bold" title="向右捲動">▶</button>
+                    <button onclick="toggleReorderMode()" id="reorderBtn" class="text-[11px] text-slate-600 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg border border-slate-300 transition-colors ml-1">
+                        ⚙️ 調整頁籤順序
+                    </button>
+                </div>
             </div>
-            <div class="overflow-x-auto pb-1">
-                <div id="categoryTabs" class="flex gap-2 border-b border-slate-200 pb-2"></div>
+            <div id="tabsScrollContainer" class="overflow-x-auto pb-2 scroll-smooth">
+                <div id="categoryTabs" class="flex gap-2 border-b border-slate-200 pb-2 flex-nowrap min-w-max"></div>
             </div>
         </div>
 
@@ -191,7 +195,7 @@
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
             thoughts = [
                 { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", detail: "每週固定跑步 3 次。", goal: "順利完賽 11 月半程馬拉松", goalDone: false, targetDate: "2026-11-30", targetTimeSlot: "上午", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "1.5小時", stepTimeSlot: "上午", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", stepTimeSlot: "全天", done: false }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援動態適應最適寬度與靈活排版。", goal: "發布支援智慧動態排版的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計模式自適應容器寬度切換", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
+                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援頁籤橫向滾動與選單精準錨定。", goal: "發布支援分頁平滑滾動的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計領域分頁橫向滾動與選單錨定修復", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
             ];
         }
 
@@ -221,17 +225,16 @@
 
         const slotPriorityMap = { '全天': 0, '上午': 1, '下午': 2, '晚上': 3, '夜間': 4 };
 
-        // 📐 動態智慧寬度：依據活躍模式設定最人性化與舒適的排版寬度
         function updateContainerWidth() {
             const container = document.getElementById('appContainer');
             if (!container) return;
 
             if (viewMode === 'overview') {
-                container.className = "max-w-4xl mx-auto w-full transition-all duration-300"; // 總覽：最佳文字閱讀行長
+                container.className = "max-w-4xl mx-auto w-full transition-all duration-300";
             } else if (viewMode === 'cards') {
-                container.className = "max-w-5xl mx-auto w-full transition-all duration-300"; // 看板：均衡卡片視覺
+                container.className = "max-w-5xl mx-auto w-full transition-all duration-300";
             } else if (viewMode === 'timeline') {
-                container.className = "max-w-7xl mx-auto w-full transition-all duration-300"; // 時間軸：寬廣但不死貼邊緣的對照矩陣
+                container.className = "max-w-7xl mx-auto w-full transition-all duration-300";
             }
         }
 
@@ -240,6 +243,16 @@
             currentCats.forEach(c => { if (!categoryOrder.includes(c)) categoryOrder.push(c); });
             categoryOrder = categoryOrder.filter(c => currentCats.includes(c));
             return categoryOrder;
+        }
+
+        function scrollTabsLeft() {
+            const el = document.getElementById('tabsScrollContainer');
+            if (el) el.scrollBy({ left: -220, behavior: 'smooth' });
+        }
+
+        function scrollTabsRight() {
+            const el = document.getElementById('tabsScrollContainer');
+            if (el) el.scrollBy({ left: 220, behavior: 'smooth' });
         }
 
         function parseHours(timeStr) {
@@ -705,8 +718,8 @@
             if (btn) {
                 btn.innerText = isReorderMode ? "✅ 完成排序" : "⚙️ 調整頁籤順序";
                 btn.className = isReorderMode 
-                    ? "text-[11px] text-white bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1 rounded-lg transition-colors font-medium shadow-sm"
-                    : "text-[11px] text-slate-600 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg border border-slate-300 transition-colors";
+                    ? "text-[11px] text-white bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1 rounded-lg transition-colors font-medium shadow-sm ml-1"
+                    : "text-[11px] text-slate-600 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg border border-slate-300 transition-colors ml-1";
             }
             render();
         }
@@ -1006,14 +1019,14 @@
 
         function render() {
             syncLinkedData();
-            updateContainerWidth(); // 動態更新模式對應最佳頁面寬度
+            updateContainerWidth();
             const container = document.getElementById('mainContentList'); container.innerHTML = '';
             if (viewMode === 'overview') renderOverview(container);
             else if (viewMode === 'timeline') renderTimelineMatrix(container);
             else renderCards(container);
         }
 
-        // ⏳ 渲染時間對照矩陣 (X軸領域順序比照看板模式 + 寬螢幕對照矩陣適應)
+        // ⏳ 渲染時間對照矩陣
         function renderTimelineMatrix(container) {
             const datesSet = new Set(customTimelineDates);
             const categoriesList = getOrderedCategories();
@@ -1250,7 +1263,7 @@
             container.appendChild(wrapper);
         }
 
-        // 🎯 總覽模式 (領域順序與看板模式同步)
+        // 🎯 總覽模式
         function renderOverview(container) {
             if (thoughts.length === 0) {
                 container.innerHTML = `<div class="text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200 text-sm">目前尚無記錄！</div>`;
@@ -1325,7 +1338,7 @@
                     const isActive = (activeCategory === cat);
                     
                     const tabWrapper = document.createElement('div');
-                    tabWrapper.className = `px-3.5 py-1.5 text-xs font-semibold rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 select-none ${
+                    tabWrapper.className = `px-3.5 py-1.5 text-xs font-semibold rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 select-none shrink-0 ${
                         isActive ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200'
                     }`;
 
@@ -1378,13 +1391,15 @@
                                 <input type="text" id="edit-step-text-${thought.id}-${s.id}" value="${s.text.replace(/"/g, '&quot;')}" class="w-full px-2.5 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
                                 <div class="grid grid-cols-3 gap-2">
                                     <input type="date" id="edit-step-date-${thought.id}-${s.id}" value="${s.stepDate || ''}" ${maxDateAttr} class="px-2 py-1 text-xs border border-slate-300 rounded text-slate-700">
-                                    <select id="edit-step-slot-${thought.id}-${s.id}" class="px-2 py-1 text-xs border border-slate-300 rounded bg-white text-slate-800">
-                                        <option value="全天" ${s.stepTimeSlot === '全天' ? 'selected' : ''}>全天</option>
-                                        <option value="上午" ${s.stepTimeSlot === '上午' ? 'selected' : ''}>上午</option>
-                                        <option value="下午" ${s.stepTimeSlot === '下午' ? 'selected' : ''}>下午</option>
-                                        <option value="晚上" ${s.stepTimeSlot === '晚上' ? 'selected' : ''}>晚上</option>
-                                        <option value="夜間" ${s.stepTimeSlot === '夜間' ? 'selected' : ''}>夜間</option>
-                                    </select>
+                                    <div class="relative w-full">
+                                        <select id="edit-step-slot-${thought.id}-${s.id}" class="w-full px-2 py-1 text-xs border border-slate-300 rounded bg-white text-slate-800 font-medium">
+                                            <option value="全天" ${s.stepTimeSlot === '全天' ? 'selected' : ''}>全天</option>
+                                            <option value="上午" ${s.stepTimeSlot === '上午' ? 'selected' : ''}>上午</option>
+                                            <option value="下午" ${s.stepTimeSlot === '下午' ? 'selected' : ''}>下午</option>
+                                            <option value="晚上" ${s.stepTimeSlot === '晚上' ? 'selected' : ''}>晚上</option>
+                                            <option value="夜間" ${s.stepTimeSlot === '夜間' ? 'selected' : ''}>夜間</option>
+                                        </select>
+                                    </div>
                                     <input type="text" id="edit-step-time-${thought.id}-${s.id}" value="${(s.stepTime || '').replace(/"/g, '&quot;')}" placeholder="工時(如2小時)" class="px-2 py-1 text-xs border border-slate-300 rounded">
                                 </div>
                             </li>
@@ -1446,9 +1461,9 @@
                                     <label class="block text-xs font-semibold text-slate-600 mb-1">📅 預期達成日期：</label>
                                     <input type="date" id="edit-date-${thought.id}" value="${thought.targetDate !== '未指定日期' ? (thought.targetDate || '') : ''}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg">
                                 </div>
-                                <div>
+                                <div class="relative w-full">
                                     <label class="block text-xs font-semibold text-slate-600 mb-1">⏰ 目標時段：</label>
-                                    <select id="edit-slot-${thought.id}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white">
+                                    <select id="edit-slot-${thought.id}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white font-medium">
                                         <option value="全天" ${thought.targetTimeSlot === '全天' ? 'selected' : ''}>全天</option>
                                         <option value="上午" ${thought.targetTimeSlot === '上午' ? 'selected' : ''}>上午</option>
                                         <option value="下午" ${thought.targetTimeSlot === '下午' ? 'selected' : ''}>下午</option>
@@ -1492,19 +1507,26 @@
                             <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">📋 行動拆解步驟與時程</h3>
                             <ul class="space-y-2 mb-4">${stepsHtml || '<li class="text-xs text-slate-400 italic">尚未新增拆解步驟...</li>'}</ul>
                             
-                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-2">
-                                <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                                    <input type="text" id="step-text-${thought.id}" placeholder="+ 新增步驟內容..." class="sm:col-span-4 px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                    <input type="date" id="step-date-${thought.id}" ${maxDateAttr} class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                    <select id="step-slot-${thought.id}" class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                        <option value="全天">全天</option>
-                                        <option value="上午">上午</option>
-                                        <option value="下午">下午</option>
-                                        <option value="晚上">晚上</option>
-                                        <option value="夜間">夜間</option>
-                                    </select>
-                                    <input type="text" id="step-time-${thought.id}" placeholder="預估工時(如2小時)" class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                    <button onclick="addStep(${thought.id})" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">＋ 新增步驟</button>
+                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+                                <div class="flex flex-col gap-2">
+                                    <input type="text" id="step-text-${thought.id}" placeholder="+ 新增步驟內容..." class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                                        <input type="date" id="step-date-${thought.id}" ${maxDateAttr} class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                                        <div class="relative w-full">
+                                            <select id="step-slot-${thought.id}" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+                                                <option value="全天">全天</option>
+                                                <option value="上午">上午</option>
+                                                <option value="下午">下午</option>
+                                                <option value="晚上">晚上</option>
+                                                <option value="夜間">夜間</option>
+                                            </select>
+                                        </div>
+                                        <input type="text" id="step-time-${thought夜間</option>
+                                            </select>
+                                        </div>
+                                        <input type="text" id="step-time-${thought.id}" placeholder="預估工時(如2小時)" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                                        <button onclick="addStep(${thought.id})" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">＋ 新增步驟</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1517,6 +1539,19 @@
 
         document.getElementById('thoughtInput').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') addThought();
+        });
+
+        // 綁定頁籤列滑鼠滾輪橫向平滑滾動事件
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabsContainer = document.getElementById('tabsScrollContainer');
+            if (tabsContainer) {
+                tabsContainer.addEventListener('wheel', (e) => {
+                    if (e.deltaY !== 0) {
+                        e.preventDefault();
+                        tabsContainer.scrollLeft += e.deltaY;
+                    }
+                });
+            }
         });
 
         render();
