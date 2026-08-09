@@ -6,14 +6,14 @@
     <title>思緒拆解與時間軸目標規劃</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-50 min-h-screen py-6 px-3 sm:px-6 text-slate-800">
-    <!-- 寬螢幕極致滿版容器 (max-w-[98%]) -->
-    <div class="max-w-[98%] mx-auto w-full">
+<body class="bg-slate-50 min-h-screen py-6 px-4 text-slate-800">
+    <!-- 動態模式寬度容器：依模式自動切換 max-w-4xl / max-w-5xl / max-w-7xl -->
+    <div id="appContainer" class="max-w-4xl mx-auto w-full transition-all duration-300">
         <!-- 頁首與備份按鈕 -->
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 全模式領域順序統一 · 寬螢幕適應版面</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 動態模式最佳寬度 · 雙模式切換</p>
             </div>
             
             <div class="flex items-center gap-2">
@@ -191,7 +191,7 @@
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
             thoughts = [
                 { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", detail: "每週固定跑步 3 次。", goal: "順利完賽 11 月半程馬拉松", goalDone: false, targetDate: "2026-11-30", targetTimeSlot: "上午", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "1.5小時", stepTimeSlot: "上午", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", stepTimeSlot: "全天", done: false }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援全模式領域順序統一與寬螢幕滿版適應。", goal: "發布支援寬螢幕與領域同步的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計領域排序統一助手函數與寬螢幕滿版 CSS", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
+                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援動態適應最適寬度與靈活排版。", goal: "發布支援智慧動態排版的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計模式自適應容器寬度切換", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
             ];
         }
 
@@ -221,7 +221,20 @@
 
         const slotPriorityMap = { '全天': 0, '上午': 1, '下午': 2, '晚上': 3, '夜間': 4 };
 
-        // 📂 核心領域排序助手：確保全模式 (看板/總覽/時間軸X軸) 領域順序 100% 統一
+        // 📐 動態智慧寬度：依據活躍模式設定最人性化與舒適的排版寬度
+        function updateContainerWidth() {
+            const container = document.getElementById('appContainer');
+            if (!container) return;
+
+            if (viewMode === 'overview') {
+                container.className = "max-w-4xl mx-auto w-full transition-all duration-300"; // 總覽：最佳文字閱讀行長
+            } else if (viewMode === 'cards') {
+                container.className = "max-w-5xl mx-auto w-full transition-all duration-300"; // 看板：均衡卡片視覺
+            } else if (viewMode === 'timeline') {
+                container.className = "max-w-7xl mx-auto w-full transition-all duration-300"; // 時間軸：寬廣但不死貼邊緣的對照矩陣
+            }
+        }
+
         function getOrderedCategories() {
             const currentCats = Array.from(new Set(thoughts.map(t => t.category || '💼 事業')));
             currentCats.forEach(c => { if (!categoryOrder.includes(c)) categoryOrder.push(c); });
@@ -993,13 +1006,14 @@
 
         function render() {
             syncLinkedData();
+            updateContainerWidth(); // 動態更新模式對應最佳頁面寬度
             const container = document.getElementById('mainContentList'); container.innerHTML = '';
             if (viewMode === 'overview') renderOverview(container);
             else if (viewMode === 'timeline') renderTimelineMatrix(container);
             else renderCards(container);
         }
 
-        // ⏳ 渲染時間對照矩陣 (X軸領域順序比照看板模式 + 寬螢幕適應)
+        // ⏳ 渲染時間對照矩陣 (X軸領域順序比照看板模式 + 寬螢幕對照矩陣適應)
         function renderTimelineMatrix(container) {
             const datesSet = new Set(customTimelineDates);
             const categoriesList = getOrderedCategories();
@@ -1296,7 +1310,7 @@
             });
         }
 
-        // 🎴 看板模式 (獨立頁籤 DOM 結構，解決排序按鈕衝突)
+        // 🎴 看板模式
         function renderCards(container) {
             const categoriesList = getOrderedCategories();
 
@@ -1489,7 +1503,7 @@
                                         <option value="晚上">晚上</option>
                                         <option value="夜間">夜間</option>
                                     </select>
-                                    <input type="text" id="step-time-${thought.id}" placeholder="預估工時(如2小時)" class="px-2.5 py-1.5 text-xs border border-slate-300 rounded class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <input type="text" id="step-time-${thought.id}" placeholder="預估工時(如2小時)" class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
                                     <button onclick="addStep(${thought.id})" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">＋ 新增步驟</button>
                                 </div>
                             </div>
