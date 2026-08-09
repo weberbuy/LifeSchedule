@@ -13,7 +13,7 @@
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 頁籤橫向滾動優化 · 選單錨定修復</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 全模式動態適應 · 安全資料相容修復</p>
             </div>
             
             <div class="flex items-center gap-2">
@@ -99,7 +99,7 @@
             </div>
         </div>
 
-        <!-- 頁籤列 (新增左右滾動按鈕與滾輪捲動) -->
+        <!-- 頁籤列 -->
         <div id="tabsSection" class="mb-6 hidden">
             <div class="flex items-center justify-between gap-2 mb-2">
                 <span class="text-xs font-bold text-slate-500">📂 領域分頁切換：</span>
@@ -117,7 +117,7 @@
         </div>
 
         <!-- 日期選擇器彈出視窗 -->
-        <div id="datePickerModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+        <div id="datePickerModal" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 hidden z-50">
             <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100 space-y-4">
                 <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
                     <span>📅 請點選新預期日期與時段</span>
@@ -141,7 +141,7 @@
         </div>
 
         <!-- 時間軸雙擊快速編輯視窗 -->
-        <div id="timelineEditModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+        <div id="timelineEditModal" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 hidden z-50">
             <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                     <h3 id="tlModalTitle" class="text-base font-bold text-slate-900">✏️ 快速編輯項目</h3>
@@ -195,9 +195,21 @@
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
             thoughts = [
                 { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", detail: "每週固定跑步 3 次。", goal: "順利完賽 11 月半程馬拉松", goalDone: false, targetDate: "2026-11-30", targetTimeSlot: "上午", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "1.5小時", stepTimeSlot: "上午", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", stepTimeSlot: "全天", done: false }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援頁籤橫向滾動與選單精準錨定。", goal: "發布支援分頁平滑滾動的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計領域分頁橫向滾動與選單錨定修復", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
+                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援全資料格式無縫自動相容與錯誤防護。", goal: "發布具備高穩定度的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "修復舊資料格式過濾與 DOM 錨定", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
             ];
         }
+
+        // 🛡️ 資料格式安全性相容檢查 (避免舊資料缺漏欄位造成 TypeError)
+        thoughts.forEach(t => {
+            if (!Array.isArray(t.steps)) t.steps = [];
+            if (t.goalDone === undefined) t.goalDone = false;
+            if (!t.category) t.category = '💼 事業';
+            if (!t.targetTimeSlot) t.targetTimeSlot = '全天';
+            t.steps.forEach(s => {
+                if (s.done === undefined) s.done = false;
+                if (!s.stepTimeSlot) s.stepTimeSlot = '全天';
+            });
+        });
 
         let blockedSlots = [];
         try { blockedSlots = JSON.parse(localStorage.getItem('my_blocked_slots')) || []; } catch(e) { blockedSlots = []; }
@@ -1290,8 +1302,9 @@
                 `;
 
                 cardList.forEach((t, i) => {
-                    const doneCount = t.steps.filter(s => s.done).length;
-                    const totalCount = t.steps.length;
+                    const steps = Array.isArray(t.steps) ? t.steps : [];
+                    const doneCount = steps.filter(s => s.done).length;
+                    const totalCount = steps.length;
                     const percent = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
                     html += `
@@ -1375,7 +1388,8 @@
                 const isEdit = (editingId === thought.id);
                 const maxDateAttr = (thought.targetDate && thought.targetDate !== '未指定日期') ? `max="${thought.targetDate}"` : '';
 
-                const stepsHtml = thought.steps.map((s, stepIdx) => {
+                const steps = Array.isArray(thought.steps) ? thought.steps : [];
+                const stepsHtml = steps.map((s, stepIdx) => {
                     const isEditingThisStep = (editingStepIdKey === `${thought.id}-${s.id}`);
                     
                     if (isEditingThisStep) {
@@ -1511,7 +1525,7 @@
                                 <div class="flex flex-col gap-2">
                                     <input type="text" id="step-text-${thought.id}" placeholder="+ 新增步驟內容..." class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
                                     <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                                        <input type="date" id="step-date-${thought.id}" ${maxDateAttr} class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                                        <input type="date" id="step-date-${thought.id}" ${maxDateAttr} class="w-full px-2.5 py-1.5 text-xs border bordermaxDateAttr} class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
                                         <div class="relative w-full">
                                             <select id="step-slot-${thought.id}" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
                                                 <option value="全天">全天</option>
@@ -1519,9 +1533,6 @@
                                                 <option value="下午">下午</option>
                                                 <option value="晚上">晚上</option>
                                                 <option value="夜間">夜間</option>
-                                            </select>
-                                        </div>
-                                        <input type="text" id="step-time-${thought夜間</option>
                                             </select>
                                         </div>
                                         <input type="text" id="step-time-${thought.id}" placeholder="預估工時(如2小時)" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
@@ -1541,7 +1552,6 @@
             if (e.key === 'Enter') addThought();
         });
 
-        // 綁定頁籤列滑鼠滾輪橫向平滑滾動事件
         document.addEventListener('DOMContentLoaded', () => {
             const tabsContainer = document.getElementById('tabsScrollContainer');
             if (tabsContainer) {
