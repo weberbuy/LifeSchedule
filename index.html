@@ -13,7 +13,7 @@
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 週工時統計與警示 · 全模式適應</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 總覽圖表統計分析 · 全模式適應</p>
             </div>
             
             <div class="flex items-center gap-2">
@@ -198,10 +198,11 @@
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
             thoughts = [
                 { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", detail: "每週固定跑步 3 次。", goal: "順利完賽 11 月半程馬拉松", goalDone: false, targetDate: "2026-11-30", targetTimeSlot: "上午", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "1.5小時", stepTimeSlot: "上午", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", stepTimeSlot: "全天", done: false }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援本週總工時統計與上限警示。", goal: "發布支援週工時管理的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計週一至週日本週總工時加總與警示", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
+                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援總覽模式圖表統計與週工時上限警示。", goal: "發布支援領域統計與週工時管理的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計總覽模式 SVG 環形圖與週工時統計面板", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
             ];
         }
 
+        // 🛡️ 資料格式安全性相容檢查
         thoughts.forEach(t => {
             if (!Array.isArray(t.steps)) t.steps = [];
             if (t.goalDone === undefined) t.goalDone = false;
@@ -221,7 +222,7 @@
         try { categoryOrder = JSON.parse(localStorage.getItem('my_category_order')) || []; } catch(e) { categoryOrder = []; }
 
         let maxDailyHours = parseFloat(localStorage.getItem('my_max_daily_hours')) || 8;
-        let maxWeeklyHours = parseFloat(localStorage.getItem('my_max_weekly_hours')) || 40; // 📊 週工時上限預設 40 小時
+        let maxWeeklyHours = parseFloat(localStorage.getItem('my_max_weekly_hours')) || 40;
 
         const todayObj = new Date();
         const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
@@ -240,10 +241,32 @@
 
         const slotPriorityMap = { '全天': 0, '上午': 1, '下午': 2, '晚上': 3, '夜間': 4 };
 
-        // 📊 計算當前日期所屬週的週一至週日日期區間 (以週一為一週開始)
+        // 📊 計算單一領域統計數據 (總目標、完成目標、總工時、已完成工時)
+        function getCategoryStats(cat) {
+            const goals = thoughts.filter(t => (t.category || '💼 事業') === cat);
+            const totalGoals = goals.length;
+            const completedGoals = goals.filter(g => g.goalDone).length;
+            
+            let totalHours = 0;
+            let completedHours = 0;
+
+            goals.forEach(g => {
+                if (Array.isArray(g.steps)) {
+                    g.steps.forEach(s => {
+                        const h = parseHours(s.stepTime);
+                        totalHours += h;
+                        if (s.done) completedHours += h;
+                    });
+                }
+            });
+
+            return { totalGoals, completedGoals, totalHours, completedHours };
+        }
+
+        // 📊 計算當前日期所屬週的週一至週日日期區間
         function getCurrentWeekRange() {
             const d = new Date();
-            const day = d.getDay(); // 0 是週日, 1 是週一...
+            const day = d.getDay();
             const diffToMonday = (day === 0 ? -6 : 1 - day);
             
             const monday = new Date(d);
@@ -617,7 +640,6 @@
                             return;
                         }
 
-                        // 📊 本週工時上限防呆檢測
                         const weekRange = getCurrentWeekRange();
                         if (selectedDate >= weekRange.mondayStr && selectedDate <= weekRange.sundayStr) {
                             const currentWeeklyTotal = getWeeklyTotalHours(stepId);
@@ -701,7 +723,6 @@
                     return alert(`步驟日期 (${date}) 不能超過目標日期 (${t.targetDate})！`);
                 }
 
-                // ⏱️ 單日工時上限防呆檢測
                 if (date) {
                     const currentDailyTotal = getDailyTotalHours(date, pendingTlEdit.stepId);
                     const newHours = parseHours(time);
@@ -712,13 +733,12 @@
                     }
                 }
 
-                // 📊 本週工時上限防呆檢測
                 const weekRange = getCurrentWeekRange();
                 if (date && date >= weekRange.mondayStr && date <= weekRange.sundayStr) {
                     const currentWeeklyTotal = getWeeklyTotalHours(pendingTlEdit.stepId);
-                    const newWeeklyHours = parseHours(time);
-                    if (currentWeeklyTotal + newWeeklyHours > maxWeeklyHours) {
-                        if (!confirm(`⚠️ 提醒：本週 (週一~週日) 跨領域累計總工時將達 ${(currentWeeklyTotal + newWeeklyHours).toFixed(1)} 小時，已超過設定週工時上限 (${maxWeeklyHours} 小時)！確定要儲存嗎？`)) {
+                    const newHours = parseHours(time);
+                    if (currentWeeklyTotal + newHours > maxWeeklyHours) {
+                        if (!confirm(`⚠️ 提醒：本週 (週一~週日) 跨領域累計總工時將達 ${(currentWeeklyTotal + newHours).toFixed(1)} 小時，已超過設定週工時上限 (${maxWeeklyHours} 小時)！確定要儲存嗎？`)) {
                             return;
                         }
                     }
@@ -966,7 +986,6 @@
                 return alert(`🚫 警告：${stepDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})！`);
             }
 
-            // ⏱️ 單日總工時上限防呆檢測
             if (stepDate) {
                 const currentDailyTotal = getDailyTotalHours(stepDate);
                 const addedHours = parseHours(stepTime);
@@ -977,7 +996,6 @@
                 }
             }
 
-            // 📊 本週總工時上限防呆檢測
             const weekRange = getCurrentWeekRange();
             if (stepDate && stepDate >= weekRange.mondayStr && stepDate <= weekRange.sundayStr) {
                 const currentWeeklyTotal = getWeeklyTotalHours();
@@ -1160,7 +1178,7 @@
         function render() {
             syncLinkedData();
             updateContainerWidth();
-            renderWeeklyStatsPanel(); // 📊 渲染本週總工時儀表板
+            renderWeeklyStatsPanel();
             const container = document.getElementById('mainContentList'); container.innerHTML = '';
             if (viewMode === 'overview') renderOverview(container);
             else if (viewMode === 'timeline') renderTimelineMatrix(container);
@@ -1404,7 +1422,7 @@
             container.appendChild(wrapper);
         }
 
-        // 🎯 總覽模式
+        // 🎯 總覽模式 (視覺化 SVG Donut 環形圖與工時圖表統計儀表板)
         function renderOverview(container) {
             if (thoughts.length === 0) {
                 container.innerHTML = `<div class="text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200 text-sm">目前尚無記錄！</div>`;
@@ -1413,6 +1431,71 @@
 
             const categoriesList = getOrderedCategories();
 
+            // 📊 建立領域統計圖表分析儀表板
+            const dashboardBox = document.createElement('div');
+            dashboardBox.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6 space-y-4";
+
+            let dashboardHtml = `
+                <div class="border-b border-slate-100 pb-3">
+                    <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <span>📊 各領域工時與目標達成圖表儀表板</span>
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-0.5">即時統計各領域之設定總工時、完成工時與目標達成率</p>
+                </div>
+
+                <!-- 🍩 各領域目標完成率 SVG 環形餅圖網格 -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    ${categoriesList.map(cat => {
+                        const stats = getCategoryStats(cat);
+                        const percentGoals = stats.totalGoals > 0 ? Math.round((stats.completedGoals / stats.totalGoals) * 100) : 0;
+                        const strokeDash = Math.round((percentGoals / 100) * 100);
+
+                        return `
+                            <div class="bg-slate-50/90 p-3.5 rounded-xl border border-slate-200 text-center flex flex-col items-center justify-between">
+                                <div class="relative w-16 h-16 flex items-center justify-center mb-1.5">
+                                    <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                                        <path class="text-slate-200" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        <path class="text-indigo-600 stroke-current transition-all duration-500" stroke-width="3.5" stroke-dasharray="${strokeDash}, 100" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                    </svg>
+                                    <span class="absolute text-xs font-extrabold text-slate-800">${percentGoals}%</span>
+                                </div>
+                                <div class="font-bold text-xs text-slate-900">${cat}</div>
+                                <div class="text-[10px] text-slate-500 mt-0.5 font-medium">${stats.completedGoals}/${stats.totalGoals} 目標完成</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+
+                <!-- 📊 各領域工時進度比較條形圖 -->
+                <div class="space-y-2.5 pt-2 border-t border-slate-100">
+                    <div class="text-xs font-bold text-slate-600 mb-1">⏱️ 各領域工作時間統計 (完成工時 / 總工時)：</div>
+                    ${categoriesList.map(cat => {
+                        const stats = getCategoryStats(cat);
+                        const percentHours = stats.totalHours > 0 ? Math.round((stats.completedHours / stats.totalHours) * 100) : 0;
+
+                        return `
+                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1.5">
+                                    <div class="font-bold text-xs text-slate-800 flex items-center gap-2">
+                                        <span>${cat}</span>
+                                    </div>
+                                    <div class="text-xs font-semibold text-slate-600">
+                                        已完成: <span class="text-emerald-600 font-bold">${stats.completedHours.toFixed(1)}h</span> / 預估總工時: <span class="font-bold text-slate-800">${stats.totalHours.toFixed(1)}h</span> (${percentHours}%)
+                                    </div>
+                                </div>
+                                <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden flex">
+                                    <div class="bg-emerald-500 h-full transition-all duration-500" style="width: ${percentHours}%"></div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+
+            dashboardBox.innerHTML = dashboardHtml;
+            container.appendChild(dashboardBox);
+
+            // 依領域顯示目標卡片清單
             categoriesList.forEach(cat => {
                 const cardList = thoughts.filter(t => (t.category || '💼 事業') === cat);
                 if (cardList.length === 0) return;
