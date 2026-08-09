@@ -13,7 +13,7 @@
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 全模式動態適應 · 安全資料相容修復</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 週工時統計與警示 · 全模式適應</p>
             </div>
             
             <div class="flex items-center gap-2">
@@ -24,6 +24,9 @@
                 </label>
             </div>
         </header>
+
+        <!-- 📊 本週 (週一~週日) 總工時統計與警示面板 -->
+        <div id="weeklyStatsPanel" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4"></div>
 
         <!-- 三模式切換列 -->
         <div class="mb-6 bg-slate-200/80 p-1.5 rounded-2xl flex items-center shadow-inner border border-slate-300/60 gap-1 overflow-x-auto">
@@ -195,11 +198,10 @@
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
             thoughts = [
                 { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", detail: "每週固定跑步 3 次。", goal: "順利完賽 11 月半程馬拉松", goalDone: false, targetDate: "2026-11-30", targetTimeSlot: "上午", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "1.5小時", stepTimeSlot: "上午", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", stepTimeSlot: "全天", done: false }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援全資料格式無縫自動相容與錯誤防護。", goal: "發布具備高穩定度的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "修復舊資料格式過濾與 DOM 錨定", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
+                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援本週總工時統計與上限警示。", goal: "發布支援週工時管理的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計週一至週日本週總工時加總與警示", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
             ];
         }
 
-        // 🛡️ 資料格式安全性相容檢查 (避免舊資料缺漏欄位造成 TypeError)
         thoughts.forEach(t => {
             if (!Array.isArray(t.steps)) t.steps = [];
             if (t.goalDone === undefined) t.goalDone = false;
@@ -219,6 +221,7 @@
         try { categoryOrder = JSON.parse(localStorage.getItem('my_category_order')) || []; } catch(e) { categoryOrder = []; }
 
         let maxDailyHours = parseFloat(localStorage.getItem('my_max_daily_hours')) || 8;
+        let maxWeeklyHours = parseFloat(localStorage.getItem('my_max_weekly_hours')) || 40; // 📊 週工時上限預設 40 小時
 
         const todayObj = new Date();
         const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
@@ -236,6 +239,80 @@
         let pendingTlEdit = null;
 
         const slotPriorityMap = { '全天': 0, '上午': 1, '下午': 2, '晚上': 3, '夜間': 4 };
+
+        // 📊 計算當前日期所屬週的週一至週日日期區間 (以週一為一週開始)
+        function getCurrentWeekRange() {
+            const d = new Date();
+            const day = d.getDay(); // 0 是週日, 1 是週一...
+            const diffToMonday = (day === 0 ? -6 : 1 - day);
+            
+            const monday = new Date(d);
+            monday.setDate(d.getDate() + diffToMonday);
+            
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            
+            const mondayStr = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+            const sundayStr = `${sunday.getFullYear()}-${String(sunday.getMonth() + 1).padStart(2, '0')}-${String(sunday.getDate()).padStart(2, '0')}`;
+            
+            return { mondayStr, sundayStr };
+        }
+
+        // 📊 計算本週 (週一至週日) 跨領域累計總工時
+        function getWeeklyTotalHours(excludeStepId = null) {
+            const { mondayStr, sundayStr } = getCurrentWeekRange();
+            let total = 0;
+            thoughts.forEach(t => {
+                if (Array.isArray(t.steps)) {
+                    t.steps.forEach(s => {
+                        if (s.stepDate && s.stepDate >= mondayStr && s.stepDate <= sundayStr && s.id !== excludeStepId) {
+                            total += parseHours(s.stepTime);
+                        }
+                    });
+                }
+            });
+            return total;
+        }
+
+        function updateMaxWeeklyHours(val) {
+            const parsed = parseFloat(val);
+            if (!isNaN(parsed) && parsed > 0) {
+                maxWeeklyHours = parsed;
+                localStorage.setItem('my_max_weekly_hours', maxWeeklyHours);
+                render();
+            }
+        }
+
+        // 📊 渲染本週總工時統計與超標警示儀表板
+        function renderWeeklyStatsPanel() {
+            const panel = document.getElementById('weeklyStatsPanel');
+            if (!panel) return;
+
+            const weekRange = getCurrentWeekRange();
+            const weeklyTotal = getWeeklyTotalHours();
+            const isWeeklyOverLimit = weeklyTotal > maxWeeklyHours;
+
+            panel.innerHTML = `
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <div class="bg-indigo-100 text-indigo-800 p-2.5 rounded-xl text-lg font-bold">📊</div>
+                    <div>
+                        <div class="text-xs font-bold text-slate-500">本週 (週一 ~ 週日) 累計工作時數：</div>
+                        <div class="text-base font-extrabold text-slate-900 flex items-center gap-2 flex-wrap">
+                            <span>${weeklyTotal.toFixed(1)} / ${maxWeeklyHours} 小時</span>
+                            <span class="text-xs text-slate-500 font-normal">(${weekRange.mondayStr} ~ ${weekRange.sundayStr})</span>
+                            ${isWeeklyOverLimit ? `<span class="text-xs bg-rose-600 text-white font-bold px-2 py-0.5 rounded-full shadow-sm animate-pulse">⚠️ 本週總工時已超標</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                    <div class="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                        <span class="text-xs font-bold text-slate-700">週工時上限：</span>
+                        <input type="number" min="1" max="168" step="1" value="${maxWeeklyHours}" onchange="updateMaxWeeklyHours(this.value)" class="w-14 px-1.5 py-0.5 text-xs font-extrabold text-center border border-slate-300 rounded-lg bg-white">
+                        <span class="text-xs text-slate-500">小時</span>
+                    </div>
+                </div>
+            `;
+        }
 
         function updateContainerWidth() {
             const container = document.getElementById('appContainer');
@@ -539,6 +616,20 @@
                             closeDatePickerModal();
                             return;
                         }
+
+                        // 📊 本週工時上限防呆檢測
+                        const weekRange = getCurrentWeekRange();
+                        if (selectedDate >= weekRange.mondayStr && selectedDate <= weekRange.sundayStr) {
+                            const currentWeeklyTotal = getWeeklyTotalHours(stepId);
+                            const addedHours = parseHours(t.steps.find(x => x.id === stepId)?.stepTime || '');
+                            if (currentWeeklyTotal + addedHours > maxWeeklyHours) {
+                                if (!confirm(`⚠️ 提醒：本週 (週一~週日) 跨領域累計總工時將達 ${(currentWeeklyTotal + addedHours).toFixed(1)} 小時，已超過週工時上限 (${maxWeeklyHours} 小時)！確定要排程嗎？`)) {
+                                    closeDatePickerModal();
+                                    return;
+                                }
+                            }
+                        }
+
                         const s = t.steps.find(x => x.id === stepId);
                         if (s) {
                             if (s.linkedThoughtId && !validateChildStepsDate(s.linkedThoughtId, selectedDate)) return;
@@ -610,11 +701,24 @@
                     return alert(`步驟日期 (${date}) 不能超過目標日期 (${t.targetDate})！`);
                 }
 
+                // ⏱️ 單日工時上限防呆檢測
                 if (date) {
                     const currentDailyTotal = getDailyTotalHours(date, pendingTlEdit.stepId);
                     const newHours = parseHours(time);
                     if (currentDailyTotal + newHours > maxDailyHours) {
                         if (!confirm(`⚠️ 提醒：${date} 跨領域累計總工時將達 ${(currentDailyTotal + newHours).toFixed(1)} 小時，已超過設定單日上限 (${maxDailyHours} 小時)！確定要儲存嗎？`)) {
+                            return;
+                        }
+                    }
+                }
+
+                // 📊 本週工時上限防呆檢測
+                const weekRange = getCurrentWeekRange();
+                if (date && date >= weekRange.mondayStr && date <= weekRange.sundayStr) {
+                    const currentWeeklyTotal = getWeeklyTotalHours(pendingTlEdit.stepId);
+                    const newWeeklyHours = parseHours(time);
+                    if (currentWeeklyTotal + newWeeklyHours > maxWeeklyHours) {
+                        if (!confirm(`⚠️ 提醒：本週 (週一~週日) 跨領域累計總工時將達 ${(currentWeeklyTotal + newWeeklyHours).toFixed(1)} 小時，已超過設定週工時上限 (${maxWeeklyHours} 小時)！確定要儲存嗎？`)) {
                             return;
                         }
                     }
@@ -862,11 +966,24 @@
                 return alert(`🚫 警告：${stepDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})！`);
             }
 
+            // ⏱️ 單日總工時上限防呆檢測
             if (stepDate) {
                 const currentDailyTotal = getDailyTotalHours(stepDate);
                 const addedHours = parseHours(stepTime);
                 if (currentDailyTotal + addedHours > maxDailyHours) {
                     if (!confirm(`⚠️ 提醒：${stepDate} 跨領域累計總工時將達 ${(currentDailyTotal + addedHours).toFixed(1)} 小時，已超過設定單日上限 (${maxDailyHours} 小時)！確定要新增嗎？`)) {
+                        return;
+                    }
+                }
+            }
+
+            // 📊 本週總工時上限防呆檢測
+            const weekRange = getCurrentWeekRange();
+            if (stepDate && stepDate >= weekRange.mondayStr && stepDate <= weekRange.sundayStr) {
+                const currentWeeklyTotal = getWeeklyTotalHours();
+                const addedHours = parseHours(stepTime);
+                if (currentWeeklyTotal + addedHours > maxWeeklyHours) {
+                    if (!confirm(`⚠️ 提醒：本週 (週一~週日) 跨領域累計總工時將達 ${(currentWeeklyTotal + addedHours).toFixed(1)} 小時，已超過設定週工時上限 (${maxWeeklyHours} 小時)！確定要新增嗎？`)) {
                         return;
                     }
                 }
@@ -929,6 +1046,17 @@
                 const newHours = parseHours(stepTime);
                 if (currentDailyTotal + newHours > maxDailyHours) {
                     if (!confirm(`⚠️ 提醒：${stepDate} 跨領域累計總工時將達 ${(currentDailyTotal + newHours).toFixed(1)} 小時，已超過設定單日上限 (${maxDailyHours} 小時)！確定要儲存嗎？`)) {
+                        return;
+                    }
+                }
+            }
+
+            const weekRange = getCurrentWeekRange();
+            if (stepDate && stepDate >= weekRange.mondayStr && stepDate <= weekRange.sundayStr) {
+                const currentWeeklyTotal = getWeeklyTotalHours(stepId);
+                const newHours = parseHours(stepTime);
+                if (currentWeeklyTotal + newHours > maxWeeklyHours) {
+                    if (!confirm(`⚠️ 提醒：本週 (週一~週日) 跨領域累計總工時將達 ${(currentWeeklyTotal + newHours).toFixed(1)} 小時，已超過設定週工時上限 (${maxWeeklyHours} 小時)！確定要儲存嗎？`)) {
                         return;
                     }
                 }
@@ -1032,6 +1160,7 @@
         function render() {
             syncLinkedData();
             updateContainerWidth();
+            renderWeeklyStatsPanel(); // 📊 渲染本週總工時儀表板
             const container = document.getElementById('mainContentList'); container.innerHTML = '';
             if (viewMode === 'overview') renderOverview(container);
             else if (viewMode === 'timeline') renderTimelineMatrix(container);
@@ -1525,7 +1654,7 @@
                                 <div class="flex flex-col gap-2">
                                     <input type="text" id="step-text-${thought.id}" placeholder="+ 新增步驟內容..." class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
                                     <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                                        <input type="date" id="step-date-${thought.id}" ${maxDateAttr} class="w-full px-2.5 py-1.5 text-xs border bordermaxDateAttr} class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                                        <input type="date" id="step-date-${thought.id}" ${maxDateAttr} class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
                                         <div class="relative w-full">
                                             <select id="step-slot-${thought.id}" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
                                                 <option value="全天">全天</option>
