@@ -13,7 +13,7 @@
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 時間軸滾動優化 · 總覽即時跳轉看板</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 語法安全轉義防護 · 總覽即時跳轉看板</p>
             </div>
             
             <div class="flex items-center gap-2">
@@ -193,6 +193,12 @@
     </div>
 
     <script>
+        // 🛡️ 安全轉義屬性字串，避免引號引發 HTML / JS 語法解析錯誤
+        function escapeAttr(str) {
+            if (!str) return '';
+            return String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        }
+
         let thoughts = [];
         try { thoughts = JSON.parse(localStorage.getItem('my_thoughts_local')) || []; } catch(e) { thoughts = []; }
         if (!Array.isArray(thoughts) || thoughts.length === 0) {
@@ -240,7 +246,6 @@
 
         const slotPriorityMap = { '全天': 0, '上午': 1, '下午': 2, '晚上': 3, '夜間': 4 };
 
-        // 🔗 總覽模式點擊卡片跳轉至看板模式對應領域分頁
         function jumpToCardsCategory(cat) {
             activeCategory = cat;
             setViewMode('cards');
@@ -390,7 +395,7 @@
 
         function parseHours(timeStr) {
             if (!timeStr) return 0;
-            let s = timeStr.trim();
+            let s = String(timeStr).trim();
             if (s.includes('分')) {
                 const mins = parseFloat(s) || 0;
                 return mins / 60;
@@ -664,7 +669,8 @@
                         const weekRange = getCurrentWeekRange();
                         if (selectedDate >= weekRange.mondayStr && selectedDate <= weekRange.sundayStr) {
                             const currentWeeklyTotal = getWeeklyTotalHours(stepId);
-                            const addedHours = parseHours(t.steps.find(x => x.id === stepId)?.stepTime || '');
+                            const stepObj = t.steps.find(x => x.id === stepId);
+                            const addedHours = parseHours(stepObj ? stepObj.stepTime : '');
                             if (currentWeeklyTotal + addedHours > maxWeeklyHours) {
                                 if (!confirm(`⚠️ 提醒：本週 (週一~週日) 跨領域累計總工時將達 ${(currentWeeklyTotal + addedHours).toFixed(1)} 小時，已超過週工時上限 (${maxWeeklyHours} 小時)！確定要排程嗎？`)) {
                                     closeDatePickerModal();
@@ -1474,7 +1480,7 @@
                         const strokeDash = Math.round((percentGoals / 100) * 100);
 
                         return `
-                            <div onclick="jumpToCardsCategory('${cat}')" 
+                            <div onclick="jumpToCardsCategory('${escapeAttr(cat)}')" 
                                 class="bg-slate-50/90 hover:bg-indigo-50/60 p-3.5 rounded-xl border border-slate-200 hover:border-indigo-300 text-center flex flex-col items-center justify-between space-y-2 cursor-pointer transition-all group shadow-xs hover:shadow-sm" 
                                 title="點擊跳轉至「${cat}」看板分頁進行編輯">
                                 <div class="relative w-14 h-14 flex items-center justify-center">
@@ -1524,7 +1530,7 @@
                             return `
                                 <div class="w-64 sm:w-72 bg-white p-3.5 rounded-2xl shadow-sm border border-slate-200 space-y-3 shrink-0">
                                     <!-- X軸 領域標題 (點擊跳轉看板) -->
-                                    <div onclick="jumpToCardsCategory('${cat}')" class="flex items-center justify-between border-b border-slate-100 pb-2.5 cursor-pointer hover:text-indigo-600 group" title="點擊跳轉至「${cat}」看板分頁">
+                                    <div onclick="jumpToCardsCategory('${escapeAttr(cat)}')" class="flex items-center justify-between border-b border-slate-100 pb-2.5 cursor-pointer hover:text-indigo-600 group" title="點擊跳轉至「${cat}」看板分頁">
                                         <h3 class="font-bold text-sm text-slate-900 group-hover:text-indigo-600 flex items-center gap-1.5">
                                             <span>${cat}</span>
                                             <span class="text-xs text-indigo-500">🔗</span>
@@ -1542,7 +1548,7 @@
                                             const percent = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
                                             return `
-                                                <div onclick="jumpToCardsCategory('${cat}')" class="bg-slate-50/90 p-3 rounded-xl border border-slate-200/80 hover:border-indigo-400 hover:shadow-sm transition-all space-y-2 cursor-pointer" title="點擊跳轉至「${cat}」看板分頁編輯此目標">
+                                                <div onclick="jumpToCardsCategory('${escapeAttr(cat)}')" class="bg-slate-50/90 p-3 rounded-xl border border-slate-200/80 hover:border-indigo-400 hover:shadow-sm transition-all space-y-2 cursor-pointer" title="點擊跳轉至「${cat}」看板分頁編輯此目標">
                                                     <div class="flex items-start gap-2">
                                                         <span class="inline-flex items-center justify-center bg-indigo-100 text-indigo-700 font-bold text-xs w-5 h-5 rounded-full shrink-0 mt-0.5">${i + 1}</span>
                                                         <div class="flex-1 min-w-0">
@@ -1596,7 +1602,7 @@
                     }`;
 
                     let tabContentHtml = `
-                        <span onclick="setCategoryTab('${cat}')" class="cursor-pointer flex items-center gap-1">
+                        <span onclick="setCategoryTab('${escapeAttr(cat)}')" class="cursor-pointer flex items-center gap-1">
                             ${cat} <span class="${isActive ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'} px-1.5 py-0.5 rounded-full text-[10px]">${count}</span>
                         </span>
                     `;
@@ -1604,8 +1610,8 @@
                     if (isReorderMode && cat !== '全部') {
                         tabContentHtml += `
                             <span class="inline-flex gap-1 ml-1 pl-1 border-l ${isActive ? 'border-indigo-400' : 'border-slate-300'}">
-                                <button type="button" onclick="moveCategoryLeft('${cat}', event)" class="hover:bg-black/20 rounded px-1 font-bold text-xs cursor-pointer" title="向左移">‹</button>
-                                <button type="button" onclick="moveCategoryRight('${cat}', event)" class="hover:bg-black/20 rounded px-1 font-bold text-xs cursor-pointer" title="向右移">›</button>
+                                <button type="button" onclick="moveCategoryLeft('${escapeAttr(cat)}', event)" class="hover:bg-black/20 rounded px-1 font-bold text-xs cursor-pointer" title="向左移">‹</button>
+                                <button type="button" onclick="moveCategoryRight('${escapeAttr(cat)}', event)" class="hover:bg-black/20 rounded px-1 font-bold text-xs cursor-pointer" title="向右移">›</button>
                             </span>
                         `;
                     }
@@ -1775,7 +1781,7 @@
                                                 <option value="夜間">夜間</option>
                                             </select>
                                         </div>
-                                        <input type="text" id="step-time-${thought.id}" placeholder="預估工時(如2小時)" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                                        <input type="text" id="step-time-${thought.id}" placeholder="預估工時(如<input type="text" id="step-time-${thought.id}" placeholder="預估工時(如2小時)" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
                                         <button onclick="addStep(${thought.id})" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">＋ 新增步驟</button>
                                     </div>
                                 </div>
@@ -1788,12 +1794,14 @@
             });
         }
 
-        document.getElementById('thoughtInput').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') addThought();
-        });
-
-        // 綁定滑鼠滾輪與橫向平滑滾動事件
         document.addEventListener('DOMContentLoaded', () => {
+            const thoughtInput = document.getElementById('thoughtInput');
+            if (thoughtInput) {
+                thoughtInput.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') addThought();
+                });
+            }
+
             const tabsContainer = document.getElementById('tabsScrollContainer');
             if (tabsContainer) {
                 tabsContainer.addEventListener('wheel', (e) => {
@@ -1817,9 +1825,6 @@
             const timelineContainer = document.getElementById('timelineTableContainer');
             if (timelineContainer) {
                 timelineContainer.addEventListener('wheel', (e) => {
-                    if (e.shiftKey) {
-                        e.preventDefault();
-                        timelineContainer.scrollLeft {
                     if (e.shiftKey) {
                         e.preventDefault();
                         timelineContainer.scrollLeft += e.deltaY;
