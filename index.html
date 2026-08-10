@@ -16,12 +16,15 @@
                 <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 雙擊目標/步驟精密區分跳轉編輯</p>
             </div>
             
-            <div class="flex items-center gap-2">
-                <button onclick="exportData()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3.5 py-2 rounded-xl border border-indigo-200 font-medium transition-colors">📥 備份</button>
-                <label class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-xl border border-slate-300 font-medium transition-colors cursor-pointer">
-                    📤 匯入
+            <div class="flex items-center gap-2 flex-wrap justify-end">
+                <button onclick="exportData()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-xl border border-indigo-200 font-medium transition-colors">📥 本地備份</button>
+                <label class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl border border-slate-300 font-medium transition-colors cursor-pointer">
+                    📤 本地匯入
                     <input type="file" id="importFile" accept=".json" onchange="importData(event)" class="hidden">
                 </label>
+                <button onclick="exportToPi()" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-3 py-2 rounded-xl border border-emerald-200 font-bold transition-colors">☁️ 上傳樹莓派</button>
+                <button onclick="importFromPi()" class="text-xs bg-teal-50 hover:bg-teal-100 text-teal-800 px-3 py-2 rounded-xl border border-teal-200 font-bold transition-colors">☁️ 同步樹莓派</button>
+                <button onclick="openPiSettingsModal()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-2 rounded-xl border border-slate-300 font-bold transition-colors" title="設定樹莓派連線">⚙️ 伺服器設定</button>
             </div>
         </header>
 
@@ -119,6 +122,30 @@
             </div>
         </div>
 
+        <!-- 樹莓派連線設定彈出視窗 -->
+        <div id="piSettingsModal" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 hidden z-50">
+            <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100 space-y-4">
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <span>⚙️ 樹莓派伺服器連線設定</span>
+                </h3>
+                <p class="text-xs text-slate-500">設定遠端或區域網 Node.js 伺服器網址與 API Key：</p>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">伺服器網址 (URL)：</label>
+                        <input type="text" id="piServerUrlInput" placeholder="例如: https://pi.yourdomain.com 或 http://192.168.1.100:3000" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">API 金鑰 (x-api-key)：</label>
+                        <input type="password" id="piApiKeyInput" placeholder="請輸入 API_KEY 密碼" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button onclick="closePiSettingsModal()" class="px-4 py-2 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors">取消</button>
+                    <button onclick="savePiSettings()" class="px-4 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors shadow-sm">💾 儲存設定</button>
+                </div>
+            </div>
+        </div>
+
         <!-- 日期選擇器彈出視窗 -->
         <div id="datePickerModal" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 hidden z-50">
             <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100 space-y-4">
@@ -185,6 +212,174 @@
 
         const todayObj = new Date();
         const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
+
+        
+        let piServerUrl = localStorage.getItem('pi_server_url') || '';
+        let piApiKey = localStorage.getItem('pi_api_key') || '';
+
+        function openPiSettingsModal() {
+            const modal = document.getElementById('piSettingsModal');
+            const urlInput = document.getElementById('piServerUrlInput');
+            const keyInput = document.getElementById('piApiKeyInput');
+            if (urlInput) urlInput.value = piServerUrl;
+            if (keyInput) keyInput.value = piApiKey;
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closePiSettingsModal() {
+            const modal = document.getElementById('piSettingsModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function savePiSettings() {
+            const urlInput = document.getElementById('piServerUrlInput');
+            const keyInput = document.getElementById('piApiKeyInput');
+            piServerUrl = urlInput ? urlInput.value.trim().replace(/\/+$/, '') : '';
+            piApiKey = keyInput ? keyInput.value.trim() : '';
+
+            localStorage.setItem('pi_server_url', piServerUrl);
+            localStorage.setItem('pi_api_key', piApiKey);
+            closePiSettingsModal();
+            alert("已儲存樹莓派伺服器連線設定！");
+        }
+
+        async function exportToPi() {
+            if (!piServerUrl || !piApiKey) {
+                alert("請先點擊「⚙️ 伺服器設定」設定樹莓派伺服器網址與 API 金鑰！");
+                openPiSettingsModal();
+                return;
+            }
+
+            if (thoughts.length === 0) return alert("目前沒有可備份的資料！");
+
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const hh = String(now.getHours()).padStart(2, '0');
+            const min = String(now.getMinutes()).padStart(2, '0');
+            const ss = String(now.getSeconds()).padStart(2, '0');
+            const fileName = `BL-${yyyy}${mm}${dd}-${hh}${min}${ss}.json`;
+
+            const exportPayload = {
+                thoughts: thoughts,
+                categoryOrder: categoryOrder,
+                blockedSlots: blockedSlots,
+                maxDailyHours: maxDailyHours,
+                maxWeeklyHours: maxWeeklyHours
+            };
+
+            try {
+                let response = await fetch(`${piServerUrl}/api/liveschedule/backup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': piApiKey
+                    },
+                    body: JSON.stringify({ fileName, data: exportPayload })
+                });
+
+                if (!response.ok) {
+                    const formData = new FormData();
+                    const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
+                    formData.append('photo', blob, fileName);
+
+                    response = await fetch(`${piServerUrl}/upload`, {
+                        method: 'POST',
+                        headers: {
+                            'x-api-key': piApiKey,
+                            'x-original-name': encodeURIComponent(fileName),
+                            'x-target-path': encodeURIComponent('LiveSchedule')
+                        },
+                        body: formData
+                    });
+                }
+
+                if (response.ok) {
+                    alert(`🎉 成功上傳備份至樹莓派！
+檔名：${fileName}`);
+                } else {
+                    const errData = await response.json().catch(() => ({}));
+                    alert(`❌ 上傳失敗 (${response.status})：${errData.error || errData.message || '請檢查密碼與連線'}`);
+                }
+            } catch (e) {
+                console.error(e);
+                alert(`❌ 連線樹莓派失敗！請檢查伺服器網址與 CORS/SSL 設定。
+錯誤：${e.message}`);
+            }
+        }
+
+        async function importFromPi() {
+            if (!piServerUrl || !piApiKey) {
+                alert("請先點擊「⚙️ 伺服器設定」設定樹莓派伺服器網址與 API 金鑰！");
+                openPiSettingsModal();
+                return;
+            }
+
+            try {
+                let backupData = null;
+                let fileName = '';
+
+                let response = await fetch(`${piServerUrl}/api/liveschedule/latest`, {
+                    method: 'GET',
+                    headers: { 'x-api-key': piApiKey }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    backupData = result.data;
+                    fileName = result.fileName;
+                } else {
+                    const filesRes = await fetch(`${piServerUrl}/files?path=LiveSchedule`, {
+                        headers: { 'x-api-key': piApiKey }
+                    });
+
+                    if (filesRes.ok) {
+                        const filesData = await filesRes.json();
+                        const jsonFiles = (filesData.files || [])
+                            .filter(f => !f.isDirectory && f.name.endsWith('.json'))
+                            .map(f => f.name)
+                            .sort().reverse();
+
+                        if (jsonFiles.length > 0) {
+                            fileName = jsonFiles[0];
+                            const downRes = await fetch(`${piServerUrl}/download/LiveSchedule%2F${encodeURIComponent(fileName)}`, {
+                                headers: { 'x-api-key': piApiKey }
+                            });
+                            if (downRes.ok) {
+                                backupData = await downRes.json();
+                            }
+                        }
+                    }
+                }
+
+                if (backupData) {
+                    if (confirm(`確定從樹莓派載入最新備份？
+備份檔名：${fileName}`)) {
+                        let importedThoughts = null;
+                        if (Array.isArray(backupData)) importedThoughts = backupData;
+                        else if (backupData.thoughts) {
+                            importedThoughts = backupData.thoughts;
+                            if (backupData.categoryOrder) categoryOrder = backupData.categoryOrder;
+                            if (backupData.blockedSlots) blockedSlots = backupData.blockedSlots;
+                            if (backupData.maxDailyHours) maxDailyHours = backupData.maxDailyHours;
+                            if (backupData.maxWeeklyHours) maxWeeklyHours = backupData.maxWeeklyHours;
+                        }
+
+                        if (importedThoughts) {
+                            thoughts = importedThoughts;
+                            saveData();
+                            alert("🎉 成功從樹莓派同步最新備份！");
+                        }
+                    }
+                } else {
+                    alert("❌ 樹莓派上尚未找到任何備份檔案，請先執行「☁️ 上傳樹莓派」！");
+                }
+            } catch (e) {
+                console.error(e);
+                alert(`❌ 連線樹莓派失敗：${e.message}`);
+            }
+        }
 
         let activeCategory = "全部";
         let viewMode = "overview";
@@ -1724,6 +1919,7 @@
 
                 const steps = Array.isArray(thought.steps) ? thought.steps : [];
                 const stepsHtml = steps.map((s, stepIdx) => {
+                    const linkedThought = s.linkedThoughtId ? thoughts.find(x => x.id === s.linkedThoughtId) : null;
                     const isEditingThisStep = (editingStepIdKey === `${thought.id}-${s.id}`);
                     const linkedThought = s.linkedThoughtId ? thoughts.find(x => x.id === s.linkedThoughtId) : null;
                     
