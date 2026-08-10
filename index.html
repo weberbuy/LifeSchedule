@@ -13,7 +13,7 @@
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 時間軸雙擊跳轉編輯 · 預設合起模式</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 雙擊目標/步驟精密區分跳轉編輯</p>
             </div>
             
             <div class="flex items-center gap-2">
@@ -143,51 +143,6 @@
             </div>
         </div>
 
-        <!-- 時間軸雙擊快速編輯視窗 -->
-        <div id="timelineEditModal" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 hidden z-50">
-            <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
-                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <h3 id="tlModalTitle" class="text-base font-bold text-slate-900">✏️ 快速編輯項目</h3>
-                    <button onclick="closeTimelineEditModal()" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
-                </div>
-
-                <div class="space-y-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">內容 / 名稱：</label>
-                        <input type="text" id="tlEditText" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">📅 預期日期：</label>
-                            <input type="date" id="tlEditDate" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl text-slate-800">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">⏰ 時段：</label>
-                            <select id="tlEditSlot" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white text-slate-800">
-                                <option value="全天">全天</option>
-                                <option value="上午">上午</option>
-                                <option value="下午">下午</option>
-                                <option value="晚上">晚上</option>
-                                <option value="夜間">夜間</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div id="tlEditTimeContainer" class="hidden">
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">預估工時 (如: 2小時)：</label>
-                        <input type="text" id="tlEditTime" placeholder="例如：2小時" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl">
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-between pt-2">
-                    <button onclick="deleteTimelineEditItem()" class="px-3.5 py-2 text-xs bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl font-bold transition-colors">🗑️ 刪除此項目</button>
-                    <div class="flex gap-2">
-                        <button onclick="closeTimelineEditModal()" class="px-4 py-2 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors">取消</button>
-                        <button onclick="saveTimelineEdit()" class="px-4 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors shadow-sm">💾 儲存修改</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- 主顯示區塊 -->
         <div id="mainContentList" class="space-y-6"></div>
     </div>
@@ -195,7 +150,7 @@
     <script>
         function escapeAttr(str) {
             if (!str) return '';
-            return String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            return String(str).replace(/'/g, "\'").replace(/"/g, '&quot;');
         }
 
         let thoughts = [];
@@ -233,8 +188,8 @@
 
         let activeCategory = "全部";
         let viewMode = "overview";
-        let overviewSubMode = "grid"; // 'grid' (網格全覽) 或 'matrix' (橫向對照矩陣)
-        let timelineXMode = "collapsed"; // 預設為 'collapsed' (每日事項合起模式)
+        let overviewSubMode = "grid";
+        let timelineXMode = "collapsed";
         let timelineStartDate = todayStr;
         let isFormOpen = false;
         let isBlockPanelOpen = false;
@@ -243,7 +198,6 @@
         let isReorderMode = false;
         let draggedItemInfo = null;
         let pendingDropItem = null;
-        let pendingTlEdit = null;
 
         const slotPriorityMap = { '全天': 0, '上午': 1, '下午': 2, '晚上': 3, '夜間': 4 };
 
@@ -252,17 +206,36 @@
             setViewMode('cards');
         }
 
-        // 🔗 雙擊時間軸卡片 ➔ 直接跳轉至看板模式對應領域卡片編輯
-        function jumpToCardEdit(thoughtId) {
+        function jumpToGoalEdit(thoughtId) {
             const t = thoughts.find(x => x.id === thoughtId);
             if (!t) return;
             activeCategory = t.category || '💼 事業';
             editingId = thoughtId;
+            editingStepIdKey = null;
             setViewMode('cards');
 
             setTimeout(() => {
                 const el = document.getElementById(`card-${thoughtId}`);
                 if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }
+
+        function jumpToStepEdit(thoughtId, stepId) {
+            const t = thoughts.find(x => x.id === thoughtId);
+            if (!t) return;
+            activeCategory = t.category || '💼 事業';
+            editingId = null;
+            editingStepIdKey = `${thoughtId}-${stepId}`;
+            setViewMode('cards');
+
+            setTimeout(() => {
+                const el = document.getElementById(`step-item-${thoughtId}-${stepId}`);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    const cardEl = document.getElementById(`card-${thoughtId}`);
+                    if (cardEl) cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
             }, 100);
         }
 
@@ -717,98 +690,6 @@
             closeDatePickerModal();
         }
 
-        function editGoalFromTimeline(thoughtId) {
-            jumpToCardEdit(thoughtId);
-        }
-
-        function editStepFromTimeline(thoughtId, stepId) {
-            jumpToCardEdit(thoughtId);
-        }
-
-        function saveTimelineEdit() {
-            if (!pendingTlEdit) return;
-            const text = document.getElementById('tlEditText').value.trim();
-            const date = document.getElementById('tlEditDate').value;
-            const slot = document.getElementById('tlEditSlot').value;
-            const time = document.getElementById('tlEditTime').value.trim();
-
-            if (!text) return alert("內容不能為空！");
-
-            const blocked = getBlockedSlot(date, slot);
-            if (blocked) {
-                return alert(`🚫 警告：${date} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})！`);
-            }
-
-            const t = thoughts.find(x => x.id === pendingTlEdit.thoughtId);
-            if (!t) return;
-
-            if (pendingTlEdit.type === 'goal') {
-                if (!validateChildStepsDate(t.id, date)) return;
-                t.goal = text;
-                t.targetDate = date || '未指定日期';
-                t.targetTimeSlot = slot;
-            } else if (pendingTlEdit.type === 'step') {
-                if (date && t.targetDate && t.targetDate !== '未指定日期' && date > t.targetDate) {
-                    return alert(`步驟日期 (${date}) 不能超過目標日期 (${t.targetDate})！`);
-                }
-
-                if (date) {
-                    const currentDailyTotal = getDailyTotalHours(date, pendingTlEdit.stepId);
-                    const newHours = parseHours(time);
-                    if (currentDailyTotal + newHours > maxDailyHours) {
-                        if (!confirm(`⚠️ 提醒：${date} 跨領域累計總工時將達 ${(currentDailyTotal + newHours).toFixed(1)} 小時，已超過設定單日上限 (${maxDailyHours} 小時)！確定要儲存嗎？`)) {
-                            return;
-                        }
-                    }
-                }
-
-                const weekRange = getCurrentWeekRange();
-                if (date && date >= weekRange.mondayStr && date <= weekRange.sundayStr) {
-                    const currentWeeklyTotal = getWeeklyTotalHours(pendingTlEdit.stepId);
-                    const newHours = parseHours(time);
-                    if (currentWeeklyTotal + newHours > maxWeeklyHours) {
-                        if (!confirm(`⚠️ 提醒：本週 (週一~週日) 跨領域累計總工時將達 ${(currentWeeklyTotal + newHours).toFixed(1)} 小時，已超過設定週工時上限 (${maxWeeklyHours} 小時)！確定要儲存嗎？`)) {
-                            return;
-                        }
-                    }
-                }
-
-                const s = t.steps.find(x => x.id === pendingTlEdit.stepId);
-                if (s) {
-                    if (s.linkedThoughtId && !validateChildStepsDate(s.linkedThoughtId, date)) return;
-                    s.text = text;
-                    s.stepDate = date;
-                    s.stepTimeSlot = slot;
-                    s.stepTime = time;
-                }
-            }
-
-            saveData();
-            closeTimelineEditModal();
-        }
-
-        function deleteTimelineEditItem() {
-            if (!pendingTlEdit) return;
-            if (confirm("確定要在時間軸中刪除此項目？")) {
-                const t = thoughts.find(x => x.id === pendingTlEdit.thoughtId);
-                if (t) {
-                    if (pendingTlEdit.type === 'goal') {
-                        thoughts = thoughts.filter(x => x.id !== pendingTlEdit.thoughtId);
-                    } else if (pendingTlEdit.type === 'step') {
-                        t.steps = t.steps.filter(x => x.id !== pendingTlEdit.stepId);
-                    }
-                    saveData();
-                }
-                closeTimelineEditModal();
-            }
-        }
-
-        function closeTimelineEditModal() {
-            pendingTlEdit = null;
-            const modal = document.getElementById('timelineEditModal');
-            if (modal) modal.classList.add('hidden');
-        }
-
         function toggleForm() {
             isFormOpen = !isFormOpen;
             const content = document.getElementById('formContent');
@@ -1103,7 +984,7 @@
                 const currentWeeklyTotal = getWeeklyTotalHours(stepId);
                 const newHours = parseHours(stepTime);
                 if (currentWeeklyTotal + newHours > maxWeeklyHours) {
-                    if (!confirm(`⚠️ 提醒：本週 (週一~週日) 跨領域累計總工時將達 ${(currentWeeklyTotal + newHours).toFixed(1)} 小時，已超過設定週工時上限 (${maxWeeklyHours} 小時)！確定要儲存嗎？`)) {
+                    if (!confirm(`⚠️ 提醒：本週 (週一~週日) 跨領域累計總工時將達 ${(currentWeeklyTotal + newHours).toFixed(1)} 小時，已超過週工時上限 (${maxWeeklyHours} 小時)！確定要儲存嗎？`)) {
                         return;
                     }
                 }
@@ -1182,7 +1063,6 @@
             draggedItemInfo = null;
         }
 
-        // 📥 備份匯出功能 (格式: BL-YYYYMMDD-HHMMSS.json)
         function exportData() {
             if (thoughts.length === 0) return alert("目前沒有可匯出的思緒資料！");
             const now = new Date();
@@ -1195,7 +1075,6 @@
 
             const fileName = `BL-${yyyy}${mm}${dd}-${hh}${min}${ss}.json`;
             
-            // 完整包裹資料與設定
             const exportPayload = {
                 thoughts: thoughts,
                 categoryOrder: categoryOrder,
@@ -1277,7 +1156,6 @@
             else renderCards(container);
         }
 
-        // ⏳ 渲染時間對照矩陣 (支援極簡卡片與預設合起雙模式)
         function renderTimelineMatrix(container) {
             const datesSet = new Set(customTimelineDates);
             const categoriesList = getOrderedCategories();
@@ -1372,17 +1250,16 @@
                 unscheduledHtml += `<span class="text-xs text-slate-400 italic">所有目標與步驟皆已完成日期排程！</span>`;
             } else {
                 undatedGoals.forEach(g => {
-                    unscheduledHtml += `<div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" ondblclick="jumpToCardEdit(${g.id})" class="p-2 bg-amber-100 border border-amber-300 rounded-lg text-amber-950 text-xs font-bold shadow-sm cursor-grab">🎯 [${g.category}] ${g.goal || g.text}</div>`;
+                    unscheduledHtml += `<div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" ondblclick="jumpToGoalEdit(${g.id})" class="p-2 bg-amber-100 border border-amber-300 rounded-lg text-amber-950 text-xs font-bold shadow-sm cursor-grab">🎯 [${g.category}] ${g.goal || g.text}</div>`;
                 });
                 undatedSteps.forEach(item => {
-                    unscheduledHtml += `<div draggable="true" ondragstart="handleDragStart(event, 'step', ${item.thought.id}, ${item.step.id})" ondblclick="jumpToCardEdit(${item.thought.id})" class="p-2 bg-white border border-slate-300 rounded-lg text-slate-800 text-xs font-bold shadow-sm cursor-grab">📋 [${item.thought.category}] ${item.step.text}</div>`;
+                    unscheduledHtml += `<div draggable="true" ondragstart="handleDragStart(event, 'step', ${item.thought.id}, ${item.step.id})" ondblclick="jumpToStepEdit(${item.thought.id}, ${item.step.id})" class="p-2 bg-white border border-slate-300 rounded-lg text-slate-800 text-xs font-bold shadow-sm cursor-grab">📋 [${item.thought.category}] ${item.step.text}</div>`;
                 });
             }
             unscheduledHtml += `</div></div>`;
 
             let html = dateFilterControlHtml + blockedManagerHtml + unscheduledHtml;
 
-            // 時間軸 X 軸模式切換列 (展開 VS 合起)
             html += `
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3 pt-2">
                     <div class="flex items-center gap-2 flex-wrap">
@@ -1451,7 +1328,6 @@
                 </td>`;
 
                 if (timelineXMode === 'expanded') {
-                    // ↔️ 領域展開模式 (按領域分欄)
                     categoriesList.forEach(cat => {
                         html += `<td class="p-2.5 border border-slate-200 align-top space-y-1.5 ${dayBlocks.length > 0 ? 'bg-rose-50/30' : (dateInfo.isToday ? 'bg-emerald-50/20' : (dateInfo.isPast ? 'bg-slate-50/40' : 'bg-white'))}">`;
 
@@ -1477,8 +1353,8 @@
                             if (ci.type === 'goal') {
                                 const g = ci.item;
                                 html += `
-                                    <div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" ondblclick="jumpToCardEdit(${g.id})"
-                                        class="p-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab" title="雙擊跳轉至看板編輯">
+                                    <div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" ondblclick="jumpToGoalEdit(${g.id})"
+                                        class="p-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab" title="雙擊跳轉至看板編輯該目標">
                                         <label class="flex items-start gap-1.5 cursor-pointer">
                                             <input type="checkbox" ${g.goalDone ? 'checked' : ''} onchange="toggleGoalDone(${g.id})" class="mt-0.5 w-3.5 h-3.5 text-amber-600 rounded">
                                             <span class="${g.goalDone ? 'line-through text-slate-400 font-normal' : 'font-bold text-slate-900'} text-xs leading-snug">🎯 ${g.goal || g.text}</span>
@@ -1489,8 +1365,8 @@
                                 const s = ci.item;
                                 const t = ci.parentThought;
                                 html += `
-                                    <div draggable="true" ondragstart="handleDragStart(event, 'step', ${t.id}, ${s.id})" ondblclick="jumpToCardEdit(${t.id})"
-                                        class="p-2 rounded-xl bg-white border border-slate-200 text-slate-900 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab" title="雙擊跳轉至看板編輯">
+                                    <div draggable="true" ondragstart="handleDragStart(event, 'step', ${t.id}, ${s.id})" ondblclick="jumpToStepEdit(${t.id}, ${s.id})"
+                                        class="p-2 rounded-xl bg-white border border-slate-200 text-slate-900 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab" title="雙擊跳轉至看板編輯該步驟">
                                         <label class="flex items-start gap-1.5 cursor-pointer">
                                             <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${t.id}, ${s.id})" class="mt-0.5 w-3.5 h-3.5 text-indigo-600 rounded">
                                             <span class="${s.done ? 'line-through text-slate-400 font-normal' : 'font-medium text-slate-800'} text-xs leading-snug">${s.text}</span>
@@ -1503,7 +1379,6 @@
                         html += `</td>`;
                     });
                 } else {
-                    // 📋 每日事項合起模式 (單一欄位，所有領域事項合併)
                     html += `<td class="p-2.5 border border-slate-200 align-top ${dayBlocks.length > 0 ? 'bg-rose-50/30' : (dateInfo.isToday ? 'bg-emerald-50/20' : (dateInfo.isPast ? 'bg-slate-50/40' : 'bg-white'))}">`;
 
                     if (dayBlocks.length > 0) {
@@ -1534,8 +1409,8 @@
                             if (ci.type === 'goal') {
                                 const g = ci.item;
                                 html += `
-                                    <div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" ondblclick="jumpToCardEdit(${g.id})"
-                                        class="p-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab flex flex-col justify-between" title="雙擊跳轉至看板編輯">
+                                    <div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" ondblclick="jumpToGoalEdit(${g.id})"
+                                        class="p-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab flex flex-col justify-between" title="雙擊跳轉至看板編輯該目標">
                                         <label class="flex items-start gap-1.5 cursor-pointer">
                                             <input type="checkbox" ${g.goalDone ? 'checked' : ''} onchange="toggleGoalDone(${g.id})" class="mt-0.5 w-3.5 h-3.5 text-amber-600 rounded">
                                             <span class="${g.goalDone ? 'line-through text-slate-400 font-normal' : 'font-bold text-slate-900'} text-xs leading-snug">🎯 ${g.goal || g.text}</span>
@@ -1547,8 +1422,8 @@
                                 const s = ci.item;
                                 const t = ci.parentThought;
                                 html += `
-                                    <div draggable="true" ondragstart="handleDragStart(event, 'step', ${t.id}, ${s.id})" ondblclick="jumpToCardEdit(${t.id})"
-                                        class="p-2 rounded-xl bg-white border border-slate-200 text-slate-900 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab flex flex-col justify-between" title="雙擊跳轉至看板編輯">
+                                    <div draggable="true" ondragstart="handleDragStart(event, 'step', ${t.id}, ${s.id})" ondblclick="jumpToStepEdit(${t.id}, ${s.id})"
+                                        class="p-2 rounded-xl bg-white border border-slate-200 text-slate-900 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab flex flex-col justify-between" title="雙擊跳轉至看板編輯該步驟">
                                         <label class="flex items-start gap-1.5 cursor-pointer">
                                             <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${t.id}, ${s.id})" class="mt-0.5 w-3.5 h-3.5 text-indigo-600 rounded">
                                             <span class="${s.done ? 'line-through text-slate-400 font-normal' : 'font-medium text-slate-800'} text-xs leading-snug">${s.text}</span>
@@ -1572,7 +1447,6 @@
             container.appendChild(wrapper);
         }
 
-        // 🎯 總覽模式 (支援網格全覽零左右滾動與橫向對照矩陣雙切換)
         function renderOverview(container) {
             if (thoughts.length === 0) {
                 container.innerHTML = `<div class="text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200 text-sm">目前尚無記錄！</div>`;
@@ -1581,7 +1455,6 @@
 
             const categoriesList = getOrderedCategories();
 
-            // 1. 📊 精簡圖表儀表板 (點擊即跳轉看板分頁)
             const dashboardBox = document.createElement('div');
             dashboardBox.className = "bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 mb-6 space-y-3";
 
@@ -1628,7 +1501,6 @@
             dashboardBox.innerHTML = dashboardHtml;
             container.appendChild(dashboardBox);
 
-            // 2. 🎯 總覽視圖切換控制列 (網格全覽 VS 橫向對照矩陣)
             const viewControlWrapper = document.createElement('div');
             viewControlWrapper.className = "space-y-3";
 
@@ -1649,7 +1521,6 @@
             `;
 
             if (overviewSubMode === 'grid') {
-                // 📱 網格全覽視圖 (自動響應式多欄位, 零左右滾動)
                 viewControlHtml += `
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
                         ${categoriesList.map(cat => {
@@ -1660,7 +1531,6 @@
                             return `
                                 <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3 flex flex-col justify-between hover:border-indigo-200 transition-all">
                                     <div>
-                                        <!-- X軸 領域標題 -->
                                         <div onclick="jumpToCardsCategory('${escapeAttr(cat)}')" class="flex items-center justify-between border-b border-slate-100 pb-2.5 cursor-pointer group" title="點擊跳轉至「${cat}」看板分頁">
                                             <h3 class="font-bold text-base text-slate-900 group-hover:text-indigo-600 flex items-center gap-1.5">
                                                 <span>${cat}</span>
@@ -1672,7 +1542,6 @@
                                             </div>
                                         </div>
 
-                                        <!-- Y軸 該領域下的目標清單 -->
                                         <div class="space-y-2.5 mt-3">
                                             ${cardList.length === 0 ? `<div class="text-xs text-slate-400 italic py-3 text-center">尚無目標</div>` : ''}
                                             ${cardList.map((t, i) => {
@@ -1710,7 +1579,6 @@
                     </div>
                 `;
             } else {
-                // ↔️ 橫向對照矩陣視圖 (可使用按鈕/滑鼠滾輪橫向滾動)
                 viewControlHtml += `
                     <div class="flex items-center justify-end gap-1.5 mb-2">
                         <button onclick="scrollMatrixLeft()" class="text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg border border-slate-300 font-bold" title="向左捲動">◀ 滾動</button>
@@ -1724,7 +1592,6 @@
 
                                 return `
                                     <div class="w-64 sm:w-72 bg-white p-3.5 rounded-2xl shadow-sm border border-slate-200 space-y-3 shrink-0">
-                                        <!-- X軸 領域標題 -->
                                         <div onclick="jumpToCardsCategory('${escapeAttr(cat)}')" class="flex items-center justify-between border-b border-slate-100 pb-2.5 cursor-pointer hover:text-indigo-600 group" title="點擊跳轉至「${cat}」看板分頁">
                                             <h3 class="font-bold text-sm text-slate-900 group-hover:text-indigo-600 flex items-center gap-1.5">
                                                 <span>${cat}</span>
@@ -1733,7 +1600,6 @@
                                             <span class="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-bold border border-indigo-100">${cardList.length} 個目標</span>
                                         </div>
 
-                                        <!-- Y軸 該領域下的目標清單 -->
                                         <div class="space-y-3">
                                             ${cardList.length === 0 ? `<div class="text-xs text-slate-400 italic py-4 text-center">尚無目標</div>` : ''}
                                             ${cardList.map((t, i) => {
@@ -1778,7 +1644,6 @@
             container.appendChild(viewControlWrapper);
         }
 
-        // 🎴 看板模式
         function renderCards(container) {
             const categoriesList = getOrderedCategories();
 
@@ -1837,7 +1702,7 @@
                     
                     if (isEditingThisStep) {
                         return `
-                            <li class="p-2.5 bg-amber-50/60 rounded-xl border border-amber-200 space-y-2">
+                            <li id="step-item-${thought.id}-${s.id}" class="p-2.5 bg-amber-50/60 rounded-xl border border-amber-200 space-y-2">
                                 <div class="flex items-center justify-between">
                                     <span class="text-[11px] font-bold text-amber-800">✏️ 編輯步驟</span>
                                     <div class="flex gap-1">
@@ -1863,7 +1728,7 @@
                         `;
                     } else {
                         return `
-                            <li class="flex flex-col sm:flex-row sm:items-center justify-between py-2 px-3 bg-slate-50 rounded-xl gap-2">
+                            <li id="step-item-${thought.id}-${s.id}" class="flex flex-col sm:flex-row sm:items-center justify-between py-2 px-3 bg-slate-50 rounded-xl gap-2">
                                 <label class="flex items-center gap-2.5 cursor-pointer flex-1">
                                     <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${thought.id}, ${s.id})" class="w-4 h-4 text-indigo-600 rounded border-slate-300">
                                     <span class="${s.done ? 'line-through text-slate-400' : 'text-slate-700'} text-sm font-medium">${s.text}</span>
@@ -2034,3 +1899,4 @@
     </script>
 </body>
 </html>
+
