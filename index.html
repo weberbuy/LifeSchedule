@@ -13,7 +13,7 @@
         <header class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 時間軸極簡卡片 · 支援 X 軸展開/合起雙模式</p>
+                <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 時間軸雙擊跳轉編輯 · 預設合起模式</p>
             </div>
             
             <div class="flex items-center gap-2">
@@ -234,7 +234,7 @@
         let activeCategory = "全部";
         let viewMode = "overview";
         let overviewSubMode = "grid"; // 'grid' (網格全覽) 或 'matrix' (橫向對照矩陣)
-        let timelineXMode = "expanded"; // 'expanded' (領域展開) 或 'collapsed' (每日事項合起)
+        let timelineXMode = "collapsed"; // 預設為 'collapsed' (每日事項合起模式)
         let timelineStartDate = todayStr;
         let isFormOpen = false;
         let isBlockPanelOpen = false;
@@ -250,6 +250,20 @@
         function jumpToCardsCategory(cat) {
             activeCategory = cat;
             setViewMode('cards');
+        }
+
+        // 🔗 雙擊時間軸卡片 ➔ 直接跳轉至看板模式對應領域卡片編輯
+        function jumpToCardEdit(thoughtId) {
+            const t = thoughts.find(x => x.id === thoughtId);
+            if (!t) return;
+            activeCategory = t.category || '💼 事業';
+            editingId = thoughtId;
+            setViewMode('cards');
+
+            setTimeout(() => {
+                const el = document.getElementById(`card-${thoughtId}`);
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
         }
 
         function toggleOverviewSubMode(subMode) {
@@ -704,34 +718,11 @@
         }
 
         function editGoalFromTimeline(thoughtId) {
-            const t = thoughts.find(x => x.id === thoughtId);
-            if (!t) return;
-            pendingTlEdit = { type: 'goal', thoughtId };
-
-            document.getElementById('tlModalTitle').innerText = "✏️ 快速編輯目標";
-            document.getElementById('tlEditText').value = t.goal || t.text;
-            document.getElementById('tlEditDate').value = (t.targetDate !== '未指定日期') ? t.targetDate : '';
-            document.getElementById('tlEditSlot').value = t.targetTimeSlot || '全天';
-            document.getElementById('tlEditTimeContainer').classList.add('hidden');
-
-            document.getElementById('timelineEditModal').classList.remove('hidden');
+            jumpToCardEdit(thoughtId);
         }
 
         function editStepFromTimeline(thoughtId, stepId) {
-            const t = thoughts.find(x => x.id === thoughtId);
-            if (!t) return;
-            const s = t.steps.find(x => x.id === stepId);
-            if (!s) return;
-            pendingTlEdit = { type: 'step', thoughtId, stepId };
-
-            document.getElementById('tlModalTitle').innerText = "✏️ 快速編輯步驟";
-            document.getElementById('tlEditText').value = s.text;
-            document.getElementById('tlEditDate').value = s.stepDate || '';
-            document.getElementById('tlEditSlot').value = s.stepTimeSlot || '全天';
-            document.getElementById('tlEditTime').value = s.stepTime || '';
-            document.getElementById('tlEditTimeContainer').classList.remove('hidden');
-
-            document.getElementById('timelineEditModal').classList.remove('hidden');
+            jumpToCardEdit(thoughtId);
         }
 
         function saveTimelineEdit() {
@@ -1286,7 +1277,7 @@
             else renderCards(container);
         }
 
-        // ⏳ 渲染時間對照矩陣 (支援極簡卡片與 X 軸展開/合起雙模式)
+        // ⏳ 渲染時間對照矩陣 (支援極簡卡片與預設合起雙模式)
         function renderTimelineMatrix(container) {
             const datesSet = new Set(customTimelineDates);
             const categoriesList = getOrderedCategories();
@@ -1381,10 +1372,10 @@
                 unscheduledHtml += `<span class="text-xs text-slate-400 italic">所有目標與步驟皆已完成日期排程！</span>`;
             } else {
                 undatedGoals.forEach(g => {
-                    unscheduledHtml += `<div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" class="p-2 bg-amber-100 border border-amber-300 rounded-lg text-amber-950 text-xs font-bold shadow-sm cursor-grab">🎯 [${g.category}] ${g.goal || g.text}</div>`;
+                    unscheduledHtml += `<div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" ondblclick="jumpToCardEdit(${g.id})" class="p-2 bg-amber-100 border border-amber-300 rounded-lg text-amber-950 text-xs font-bold shadow-sm cursor-grab">🎯 [${g.category}] ${g.goal || g.text}</div>`;
                 });
                 undatedSteps.forEach(item => {
-                    unscheduledHtml += `<div draggable="true" ondragstart="handleDragStart(event, 'step', ${item.thought.id}, ${item.step.id})" class="p-2 bg-white border border-slate-300 rounded-lg text-slate-800 text-xs font-bold shadow-sm cursor-grab">📋 [${item.thought.category}] ${item.step.text}</div>`;
+                    unscheduledHtml += `<div draggable="true" ondragstart="handleDragStart(event, 'step', ${item.thought.id}, ${item.step.id})" ondblclick="jumpToCardEdit(${item.thought.id})" class="p-2 bg-white border border-slate-300 rounded-lg text-slate-800 text-xs font-bold shadow-sm cursor-grab">📋 [${item.thought.category}] ${item.step.text}</div>`;
                 });
             }
             unscheduledHtml += `</div></div>`;
@@ -1395,13 +1386,16 @@
             html += `
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3 pt-2">
                     <div class="flex items-center gap-2 flex-wrap">
-                        <h2 class="text-sm font-bold text-slate-800">⏳ 跨領域時間對照視圖</h2>
+                        <h2 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                            <span>⏳ 跨領域時間對照視圖</span>
+                            <span class="text-xs font-normal text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">💡 雙擊卡片可直接跳轉至看板編輯</span>
+                        </h2>
                         <div class="flex items-center gap-1 bg-slate-200/80 p-1 rounded-xl">
-                            <button onclick="toggleTimelineXMode('expanded')" class="px-3 py-1 text-xs font-bold rounded-lg transition-all ${timelineXMode === 'expanded' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}">
-                                ↔️ 領域展開模式
-                            </button>
                             <button onclick="toggleTimelineXMode('collapsed')" class="px-3 py-1 text-xs font-bold rounded-lg transition-all ${timelineXMode === 'collapsed' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}">
                                 📋 每日事項合起模式
+                            </button>
+                            <button onclick="toggleTimelineXMode('expanded')" class="px-3 py-1 text-xs font-bold rounded-lg transition-all ${timelineXMode === 'expanded' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}">
+                                ↔️ 領域展開模式
                             </button>
                         </div>
                     </div>
@@ -1483,8 +1477,8 @@
                             if (ci.type === 'goal') {
                                 const g = ci.item;
                                 html += `
-                                    <div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" ondblclick="editGoalFromTimeline(${g.id})"
-                                        class="p-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab" title="雙擊可編輯目標">
+                                    <div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" ondblclick="jumpToCardEdit(${g.id})"
+                                        class="p-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab" title="雙擊跳轉至看板編輯">
                                         <label class="flex items-start gap-1.5 cursor-pointer">
                                             <input type="checkbox" ${g.goalDone ? 'checked' : ''} onchange="toggleGoalDone(${g.id})" class="mt-0.5 w-3.5 h-3.5 text-amber-600 rounded">
                                             <span class="${g.goalDone ? 'line-through text-slate-400 font-normal' : 'font-bold text-slate-900'} text-xs leading-snug">🎯 ${g.goal || g.text}</span>
@@ -1495,8 +1489,8 @@
                                 const s = ci.item;
                                 const t = ci.parentThought;
                                 html += `
-                                    <div draggable="true" ondragstart="handleDragStart(event, 'step', ${t.id}, ${s.id})" ondblclick="editStepFromTimeline(${t.id}, ${s.id})"
-                                        class="p-2 rounded-xl bg-white border border-slate-200 text-slate-900 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab" title="雙擊可編輯步驟">
+                                    <div draggable="true" ondragstart="handleDragStart(event, 'step', ${t.id}, ${s.id})" ondblclick="jumpToCardEdit(${t.id})"
+                                        class="p-2 rounded-xl bg-white border border-slate-200 text-slate-900 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab" title="雙擊跳轉至看板編輯">
                                         <label class="flex items-start gap-1.5 cursor-pointer">
                                             <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${t.id}, ${s.id})" class="mt-0.5 w-3.5 h-3.5 text-indigo-600 rounded">
                                             <span class="${s.done ? 'line-through text-slate-400 font-normal' : 'font-medium text-slate-800'} text-xs leading-snug">${s.text}</span>
@@ -1540,8 +1534,8 @@
                             if (ci.type === 'goal') {
                                 const g = ci.item;
                                 html += `
-                                    <div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" ondblclick="editGoalFromTimeline(${g.id})"
-                                        class="p-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab flex flex-col justify-between" title="雙擊可編輯目標">
+                                    <div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" ondblclick="jumpToCardEdit(${g.id})"
+                                        class="p-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab flex flex-col justify-between" title="雙擊跳轉至看板編輯">
                                         <label class="flex items-start gap-1.5 cursor-pointer">
                                             <input type="checkbox" ${g.goalDone ? 'checked' : ''} onchange="toggleGoalDone(${g.id})" class="mt-0.5 w-3.5 h-3.5 text-amber-600 rounded">
                                             <span class="${g.goalDone ? 'line-through text-slate-400 font-normal' : 'font-bold text-slate-900'} text-xs leading-snug">🎯 ${g.goal || g.text}</span>
@@ -1553,8 +1547,8 @@
                                 const s = ci.item;
                                 const t = ci.parentThought;
                                 html += `
-                                    <div draggable="true" ondragstart="handleDragStart(event, 'step', ${t.id}, ${s.id})" ondblclick="editStepFromTimeline(${t.id}, ${s.id})"
-                                        class="p-2 rounded-xl bg-white border border-slate-200 text-slate-900 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab flex flex-col justify-between" title="雙擊可編輯步驟">
+                                    <div draggable="true" ondragstart="handleDragStart(event, 'step', ${t.id}, ${s.id})" ondblclick="jumpToCardEdit(${t.id})"
+                                        class="p-2 rounded-xl bg-white border border-slate-200 text-slate-900 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab flex flex-col justify-between" title="雙擊跳轉至看板編輯">
                                         <label class="flex items-start gap-1.5 cursor-pointer">
                                             <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${t.id}, ${s.id})" class="mt-0.5 w-3.5 h-3.5 text-indigo-600 rounded">
                                             <span class="${s.done ? 'line-through text-slate-400 font-normal' : 'font-medium text-slate-800'} text-xs leading-snug">${s.text}</span>
@@ -1832,6 +1826,7 @@
 
             filtered.forEach((thought, index) => {
                 const card = document.createElement('div');
+                card.id = `card-${thought.id}`;
                 card.className = "bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden";
                 const isEdit = (editingId === thought.id);
                 const maxDateAttr = (thought.targetDate && thought.targetDate !== '未指定日期') ? `max="${thought.targetDate}"` : '';
