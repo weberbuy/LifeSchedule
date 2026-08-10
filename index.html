@@ -1253,7 +1253,17 @@
                     unscheduledHtml += `<div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" ondblclick="jumpToGoalEdit(${g.id})" class="p-2 bg-amber-100 border border-amber-300 rounded-lg text-amber-950 text-xs font-bold shadow-sm cursor-grab">🎯 [${g.category}] ${g.goal || g.text}</div>`;
                 });
                 undatedSteps.forEach(item => {
-                    unscheduledHtml += `<div draggable="true" ondragstart="handleDragStart(event, 'step', ${item.thought.id}, ${item.step.id})" ondblclick="jumpToStepEdit(${item.thought.id}, ${item.step.id})" class="p-2 bg-white border border-slate-300 rounded-lg text-slate-800 text-xs font-bold shadow-sm cursor-grab">📋 [${item.thought.category}] ${item.step.text}</div>`;
+                    const linkedThought = item.step.linkedThoughtId ? thoughts.find(x => x.id === item.step.linkedThoughtId) : null;
+                    unscheduledHtml += `
+                        <div draggable="true" ondragstart="handleDragStart(event, 'step', ${item.thought.id}, ${item.step.id})" ondblclick="jumpToStepEdit(${item.thought.id}, ${item.step.id})" class="p-2 bg-white border border-slate-300 rounded-lg text-slate-800 text-xs font-bold shadow-sm cursor-grab flex flex-col gap-1">
+                            <div>📋 [${item.thought.category}] ${item.step.text}</div>
+                            ${linkedThought ? `
+                                <div onclick="jumpToGoalEdit(${linkedThought.id})" class="text-[10px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded font-bold cursor-pointer hover:bg-emerald-100 inline-block w-fit" title="點擊跳轉至獨立目標">
+                                    🌱 轉目標: ${escapeAttr(linkedThought.goal || linkedThought.text)} 🔗
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
                 });
             }
             unscheduledHtml += `</div></div>`;
@@ -1364,6 +1374,7 @@
                             } else if (ci.type === 'step') {
                                 const s = ci.item;
                                 const t = ci.parentThought;
+                                const linkedThought = s.linkedThoughtId ? thoughts.find(x => x.id === s.linkedThoughtId) : null;
                                 html += `
                                     <div draggable="true" ondragstart="handleDragStart(event, 'step', ${t.id}, ${s.id})" ondblclick="jumpToStepEdit(${t.id}, ${s.id})"
                                         class="p-2 rounded-xl bg-white border border-slate-200 text-slate-900 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab" title="雙擊跳轉至看板編輯該步驟">
@@ -1371,6 +1382,12 @@
                                             <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${t.id}, ${s.id})" class="mt-0.5 w-3.5 h-3.5 text-indigo-600 rounded">
                                             <span class="${s.done ? 'line-through text-slate-400 font-normal' : 'font-medium text-slate-800'} text-xs leading-snug">${s.text}</span>
                                         </label>
+                                        ${linkedThought ? `
+                                            <div onclick="jumpToGoalEdit(${linkedThought.id})" class="mt-1 text-[10px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md font-bold flex items-center justify-between cursor-pointer hover:bg-emerald-100" title="點擊跳轉至關聯拆解目標">
+                                                <span class="truncate">🌱 轉目標: ${escapeAttr(linkedThought.goal || linkedThought.text)}</span>
+                                                <span class="shrink-0 ml-1">🔗</span>
+                                            </div>
+                                        ` : ''}
                                     </div>
                                 `;
                             }
@@ -1421,13 +1438,22 @@
                             } else if (ci.type === 'step') {
                                 const s = ci.item;
                                 const t = ci.parentThought;
+                                const linkedThought = s.linkedThoughtId ? thoughts.find(x => x.id === s.linkedThoughtId) : null;
                                 html += `
                                     <div draggable="true" ondragstart="handleDragStart(event, 'step', ${t.id}, ${s.id})" ondblclick="jumpToStepEdit(${t.id}, ${s.id})"
                                         class="p-2 rounded-xl bg-white border border-slate-200 text-slate-900 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab flex flex-col justify-between" title="雙擊跳轉至看板編輯該步驟">
-                                        <label class="flex items-start gap-1.5 cursor-pointer">
-                                            <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${t.id}, ${s.id})" class="mt-0.5 w-3.5 h-3.5 text-indigo-600 rounded">
-                                            <span class="${s.done ? 'line-through text-slate-400 font-normal' : 'font-medium text-slate-800'} text-xs leading-snug">${s.text}</span>
-                                        </label>
+                                        <div>
+                                            <label class="flex items-start gap-1.5 cursor-pointer">
+                                                <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${t.id}, ${s.id})" class="mt-0.5 w-3.5 h-3.5 text-indigo-600 rounded">
+                                                <span class="${s.done ? 'line-through text-slate-400 font-normal' : 'font-medium text-slate-800'} text-xs leading-snug">${s.text}</span>
+                                            </label>
+                                            ${linkedThought ? `
+                                                <div onclick="jumpToGoalEdit(${linkedThought.id})" class="mt-1 text-[10px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md font-bold flex items-center justify-between cursor-pointer hover:bg-emerald-100" title="點擊跳轉至關聯拆解目標">
+                                                    <span class="truncate">🌱 轉目標: ${escapeAttr(linkedThought.goal || linkedThought.text)}</span>
+                                                    <span class="shrink-0 ml-1">🔗</span>
+                                                </div>
+                                            ` : ''}
+                                        </div>
                                         <div class="text-[10px] text-indigo-600 mt-1.5 font-semibold text-right">${ci.category}</div>
                                     </div>
                                 `;
@@ -1699,6 +1725,7 @@
                 const steps = Array.isArray(thought.steps) ? thought.steps : [];
                 const stepsHtml = steps.map((s, stepIdx) => {
                     const isEditingThisStep = (editingStepIdKey === `${thought.id}-${s.id}`);
+                    const linkedThought = s.linkedThoughtId ? thoughts.find(x => x.id === s.linkedThoughtId) : null;
                     
                     if (isEditingThisStep) {
                         return `
@@ -1729,11 +1756,20 @@
                     } else {
                         return `
                             <li id="step-item-${thought.id}-${s.id}" class="flex flex-col sm:flex-row sm:items-center justify-between py-2 px-3 bg-slate-50 rounded-xl gap-2">
-                                <label class="flex items-center gap-2.5 cursor-pointer flex-1">
-                                    <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${thought.id}, ${s.id})" class="w-4 h-4 text-indigo-600 rounded border-slate-300">
-                                    <span class="${s.done ? 'line-through text-slate-400' : 'text-slate-700'} text-sm font-medium">${s.text}</span>
-                                </label>
-                                <div class="flex items-center gap-1.5 text-[11px] ml-6 sm:ml-0 flex-wrap">
+                                <div class="flex items-start gap-2.5 flex-1 min-w-0">
+                                    <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${thought.id}, ${s.id})" class="w-4 h-4 text-indigo-600 rounded border-slate-300 mt-0.5 shrink-0 cursor-pointer">
+                                    <div class="flex flex-col min-w-0 flex-1">
+                                        <span class="${s.done ? 'line-through text-slate-400' : 'text-slate-700'} text-sm font-medium leading-snug">${s.text}</span>
+                                        ${linkedThought ? `
+                                            <div class="mt-1">
+                                                <span onclick="jumpToGoalEdit(${linkedThought.id})" class="inline-flex items-center gap-1 text-[11px] bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md font-bold cursor-pointer transition-colors shadow-2xs" title="點擊直接跳轉至此獨立拆解目標">
+                                                    🌱 已轉獨立目標：${escapeAttr(linkedThought.goal || linkedThought.text)} 🔗
+                                                </span>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-1.5 text-[11px] ml-6 sm:ml-0 flex-wrap shrink-0">
                                     <span class="inline-flex gap-0.5 bg-slate-200/80 rounded px-1 text-slate-600 font-bold">
                                         <button type="button" onclick="moveStepUp(${thought.id}, ${s.id})" class="hover:text-indigo-600 px-0.5" title="往上移">▲</button>
                                         <button type="button" onclick="moveStepDown(${thought.id}, ${s.id})" class="hover:text-indigo-600 px-0.5" title="往下移">▼</button>
@@ -1741,7 +1777,11 @@
                                     ${s.stepDate ? `<span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-md font-medium">📅 ${s.stepDate} [${s.stepTimeSlot || '全天'}]</span>` : ''}
                                     ${s.stepTime ? `<span class="bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-md font-medium">⏰ ${s.stepTime}</span>` : ''}
                                     <button onclick="startEditStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors">✏️ 編輯</button>
-                                    <button onclick="promoteStepToGoal(${thought.id}, ${s.id})" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-md font-bold transition-colors">🌱 轉目標</button>
+                                    ${s.linkedThoughtId ? `
+                                        <span onclick="jumpToGoalEdit(${s.linkedThoughtId})" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-md font-bold transition-colors cursor-pointer" title="點擊跳轉至目標">🌱 查看目標 🔗</span>
+                                    ` : `
+                                        <button onclick="promoteStepToGoal(${thought.id}, ${s.id})" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-md font-bold transition-colors">🌱 轉目標</button>
+                                    `}
                                     <button onclick="duplicateStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors">📋 複製</button>
                                     <button onclick="deleteStep(${thought.id}, ${s.id})" class="text-slate-400 hover:text-red-500 px-1 py-1">🗑️ 刪除</button>
                                 </div>
