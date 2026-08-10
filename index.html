@@ -51,7 +51,7 @@
                     <span>💡 記錄新的思緒與目標</span>
                     <span class="text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded font-normal">（點擊展開/收納）</span>
                 </h2>
-                <button type="button" id="toggleFormBtn" class="text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl border border-slate-300 transition-colors">
+                <button type="button" id="toggleFormBtn" onclick="toggleForm()" class="text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl border border-slate-300 transition-colors">
                     ➕ 展開表單
                 </button>
             </div>
@@ -177,7 +177,12 @@
     <script>
         function escapeAttr(str) {
             if (!str) return '';
-            return String(str).replace(/'/g, "\'").replace(/"/g, '&quot;');
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/'/g, '&#39;')
+                .replace(/"/g, '&quot;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
         }
 
         let thoughts = [];
@@ -1401,7 +1406,7 @@
                             <span>🚫 設定不排事/忙碌時段 (${blockedSlots.length} 個設定)</span>
                             <span class="text-[10px] text-rose-700 bg-white px-2 py-0.5 rounded font-normal border border-rose-200">（點擊展開/收納）</span>
                         </span>
-                        <button type="button" class="text-[11px] font-bold text-rose-800 bg-white hover:bg-rose-100 px-2.5 py-1 rounded-lg border border-rose-300 transition-colors">
+                        <button type="button" onclick="toggleBlockPanel()" class="text-[11px] font-bold text-rose-800 bg-white hover:bg-rose-100 px-2.5 py-1 rounded-lg border border-rose-300 transition-colors">
                             ${isBlockPanelOpen ? '➖ 收納設定' : '➕ 展開設定'}
                         </button>
                     </div>
@@ -2095,7 +2100,24 @@
             });
         }
 
+        
         document.addEventListener('DOMContentLoaded', () => {
+            // Fail-safe explicit event listeners
+            const btnOverview = document.getElementById('btnViewOverview');
+            if (btnOverview) btnOverview.addEventListener('click', () => setViewMode('overview'));
+
+            const btnCards = document.getElementById('btnViewCards');
+            if (btnCards) btnCards.addEventListener('click', () => setViewMode('cards'));
+
+            const btnTimeline = document.getElementById('btnViewTimeline');
+            if (btnTimeline) btnTimeline.addEventListener('click', () => setViewMode('timeline'));
+
+            const toggleBtn = document.getElementById('toggleFormBtn');
+            if (toggleBtn) toggleBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleForm(); });
+
+            const reorderBtn = document.getElementById('reorderBtn');
+            if (reorderBtn) reorderBtn.addEventListener('click', () => toggleReorderMode());
+
             const thoughtInput = document.getElementById('thoughtInput');
             if (thoughtInput) {
                 thoughtInput.addEventListener('keypress', function (e) {
