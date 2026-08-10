@@ -202,10 +202,12 @@
 
         let blockedSlots = [];
         try { blockedSlots = JSON.parse(localStorage.getItem('my_blocked_slots')) || []; } catch(e) { blockedSlots = []; }
+        if (!Array.isArray(blockedSlots)) blockedSlots = [];
 
         let customTimelineDates = [];
         let categoryOrder = [];
         try { categoryOrder = JSON.parse(localStorage.getItem('my_category_order')) || []; } catch(e) { categoryOrder = []; }
+        if (!Array.isArray(categoryOrder)) categoryOrder = [];
 
         let maxDailyHours = parseFloat(localStorage.getItem('my_max_daily_hours')) || 8;
         let maxWeeklyHours = parseFloat(localStorage.getItem('my_max_weekly_hours')) || 40;
@@ -593,7 +595,8 @@
                 const mins = parseFloat(s) || 0;
                 return mins / 60;
             }
-            return parseFloat(s) || 0;
+            const h = parseFloat(s);
+            return isNaN(h) ? 0 : h;
         }
 
         function getDailyTotalHours(dateStr, excludeStepId = null) {
@@ -1355,10 +1358,10 @@
             const datesSet = new Set(customTimelineDates);
             const categoriesList = getOrderedCategories();
 
-            blockedSlots.forEach(b => datesSet.add(b.date));
+            blockedSlots.forEach(b => { if (b && b.date) datesSet.add(b.date); });
             thoughts.forEach(t => {
-                if (t.targetDate && t.targetDate !== '未指定日期') datesSet.add(t.targetDate);
-                if (Array.isArray(t.steps)) { t.steps.forEach(s => { if (s.stepDate) datesSet.add(s.stepDate); }); }
+                if (t.targetDate && t.targetDate !== '未指定日期' && typeof t.targetDate === 'string' && t.targetDate.trim() !== '') datesSet.add(t.targetDate);
+                if (Array.isArray(t.steps)) { t.steps.forEach(s => { if (s.stepDate && typeof s.stepDate === 'string' && s.stepDate.trim() !== '') datesSet.add(s.stepDate); }); }
             });
 
             let sortedDates = Array.from(datesSet).sort();
