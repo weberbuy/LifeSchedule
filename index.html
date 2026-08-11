@@ -14,7 +14,7 @@
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.3.0-Final (支援完成目標/步驟精密收合展開)</span>
+                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.3.1-Final (全面調試修復驗證版)</span>
                 </div>
                 <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 雙擊目標/步驟精密區分跳轉編輯</p>
             </div>
@@ -2185,6 +2185,9 @@
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     ${categoriesList.map(cat => {
                         const stats = getCategoryStats(cat);
+                        const allDomainGoals = thoughts.filter(t => (t.category || '💼 事業') === cat);
+                        const completedGoalsCount = allDomainGoals.filter(g => g.goalDone).length;
+                        const hiddenOverviewCount = hideCompletedGoalsOverview ? completedGoalsCount : 0;
                         const percentGoals = stats.totalGoals > 0 ? Math.round((stats.completedGoals / stats.totalGoals) * 100) : 0;
                         const strokeDash = Math.round((percentGoals / 100) * 100);
 
