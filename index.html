@@ -14,7 +14,7 @@
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.0.0-Step4 (2026-08-11)</span>
+                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.0.0-Step4.1 (開頁/切頁自動連線版)</span>
                 </div>
                 <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 雙擊目標/步驟精密區分跳轉編輯</p>
             </div>
@@ -2467,7 +2467,18 @@
         });
 
 
-        render();
+                if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                render();
+                checkAndAutoSyncFromPi();
+            });
+        } else {
+            render();
+            checkAndAutoSyncFromPi();
+        }
+
+
+        window.addEventListener('focus', () => {
+            checkAndAutoSyncFromPi();
+        });
     </script>
-</body>
-</html>
