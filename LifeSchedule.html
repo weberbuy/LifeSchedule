@@ -16,16 +16,12 @@
                 <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 雙擊目標/步驟精密區分跳轉編輯</p>
             </div>
             
-            <div class="flex items-center gap-2 flex-wrap justify-end">
-                <div id="piSyncStatusBadge" class="text-xs px-2.5 py-1.5 rounded-xl font-bold flex items-center gap-1 bg-slate-100 text-slate-600 border border-slate-200" title="樹莓派連線與同步狀態">⚪ 離線模式</div>
+            <div class="flex items-center gap-2">
                 <button onclick="exportData()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3.5 py-2 rounded-xl border border-indigo-200 font-medium transition-colors">📥 備份</button>
                 <label class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-xl border border-slate-300 font-medium transition-colors cursor-pointer">
                     📤 匯入
                     <input type="file" id="importFile" accept=".json" onchange="importData(event)" class="hidden">
                 </label>
-                <button onclick="exportToPi()" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-3.5 py-2 rounded-xl border border-emerald-200 font-bold transition-colors">☁️ 上傳樹莓派</button>
-                <button onclick="importFromPi()" class="text-xs bg-teal-50 hover:bg-teal-100 text-teal-800 px-3.5 py-2 rounded-xl border border-teal-200 font-bold transition-colors">☁️ 同步樹莓派</button>
-                <button onclick="openPiSettingsModal()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl border border-slate-300 font-bold transition-colors" title="設定樹莓派伺服器連線">⚙️ 伺服器設定</button>
             </div>
         </header>
 
@@ -131,31 +127,6 @@
         </div>
 
 
-        <!-- 樹莓派連線設定彈出視窗 -->
-        <div id="piSettingsModal" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 hidden z-50">
-            <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100 space-y-4">
-                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <span>⚙️ 樹莓派伺服器連線設定</span>
-                </h3>
-                <p class="text-xs text-slate-500">設定遠端或區域網 Node.js 伺服器網址與 API Key：</p>
-                <div class="space-y-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">伺服器網址 (URL)：</label>
-                        <input type="text" id="piServerUrlInput" placeholder="例如: https://pi.yourdomain.com 或 http://192.168.1.100:3000" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">API 金鑰 (x-api-key)：</label>
-                        <input type="password" id="piApiKeyInput" placeholder="請輸入 API_KEY 密碼" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono">
-                    </div>
-                </div>
-                <div class="flex justify-end gap-2 pt-2">
-                    <button onclick="closePiSettingsModal()" class="px-4 py-2 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors">取消</button>
-                    <button onclick="savePiSettings()" class="px-4 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors shadow-sm">💾 儲存設定</button>
-                </div>
-            </div>
-        </div>
-
-
         <!-- 日期選擇器彈出視窗 -->
         <div id="datePickerModal" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 hidden z-50">
             <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100 space-y-4">
@@ -187,19 +158,6 @@
 
 
     <script>
-        window.onerror = function(msg, url, line, col, error) {
-            var banner = document.getElementById('globalErrorBanner');
-            if (!banner) {
-                banner = document.createElement('div');
-                banner.id = 'globalErrorBanner';
-                banner.className = 'bg-rose-600 text-white p-4 font-bold text-xs sticky top-0 z-50 shadow-md flex items-center justify-between';
-                banner.innerHTML = '<span>⚠️ 程式腳本載入錯誤 (第 ' + line + ' 行): ' + msg + '</span><button onclick="this.parentElement.remove()" class="bg-white/20 px-2 py-0.5 rounded text-white font-bold">✕</button>';
-                document.body.prepend(banner);
-            }
-            return false;
-        };
-
-
         function escapeAttr(str) {
             if (!str) return '';
             return String(str)
@@ -235,13 +193,11 @@
 
         let blockedSlots = [];
         try { blockedSlots = JSON.parse(localStorage.getItem('my_blocked_slots')) || []; } catch(e) { blockedSlots = []; }
-        if (!Array.isArray(blockedSlots)) blockedSlots = [];
 
 
         let customTimelineDates = [];
         let categoryOrder = [];
         try { categoryOrder = JSON.parse(localStorage.getItem('my_category_order')) || []; } catch(e) { categoryOrder = []; }
-        if (!Array.isArray(categoryOrder)) categoryOrder = [];
 
 
         let maxDailyHours = parseFloat(localStorage.getItem('my_max_daily_hours')) || 8;
@@ -250,296 +206,6 @@
 
         const todayObj = new Date();
         const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
-
-
-        
-        let piServerUrl = localStorage.getItem('pi_server_url') || '';
-        let piApiKey = localStorage.getItem('pi_api_key') || '';
-
-
-        
-        
-        let lastSyncedFileName = localStorage.getItem('pi_last_synced_file') || '';
-
-
-        function updatePiSyncBadge(statusText, badgeClass) {
-            const badge = document.getElementById('piSyncStatusBadge');
-            if (badge) {
-                badge.innerHTML = statusText;
-                badge.className = `text-xs px-2.5 py-1.5 rounded-xl font-bold flex items-center gap-1 border transition-all ${badgeClass}`;
-            }
-        }
-
-
-        async function checkAndAutoSyncFromPi() {
-            if (!piServerUrl || !piApiKey) {
-                updatePiSyncBadge('⚪ 離線模式', 'bg-slate-100 text-slate-600 border-slate-200');
-                return;
-            }
-
-
-            updatePiSyncBadge('🔍 檢查同步...', 'bg-indigo-50 text-indigo-700 border-indigo-200');
-
-
-            try {
-                let backupData = null;
-                let fileName = '';
-
-
-                let response = await fetch(`${piServerUrl}/api/liveschedule/latest`, {
-                    method: 'GET',
-                    headers: { 'x-api-key': piApiKey }
-                });
-
-
-                if (response.ok) {
-                    const result = await response.json();
-                    backupData = result.data;
-                    fileName = result.fileName;
-                } else {
-                    const filesRes = await fetch(`${piServerUrl}/files?path=LiveSchedule`, {
-                        headers: { 'x-api-key': piApiKey }
-                    });
-
-
-                    if (filesRes.ok) {
-                        const filesData = await filesRes.json();
-                        const jsonFiles = (filesData.files || [])
-                            .filter(f => !f.isDirectory && f.name.endsWith('.json'))
-                            .map(f => f.name)
-                            .sort().reverse();
-
-
-                        if (jsonFiles.length > 0) {
-                            fileName = jsonFiles[0];
-                            const downRes = await fetch(`${piServerUrl}/download/LiveSchedule%2F${encodeURIComponent(fileName)}`, {
-                                headers: { 'x-api-key': piApiKey }
-                            });
-                            if (downRes.ok) {
-                                backupData = await downRes.json();
-                            }
-                        }
-                    }
-                }
-
-
-                if (backupData && fileName) {
-                    if (fileName > lastSyncedFileName) {
-                        let importedThoughts = null;
-                        if (Array.isArray(backupData)) importedThoughts = backupData;
-                        else if (backupData.thoughts) {
-                            importedThoughts = backupData.thoughts;
-                            if (backupData.categoryOrder) categoryOrder = backupData.categoryOrder;
-                            if (backupData.blockedSlots) blockedSlots = backupData.blockedSlots;
-                            if (backupData.maxDailyHours) maxDailyHours = backupData.maxDailyHours;
-                            if (backupData.maxWeeklyHours) maxWeeklyHours = backupData.maxWeeklyHours;
-                        }
-
-
-                        if (importedThoughts) {
-                            thoughts = importedThoughts;
-                            syncLinkedData();
-                            localStorage.setItem('my_thoughts_local', JSON.stringify(thoughts));
-                            lastSyncedFileName = fileName;
-                            localStorage.setItem('pi_last_synced_file', fileName);
-                            render();
-                            updatePiSyncBadge('🟢 已同步最新', 'bg-emerald-100 text-emerald-900 border-emerald-300');
-                            return;
-                        }
-                    }
-                    updatePiSyncBadge('🟢 已是最新狀態', 'bg-emerald-50 text-emerald-800 border-emerald-200');
-                } else {
-                    updatePiSyncBadge('🟢 尚無雲端檔案', 'bg-slate-100 text-slate-700 border-slate-200');
-                }
-            } catch (e) {
-                console.error(e);
-                updatePiSyncBadge('⚠️ 連線伺服器失敗', 'bg-rose-50 text-rose-700 border-rose-200');
-            }
-        }
-
-
-        function openPiSettingsModal() {
-            const modal = document.getElementById('piSettingsModal');
-            const urlInput = document.getElementById('piServerUrlInput');
-            const keyInput = document.getElementById('piApiKeyInput');
-            if (urlInput) urlInput.value = piServerUrl;
-            if (keyInput) keyInput.value = piApiKey;
-            if (modal) modal.classList.remove('hidden');
-        }
-
-
-        function closePiSettingsModal() {
-            const modal = document.getElementById('piSettingsModal');
-            if (modal) modal.classList.add('hidden');
-        }
-
-
-        function savePiSettings() {
-            const urlInput = document.getElementById('piServerUrlInput');
-            const keyInput = document.getElementById('piApiKeyInput');
-            piServerUrl = urlInput ? urlInput.value.trim().replace(/\/+$/, '') : '';
-            piApiKey = keyInput ? keyInput.value.trim() : '';
-
-
-            localStorage.setItem('pi_server_url', piServerUrl);
-            localStorage.setItem('pi_api_key', piApiKey);
-            closePiSettingsModal();
-            alert("已儲存樹莓派伺服器連線設定！");
-        }
-
-
-        async function exportToPi() {
-            if (!piServerUrl || !piApiKey) {
-                alert("請先點擊「⚙️ 伺服器設定」設定樹莓派伺服器網址與 API 金鑰！");
-                openPiSettingsModal();
-                return;
-            }
-
-
-            if (thoughts.length === 0) return alert("目前沒有可備份的資料！");
-
-
-            const now = new Date();
-            const yyyy = now.getFullYear();
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            const dd = String(now.getDate()).padStart(2, '0');
-            const hh = String(now.getHours()).padStart(2, '0');
-            const min = String(now.getMinutes()).padStart(2, '0');
-            const ss = String(now.getSeconds()).padStart(2, '0');
-            const fileName = `BL-${yyyy}${mm}${dd}-${hh}${min}${ss}.json`;
-
-
-            const exportPayload = {
-                thoughts: thoughts,
-                categoryOrder: categoryOrder,
-                blockedSlots: blockedSlots,
-                maxDailyHours: maxDailyHours,
-                maxWeeklyHours: maxWeeklyHours
-            };
-
-
-            try {
-                let response = await fetch(`${piServerUrl}/api/liveschedule/backup`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': piApiKey
-                    },
-                    body: JSON.stringify({ fileName, data: exportPayload })
-                });
-
-
-                if (!response.ok) {
-                    const formData = new FormData();
-                    const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
-                    formData.append('photo', blob, fileName);
-
-
-                    response = await fetch(`${piServerUrl}/upload`, {
-                        method: 'POST',
-                        headers: {
-                            'x-api-key': piApiKey,
-                            'x-original-name': encodeURIComponent(fileName),
-                            'x-target-path': encodeURIComponent('LiveSchedule')
-                        },
-                        body: formData
-                    });
-                }
-
-
-                if (response.ok) {
-                    alert(`🎉 成功上傳備份至樹莓派！
-檔名：${fileName}`);
-                } else {
-                    const errData = await response.json().catch(() => ({}));
-                    alert(`❌ 上傳失敗 (${response.status})：${errData.error || errData.message || '請檢查密碼與連線'}`);
-                }
-            } catch (e) {
-                console.error(e);
-                alert(`❌ 連線樹莓派失敗！請檢查伺服器網址與 CORS/SSL 設定。
-錯誤：${e.message}`);
-            }
-        }
-
-
-        async function importFromPi() {
-            if (!piServerUrl || !piApiKey) {
-                alert("請先點擊「⚙️ 伺服器設定」設定樹莓派伺服器網址與 API 金鑰！");
-                openPiSettingsModal();
-                return;
-            }
-
-
-            try {
-                let backupData = null;
-                let fileName = '';
-
-
-                let response = await fetch(`${piServerUrl}/api/liveschedule/latest`, {
-                    method: 'GET',
-                    headers: { 'x-api-key': piApiKey }
-                });
-
-
-                if (response.ok) {
-                    const result = await response.json();
-                    backupData = result.data;
-                    fileName = result.fileName;
-                } else {
-                    const filesRes = await fetch(`${piServerUrl}/files?path=LiveSchedule`, {
-                        headers: { 'x-api-key': piApiKey }
-                    });
-
-
-                    if (filesRes.ok) {
-                        const filesData = await filesRes.json();
-                        const jsonFiles = (filesData.files || [])
-                            .filter(f => !f.isDirectory && f.name.endsWith('.json'))
-                            .map(f => f.name)
-                            .sort().reverse();
-
-
-                        if (jsonFiles.length > 0) {
-                            fileName = jsonFiles[0];
-                            const downRes = await fetch(`${piServerUrl}/download/LiveSchedule%2F${encodeURIComponent(fileName)}`, {
-                                headers: { 'x-api-key': piApiKey }
-                            });
-                            if (downRes.ok) {
-                                backupData = await downRes.json();
-                            }
-                        }
-                    }
-                }
-
-
-                if (backupData) {
-                    if (confirm(`確定從樹莓派載入最新備份？
-備份檔名：${fileName}`)) {
-                        let importedThoughts = null;
-                        if (Array.isArray(backupData)) importedThoughts = backupData;
-                        else if (backupData.thoughts) {
-                            importedThoughts = backupData.thoughts;
-                            if (backupData.categoryOrder) categoryOrder = backupData.categoryOrder;
-                            if (backupData.blockedSlots) blockedSlots = backupData.blockedSlots;
-                            if (backupData.maxDailyHours) maxDailyHours = backupData.maxDailyHours;
-                            if (backupData.maxWeeklyHours) maxWeeklyHours = backupData.maxWeeklyHours;
-                        }
-
-
-                        if (importedThoughts) {
-                            thoughts = importedThoughts;
-                            saveData();
-                            alert("🎉 成功從樹莓派同步最新備份！");
-                        }
-                    }
-                } else {
-                    alert("❌ 樹莓派上尚未找到任何備份檔案，請先執行「☁️ 上傳樹莓派」！");
-                }
-            } catch (e) {
-                console.error(e);
-                alert(`❌ 連線樹莓派失敗：${e.message}`);
-            }
-        }
 
 
         let activeCategory = "全部";
@@ -781,8 +447,7 @@
                 const mins = parseFloat(s) || 0;
                 return mins / 60;
             }
-            const h = parseFloat(s);
-            return isNaN(h) ? 0 : h;
+            return parseFloat(s) || 0;
         }
 
 
@@ -1648,10 +1313,10 @@
             const categoriesList = getOrderedCategories();
 
 
-            blockedSlots.forEach(b => { if (b && b.date) datesSet.add(b.date); });
+            blockedSlots.forEach(b => datesSet.add(b.date));
             thoughts.forEach(t => {
-                if (t.targetDate && t.targetDate !== '未指定日期' && typeof t.targetDate === 'string' && t.targetDate.trim() !== '') datesSet.add(t.targetDate);
-                if (Array.isArray(t.steps)) { t.steps.forEach(s => { if (s.stepDate && typeof s.stepDate === 'string' && s.stepDate.trim() !== '') datesSet.add(s.stepDate); }); }
+                if (t.targetDate && t.targetDate !== '未指定日期') datesSet.add(t.targetDate);
+                if (Array.isArray(t.steps)) { t.steps.forEach(s => { if (s.stepDate) datesSet.add(s.stepDate); }); }
             });
 
 
@@ -1750,17 +1415,7 @@
                     unscheduledHtml += `<div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" ondblclick="jumpToGoalEdit(${g.id})" class="p-2 bg-amber-100 border border-amber-300 rounded-lg text-amber-950 text-xs font-bold shadow-sm cursor-grab">🎯 [${g.category}] ${g.goal || g.text}</div>`;
                 });
                 undatedSteps.forEach(item => {
-                    const linkedThought = item.step.linkedThoughtId ? thoughts.find(x => x.id === item.step.linkedThoughtId) : null;
-                    unscheduledHtml += `
-                        <div draggable="true" ondragstart="handleDragStart(event, 'step', ${item.thought.id}, ${item.step.id})" ondblclick="jumpToStepEdit(${item.thought.id}, ${item.step.id})" class="p-2 bg-white border border-slate-300 rounded-lg text-slate-800 text-xs font-bold shadow-sm cursor-grab flex flex-col gap-1">
-                            <div>📋 [${item.thought.category}] ${item.step.text}</div>
-                            ${linkedThought ? `
-                                <div onclick="jumpToGoalEdit(${linkedThought.id})" class="text-[10px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded font-bold cursor-pointer hover:bg-emerald-100 inline-block w-fit" title="點擊跳轉至獨立目標">
-                                    🌱 轉目標: ${escapeAttr(linkedThought.goal || linkedThought.text)} 🔗
-                                </div>
-                            ` : ''}
-                        </div>
-                    `;
+                    unscheduledHtml += `<div draggable="true" ondragstart="handleDragStart(event, 'step', ${item.thought.id}, ${item.step.id})" ondblclick="jumpToStepEdit(${item.thought.id}, ${item.step.id})" class="p-2 bg-white border border-slate-300 rounded-lg text-slate-800 text-xs font-bold shadow-sm cursor-grab">📋 [${item.thought.category}] ${item.step.text}</div>`;
                 });
             }
             unscheduledHtml += `</div></div>`;
@@ -1885,7 +1540,6 @@
                             } else if (ci.type === 'step') {
                                 const s = ci.item;
                                 const t = ci.parentThought;
-                                const linkedThought = s.linkedThoughtId ? thoughts.find(x => x.id === s.linkedThoughtId) : null;
                                 html += `
                                     <div draggable="true" ondragstart="handleDragStart(event, 'step', ${t.id}, ${s.id})" ondblclick="jumpToStepEdit(${t.id}, ${s.id})"
                                         class="p-2 rounded-xl bg-white border border-slate-200 text-slate-900 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab" title="雙擊跳轉至看板編輯該步驟">
@@ -1893,12 +1547,6 @@
                                             <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${t.id}, ${s.id})" class="mt-0.5 w-3.5 h-3.5 text-indigo-600 rounded">
                                             <span class="${s.done ? 'line-through text-slate-400 font-normal' : 'font-medium text-slate-800'} text-xs leading-snug">${s.text}</span>
                                         </label>
-                                        ${linkedThought ? `
-                                            <div onclick="jumpToGoalEdit(${linkedThought.id})" class="mt-1 text-[10px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md font-bold flex items-center justify-between cursor-pointer hover:bg-emerald-100" title="點擊跳轉至關聯拆解目標">
-                                                <span class="truncate">🌱 轉目標: ${escapeAttr(linkedThought.goal || linkedThought.text)}</span>
-                                                <span class="shrink-0 ml-1">🔗</span>
-                                            </div>
-                                        ` : ''}
                                     </div>
                                 `;
                             }
@@ -1954,22 +1602,13 @@
                             } else if (ci.type === 'step') {
                                 const s = ci.item;
                                 const t = ci.parentThought;
-                                const linkedThought = s.linkedThoughtId ? thoughts.find(x => x.id === s.linkedThoughtId) : null;
                                 html += `
                                     <div draggable="true" ondragstart="handleDragStart(event, 'step', ${t.id}, ${s.id})" ondblclick="jumpToStepEdit(${t.id}, ${s.id})"
                                         class="p-2 rounded-xl bg-white border border-slate-200 text-slate-900 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab flex flex-col justify-between" title="雙擊跳轉至看板編輯該步驟">
-                                        <div>
-                                            <label class="flex items-start gap-1.5 cursor-pointer">
-                                                <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${t.id}, ${s.id})" class="mt-0.5 w-3.5 h-3.5 text-indigo-600 rounded">
-                                                <span class="${s.done ? 'line-through text-slate-400 font-normal' : 'font-medium text-slate-800'} text-xs leading-snug">${s.text}</span>
-                                            </label>
-                                            ${linkedThought ? `
-                                                <div onclick="jumpToGoalEdit(${linkedThought.id})" class="mt-1 text-[10px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md font-bold flex items-center justify-between cursor-pointer hover:bg-emerald-100" title="點擊跳轉至關聯拆解目標">
-                                                    <span class="truncate">🌱 轉目標: ${escapeAttr(linkedThought.goal || linkedThought.text)}</span>
-                                                    <span class="shrink-0 ml-1">🔗</span>
-                                                </div>
-                                            ` : ''}
-                                        </div>
+                                        <label class="flex items-start gap-1.5 cursor-pointer">
+                                            <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${t.id}, ${s.id})" class="mt-0.5 w-3.5 h-3.5 text-indigo-600 rounded">
+                                            <span class="${s.done ? 'line-through text-slate-400 font-normal' : 'font-medium text-slate-800'} text-xs leading-snug">${s.text}</span>
+                                        </label>
                                         <div class="text-[10px] text-indigo-600 mt-1.5 font-semibold text-right">${ci.category}</div>
                                     </div>
                                 `;
@@ -2025,7 +1664,7 @@
 
 
                         return `
-                            <div onclick="jumpToCardsCategory(decodeURIComponent('${encodeURIComponent(cat)}'))" 
+                            <div onclick="jumpToCardsCategory('${escapeAttr(cat)}')" 
                                 class="bg-slate-50/90 hover:bg-indigo-50/60 p-3.5 rounded-xl border border-slate-200 hover:border-indigo-300 text-center flex flex-col items-center justify-between space-y-2 cursor-pointer transition-all group shadow-xs hover:shadow-sm" 
                                 title="點擊跳轉至「${cat}」看板分頁進行編輯">
                                 <div class="relative w-14 h-14 flex items-center justify-center">
@@ -2087,7 +1726,7 @@
                             return `
                                 <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3 flex flex-col justify-between hover:border-indigo-200 transition-all">
                                     <div>
-                                        <div onclick="jumpToCardsCategory(decodeURIComponent('${encodeURIComponent(cat)}'))" class="flex items-center justify-between border-b border-slate-100 pb-2.5 cursor-pointer group" title="點擊跳轉至「${cat}」看板分頁">
+                                        <div onclick="jumpToCardsCategory('${escapeAttr(cat)}')" class="flex items-center justify-between border-b border-slate-100 pb-2.5 cursor-pointer group" title="點擊跳轉至「${cat}」看板分頁">
                                             <h3 class="font-bold text-base text-slate-900 group-hover:text-indigo-600 flex items-center gap-1.5">
                                                 <span>${cat}</span>
                                                 <span class="text-xs text-indigo-500">🔗</span>
@@ -2109,7 +1748,7 @@
 
 
                                                 return `
-                                                    <div onclick="jumpToCardsCategory(decodeURIComponent('${encodeURIComponent(cat)}'))" class="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 hover:border-indigo-400 hover:shadow-xs transition-all space-y-1.5 cursor-pointer" title="點擊跳轉至「${cat}」看板分頁編輯此目標">
+                                                    <div onclick="jumpToCardsCategory('${escapeAttr(cat)}')" class="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 hover:border-indigo-400 hover:shadow-xs transition-all space-y-1.5 cursor-pointer" title="點擊跳轉至「${cat}」看板分頁編輯此目標">
                                                         <div class="flex items-start justify-between gap-2">
                                                             <div class="flex items-start gap-1.5 flex-1 min-w-0">
                                                                 <span class="inline-flex items-center justify-center bg-indigo-100 text-indigo-700 font-bold text-[10px] w-4 h-4 rounded-full shrink-0 mt-0.5">${i + 1}</span>
@@ -2154,7 +1793,7 @@
 
                                 return `
                                     <div class="w-64 sm:w-72 bg-white p-3.5 rounded-2xl shadow-sm border border-slate-200 space-y-3 shrink-0">
-                                        <div onclick="jumpToCardsCategory(decodeURIComponent('${encodeURIComponent(cat)}'))" class="flex items-center justify-between border-b border-slate-100 pb-2.5 cursor-pointer hover:text-indigo-600 group" title="點擊跳轉至「${cat}」看板分頁">
+                                        <div onclick="jumpToCardsCategory('${escapeAttr(cat)}')" class="flex items-center justify-between border-b border-slate-100 pb-2.5 cursor-pointer hover:text-indigo-600 group" title="點擊跳轉至「${cat}」看板分頁">
                                             <h3 class="font-bold text-sm text-slate-900 group-hover:text-indigo-600 flex items-center gap-1.5">
                                                 <span>${cat}</span>
                                                 <span class="text-xs text-indigo-500">🔗</span>
@@ -2173,7 +1812,7 @@
 
 
                                                 return `
-                                                    <div onclick="jumpToCardsCategory(decodeURIComponent('${encodeURIComponent(cat)}'))" class="bg-slate-50/90 p-3 rounded-xl border border-slate-200/80 hover:border-indigo-400 hover:shadow-sm transition-all space-y-2 cursor-pointer" title="點擊跳轉至「${cat}」看板分頁編輯此目標">
+                                                    <div onclick="jumpToCardsCategory('${escapeAttr(cat)}')" class="bg-slate-50/90 p-3 rounded-xl border border-slate-200/80 hover:border-indigo-400 hover:shadow-sm transition-all space-y-2 cursor-pointer" title="點擊跳轉至「${cat}」看板分頁編輯此目標">
                                                         <div class="flex items-start gap-2">
                                                             <span class="inline-flex items-center justify-center bg-indigo-100 text-indigo-700 font-bold text-xs w-5 h-5 rounded-full shrink-0 mt-0.5">${i + 1}</span>
                                                             <div class="flex-1 min-w-0">
@@ -2235,7 +1874,7 @@
 
 
                     let tabContentHtml = `
-                        <span onclick="setCategoryTab(decodeURIComponent('${encodeURIComponent(cat)}'))" class="cursor-pointer flex items-center gap-1">
+                        <span onclick="setCategoryTab('${escapeAttr(cat)}')" class="cursor-pointer flex items-center gap-1">
                             ${cat} <span class="${isActive ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'} px-1.5 py-0.5 rounded-full text-[10px]">${count}</span>
                         </span>
                     `;
@@ -2244,8 +1883,8 @@
                     if (isReorderMode && cat !== '全部') {
                         tabContentHtml += `
                             <span class="inline-flex gap-1 ml-1 pl-1 border-l ${isActive ? 'border-indigo-400' : 'border-slate-300'}">
-                                <button type="button" onclick="moveCategoryLeft(decodeURIComponent('${encodeURIComponent(cat)}'), event)" class="hover:bg-black/20 rounded px-1 font-bold text-xs cursor-pointer" title="向左移">‹</button>
-                                <button type="button" onclick="moveCategoryRight(decodeURIComponent('${encodeURIComponent(cat)}'), event)" class="hover:bg-black/20 rounded px-1 font-bold text-xs cursor-pointer" title="向右移">›</button>
+                                <button type="button" onclick="moveCategoryLeft('${escapeAttr(cat)}', event)" class="hover:bg-black/20 rounded px-1 font-bold text-xs cursor-pointer" title="向左移">‹</button>
+                                <button type="button" onclick="moveCategoryRight('${escapeAttr(cat)}', event)" class="hover:bg-black/20 rounded px-1 font-bold text-xs cursor-pointer" title="向右移">›</button>
                             </span>
                         `;
                     }
@@ -2276,9 +1915,7 @@
 
                 const steps = Array.isArray(thought.steps) ? thought.steps : [];
                 const stepsHtml = steps.map((s, stepIdx) => {
-                    const linkedThought = s.linkedThoughtId ? thoughts.find(x => x.id === s.linkedThoughtId) : null;
                     const isEditingThisStep = (editingStepIdKey === `${thought.id}-${s.id}`);
-                    const linkedThought = s.linkedThoughtId ? thoughts.find(x => x.id === s.linkedThoughtId) : null;
                     
                     if (isEditingThisStep) {
                         return `
@@ -2290,7 +1927,7 @@
                                         <button onclick="saveEditStep(${thought.id}, ${s.id})" class="text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded shadow-sm">💾 儲存</button>
                                     </div>
                                 </div>
-                                <input type="text" id="edit-step-text-${thought.id}-${s.id}" value="${escapeAttr(s.text)}" class="w-full px-2.5 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                <input type="text" id="edit-step-text-${thought.id}-${s.id}" value="${s.text.replace(/"/g, '&quot;')}" class="w-full px-2.5 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
                                 <div class="grid grid-cols-3 gap-2">
                                     <input type="date" id="edit-step-date-${thought.id}-${s.id}" value="${s.stepDate || ''}" ${maxDateAttr} class="px-2 py-1 text-xs border border-slate-300 rounded text-slate-700">
                                     <div class="relative w-full">
@@ -2302,27 +1939,18 @@
                                             <option value="夜間" ${s.stepTimeSlot === '夜間' ? 'selected' : ''}>夜間</option>
                                         </select>
                                     </div>
-                                    <input type="text" id="edit-step-time-${thought.id}-${s.id}" value="${escapeAttr(s.stepTime || '')}" placeholder="工時(如2小時)" class="px-2 py-1 text-xs border border-slate-300 rounded">
+                                    <input type="text" id="edit-step-time-${thought.id}-${s.id}" value="${(s.stepTime || '').replace(/"/g, '&quot;')}" placeholder="工時(如2小時)" class="px-2 py-1 text-xs border border-slate-300 rounded">
                                 </div>
                             </li>
                         `;
                     } else {
                         return `
                             <li id="step-item-${thought.id}-${s.id}" class="flex flex-col sm:flex-row sm:items-center justify-between py-2 px-3 bg-slate-50 rounded-xl gap-2">
-                                <div class="flex items-start gap-2.5 flex-1 min-w-0">
-                                    <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${thought.id}, ${s.id})" class="w-4 h-4 text-indigo-600 rounded border-slate-300 mt-0.5 shrink-0 cursor-pointer">
-                                    <div class="flex flex-col min-w-0 flex-1">
-                                        <span class="${s.done ? 'line-through text-slate-400' : 'text-slate-700'} text-sm font-medium leading-snug">${s.text}</span>
-                                        ${linkedThought ? `
-                                            <div class="mt-1">
-                                                <span onclick="jumpToGoalEdit(${linkedThought.id})" class="inline-flex items-center gap-1 text-[11px] bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md font-bold cursor-pointer transition-colors shadow-2xs" title="點擊直接跳轉至此獨立拆解目標">
-                                                    🌱 已轉獨立目標：${escapeAttr(linkedThought.goal || linkedThought.text)} 🔗
-                                                </span>
-                                            </div>
-                                        ` : ''}
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-1.5 text-[11px] ml-6 sm:ml-0 flex-wrap shrink-0">
+                                <label class="flex items-center gap-2.5 cursor-pointer flex-1">
+                                    <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${thought.id}, ${s.id})" class="w-4 h-4 text-indigo-600 rounded border-slate-300">
+                                    <span class="${s.done ? 'line-through text-slate-400' : 'text-slate-700'} text-sm font-medium">${s.text}</span>
+                                </label>
+                                <div class="flex items-center gap-1.5 text-[11px] ml-6 sm:ml-0 flex-wrap">
                                     <span class="inline-flex gap-0.5 bg-slate-200/80 rounded px-1 text-slate-600 font-bold">
                                         <button type="button" onclick="moveStepUp(${thought.id}, ${s.id})" class="hover:text-indigo-600 px-0.5" title="往上移">▲</button>
                                         <button type="button" onclick="moveStepDown(${thought.id}, ${s.id})" class="hover:text-indigo-600 px-0.5" title="往下移">▼</button>
@@ -2330,11 +1958,7 @@
                                     ${s.stepDate ? `<span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-md font-medium">📅 ${s.stepDate} [${s.stepTimeSlot || '全天'}]</span>` : ''}
                                     ${s.stepTime ? `<span class="bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-md font-medium">⏰ ${s.stepTime}</span>` : ''}
                                     <button onclick="startEditStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors">✏️ 編輯</button>
-                                    ${s.linkedThoughtId ? `
-                                        <span onclick="jumpToGoalEdit(${s.linkedThoughtId})" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-md font-bold transition-colors cursor-pointer" title="點擊跳轉至目標">🌱 查看目標 🔗</span>
-                                    ` : `
-                                        <button onclick="promoteStepToGoal(${thought.id}, ${s.id})" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-md font-bold transition-colors">🌱 轉目標</button>
-                                    `}
+                                    <button onclick="promoteStepToGoal(${thought.id}, ${s.id})" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-md font-bold transition-colors">🌱 轉目標</button>
                                     <button onclick="duplicateStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors">📋 複製</button>
                                     <button onclick="deleteStep(${thought.id}, ${s.id})" class="text-slate-400 hover:text-red-500 px-1 py-1">🗑️ 刪除</button>
                                 </div>
@@ -2357,11 +1981,11 @@
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <div>
                                     <label class="block text-xs font-semibold text-slate-600 mb-1">領域類別：</label>
-                                    <input type="text" id="edit-cat-${thought.id}" value="${escapeAttr(thought.category || '💼 事業')}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white">
+                                    <input type="text" id="edit-cat-${thought.id}" value="${(thought.category || '💼 事業').replace(/"/g, '&quot;')}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white">
                                 </div>
                                 <div class="md:col-span-2">
                                     <label class="block text-xs font-semibold text-slate-600 mb-1">思緒 / 想法主題：</label>
-                                    <input type="text" id="edit-text-${thought.id}" value="${escapeAttr(thought.text)}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg">
+                                    <input type="text" id="edit-text-${thought.id}" value="${thought.text.replace(/"/g, '&quot;')}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg">
                                 </div>
                                 <div class="md:col-span-3">
                                     <label class="block text-xs font-semibold text-slate-600 mb-1">📝 詳細思緒 / 備忘說明 (可斷行)：</label>
@@ -2371,7 +1995,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <div>
                                     <label class="block text-xs font-semibold text-slate-600 mb-1">🎯 最終目標：</label>
-                                    <input type="text" id="edit-goal-${thought.id}" value="${escapeAttr(thought.goal || '')}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg">
+                                    <input type="text" id="edit-goal-${thought.id}" value="${(thought.goal || '').replace(/"/g, '&quot;')}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-semibold text-slate-600 mb-1">📅 預期達成日期：</label>
@@ -2518,7 +2142,11 @@
         });
 
 
-        render();
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', render);
+        } else {
+            render();
+        }
     </script>
 </body>
 </html>
