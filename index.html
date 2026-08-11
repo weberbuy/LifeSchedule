@@ -14,7 +14,7 @@
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.1.3-Final (全連線機制修正版)</span>
+                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.2.0-Final (全數據持久化與即時自動同步修復版)</span>
                 </div>
                 <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 雙擊目標/步驟精密區分跳轉編輯</p>
             </div>
@@ -242,6 +242,7 @@
 
         let maxDailyHours = parseFloat(localStorage.getItem('my_max_daily_hours')) || 8;
         let maxWeeklyHours = parseFloat(localStorage.getItem('my_max_weekly_hours')) || 40;
+        let storedTimelineStart = localStorage.getItem('my_timeline_start_date');
 
 
         const todayObj = new Date();
@@ -351,7 +352,8 @@
                 categoryOrder: categoryOrder,
                 blockedSlots: blockedSlots,
                 maxDailyHours: maxDailyHours,
-                maxWeeklyHours: maxWeeklyHours
+                maxWeeklyHours: maxWeeklyHours,
+                timelineStartDate: timelineStartDate
             };
 
 
@@ -428,7 +430,8 @@
                 categoryOrder: categoryOrder,
                 blockedSlots: blockedSlots,
                 maxDailyHours: maxDailyHours,
-                maxWeeklyHours: maxWeeklyHours
+                maxWeeklyHours: maxWeeklyHours,
+                timelineStartDate: timelineStartDate
             };
 
 
@@ -537,10 +540,26 @@
                         if (Array.isArray(backupData)) importedThoughts = backupData;
                         else if (backupData.thoughts) {
                             importedThoughts = backupData.thoughts;
-                            if (backupData.categoryOrder) categoryOrder = backupData.categoryOrder;
-                            if (backupData.blockedSlots) blockedSlots = backupData.blockedSlots;
-                            if (backupData.maxDailyHours) maxDailyHours = backupData.maxDailyHours;
-                            if (backupData.maxWeeklyHours) maxWeeklyHours = backupData.maxWeeklyHours;
+                            if (backupData.categoryOrder) {
+                                categoryOrder = backupData.categoryOrder;
+                                localStorage.setItem('my_category_order', JSON.stringify(categoryOrder));
+                            }
+                            if (backupData.blockedSlots) {
+                                blockedSlots = backupData.blockedSlots;
+                                localStorage.setItem('my_blocked_slots', JSON.stringify(blockedSlots));
+                            }
+                            if (backupData.maxDailyHours) {
+                                maxDailyHours = backupData.maxDailyHours;
+                                localStorage.setItem('my_max_daily_hours', maxDailyHours);
+                            }
+                            if (backupData.maxWeeklyHours) {
+                                maxWeeklyHours = backupData.maxWeeklyHours;
+                                localStorage.setItem('my_max_weekly_hours', maxWeeklyHours);
+                            }
+                            if (backupData.timelineStartDate !== undefined) {
+                                timelineStartDate = backupData.timelineStartDate;
+                                localStorage.setItem('my_timeline_start_date', timelineStartDate);
+                            }
                         }
 
 
@@ -627,10 +646,26 @@
                         if (Array.isArray(backupData)) importedThoughts = backupData;
                         else if (backupData.thoughts) {
                             importedThoughts = backupData.thoughts;
-                            if (backupData.categoryOrder) categoryOrder = backupData.categoryOrder;
-                            if (backupData.blockedSlots) blockedSlots = backupData.blockedSlots;
-                            if (backupData.maxDailyHours) maxDailyHours = backupData.maxDailyHours;
-                            if (backupData.maxWeeklyHours) maxWeeklyHours = backupData.maxWeeklyHours;
+                            if (backupData.categoryOrder) {
+                                categoryOrder = backupData.categoryOrder;
+                                localStorage.setItem('my_category_order', JSON.stringify(categoryOrder));
+                            }
+                            if (backupData.blockedSlots) {
+                                blockedSlots = backupData.blockedSlots;
+                                localStorage.setItem('my_blocked_slots', JSON.stringify(blockedSlots));
+                            }
+                            if (backupData.maxDailyHours) {
+                                maxDailyHours = backupData.maxDailyHours;
+                                localStorage.setItem('my_max_daily_hours', maxDailyHours);
+                            }
+                            if (backupData.maxWeeklyHours) {
+                                maxWeeklyHours = backupData.maxWeeklyHours;
+                                localStorage.setItem('my_max_weekly_hours', maxWeeklyHours);
+                            }
+                            if (backupData.timelineStartDate !== undefined) {
+                                timelineStartDate = backupData.timelineStartDate;
+                                localStorage.setItem('my_timeline_start_date', timelineStartDate);
+                            }
                         }
 
 
@@ -660,7 +695,7 @@
         let viewMode = "overview";
         let overviewSubMode = "grid";
         let timelineXMode = "collapsed";
-        let timelineStartDate = todayStr;
+        let timelineStartDate = (storedTimelineStart !== null) ? storedTimelineStart : todayStr;
         let isFormOpen = false;
         let isBlockPanelOpen = false;
         let editingId = null;
@@ -822,7 +857,7 @@
                 <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
                     <div class="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
                         <span class="text-xs font-bold text-slate-700">週工時上限：</span>
-                        <input type="number" min="1" max="168" step="1" value="${maxWeeklyHours}" onchange="updateMaxWeeklyHours(this.value)" class="w-14 px-1.5 py-0.5 text-xs font-extrabold text-center border border-slate-300 rounded-lg bg-white">
+                        <input type="number" min="1" max="168" step="1" value="${maxWeeklyHours}" oninput="updateMaxWeeklyHours(this.value)" onchange="updateMaxWeeklyHours(this.value)" class="w-14 px-1.5 py-0.5 text-xs font-extrabold text-center border border-slate-300 rounded-lg bg-white">
                         <span class="text-xs text-slate-500">小時</span>
                     </div>
                 </div>
@@ -1113,9 +1148,24 @@
         }
 
 
-        function setTimelineStartToToday() { timelineStartDate = todayStr; render(); }
-        function showAllTimelineHistory() { timelineStartDate = ''; render(); }
-        function changeTimelineStartDate(val) { timelineStartDate = val || ''; render(); }
+        function setTimelineStartToToday() {
+            timelineStartDate = todayStr;
+            localStorage.setItem('my_timeline_start_date', timelineStartDate);
+            render();
+            triggerAutoSaveToPi();
+        }
+        function showAllTimelineHistory() {
+            timelineStartDate = '';
+            localStorage.setItem('my_timeline_start_date', timelineStartDate);
+            render();
+            triggerAutoSaveToPi();
+        }
+        function changeTimelineStartDate(val) {
+            timelineStartDate = val || '';
+            localStorage.setItem('my_timeline_start_date', timelineStartDate);
+            render();
+            triggerAutoSaveToPi();
+        }
 
 
         function toggleBlockPanel() { isBlockPanelOpen = !isBlockPanelOpen; render(); }
@@ -1795,7 +1845,7 @@
                     <div class="flex items-center gap-2 flex-wrap">
                         <div class="flex items-center gap-1">
                             <span class="text-xs font-bold text-slate-700">⏱️ 單日工時上限：</span>
-                            <input type="number" min="1" max="24" step="0.5" value="${maxDailyHours}" onchange="updateMaxDailyHours(this.value)" class="w-16 px-2 py-1 text-xs border border-slate-300 rounded-lg text-slate-800 font-bold bg-white text-center">
+                            <input type="number" min="1" max="24" step="0.5" value="${maxDailyHours}" oninput="updateMaxDailyHours(this.value)" onchange="updateMaxDailyHours(this.value)" class="w-16 px-2 py-1 text-xs border border-slate-300 rounded-lg text-slate-800 font-bold bg-white text-center">
                             <span class="text-xs text-slate-500">小時</span>
                         </div>
                         <button onclick="setTimelineStartToToday()" class="text-xs bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold px-3 py-1 rounded-lg border border-emerald-300 transition-colors">🌟 從今天開始</button>
