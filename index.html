@@ -176,6 +176,18 @@
     </div>
 
     <script>
+        window.onerror = function(msg, url, line, col, error) {
+            var banner = document.getElementById('globalErrorBanner');
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'globalErrorBanner';
+                banner.className = 'bg-rose-600 text-white p-4 font-bold text-xs sticky top-0 z-50 shadow-md flex items-center justify-between';
+                banner.innerHTML = '<span>⚠️ 程式腳本載入錯誤 (第 ' + line + ' 行): ' + msg + '</span><button onclick="this.parentElement.remove()" class="bg-white/20 px-2 py-0.5 rounded text-white font-bold">✕</button>';
+                document.body.prepend(banner);
+            }
+            return false;
+        };
+
         function escapeAttr(str) {
             if (!str) return '';
             return String(str)
