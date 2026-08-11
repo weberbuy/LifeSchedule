@@ -331,6 +331,10 @@
 
 
         async function checkAndAutoSyncFromPi() {
+            piServerUrl = localStorage.getItem('pi_server_url') || '';
+            piApiKey = localStorage.getItem('pi_api_key') || '';
+
+
             if (!piServerUrl || !piApiKey) {
                 updatePiSyncBadge('⚪ 離線模式', 'bg-slate-100 text-slate-600 border-slate-200');
                 return;
@@ -517,6 +521,7 @@
             localStorage.setItem('pi_api_key', piApiKey);
             closePiSettingsModal();
             alert("已儲存樹莓派伺服器連線設定！");
+            checkAndAutoSyncFromPi();
         }
 
 
