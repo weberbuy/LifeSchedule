@@ -14,7 +14,7 @@
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.2.1-Final (不排事自動同步極速修正版)</span>
+                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.3.0-Final (支援完成目標/步驟精密收合展開)</span>
                 </div>
                 <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 雙擊目標/步驟精密區分跳轉編輯</p>
             </div>
@@ -254,6 +254,31 @@
         let piApiKey = (localStorage.getItem('pi_api_key') || '').trim();
         let lastSyncedFileName = localStorage.getItem('pi_last_synced_file') || '';
         let autoSaveTimer = null;
+
+
+        let hideCompletedGoalsCards = localStorage.getItem('hide_completed_goals_cards') === 'true';
+        let hideCompletedGoalsOverview = localStorage.getItem('hide_completed_goals_overview') === 'true';
+        let showCompletedStepsMap = {};
+
+
+        function toggleHideCompletedGoalsCards() {
+            hideCompletedGoalsCards = !hideCompletedGoalsCards;
+            localStorage.setItem('hide_completed_goals_cards', hideCompletedGoalsCards);
+            render();
+        }
+
+
+        function toggleHideCompletedGoalsOverview() {
+            hideCompletedGoalsOverview = !hideCompletedGoalsOverview;
+            localStorage.setItem('hide_completed_goals_overview', hideCompletedGoalsOverview);
+            render();
+        }
+
+
+        function toggleShowCompletedSteps(thoughtId) {
+            showCompletedStepsMap[thoughtId] = !showCompletedStepsMap[thoughtId];
+            render();
+        }
 
 
         function handlePiBadgeClick() {
@@ -2183,6 +2208,11 @@
                                     <div class="text-slate-600 font-medium">🎯 目標: <span class="font-bold text-slate-800">${stats.completedGoals}/${stats.totalGoals}</span></div>
                                     <div class="text-slate-600 font-medium">⏱️ 工時: <span class="font-bold text-emerald-600">${stats.completedHours.toFixed(1)}h</span> / ${stats.totalHours.toFixed(1)}h</div>
                                 </div>
+                                ${hiddenOverviewCount > 0 ? `
+                                    <div class="text-[10px] text-slate-400 font-medium pt-1 border-t border-slate-100 w-full text-center">
+                                        🙈 已收合 ${hiddenOverviewCount} 個完成目標
+                                    </div>
+                                ` : ''}
                             </div>
                         `;
                     }).join('')}
@@ -2199,11 +2229,17 @@
 
 
             let viewControlHtml = `
-                <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2 mb-3">
                     <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
                         <span>🎯 各領域與目標全覽視圖</span>
                     </h2>
-                    <div class="flex items-center gap-1.5 bg-slate-200/80 p-1 rounded-xl">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button type="button" onclick="toggleHideCompletedGoalsOverview()" class="px-3 py-1 text-xs font-bold rounded-xl border transition-all ${
+                            hideCompletedGoalsOverview ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                        }">
+                            ${hideCompletedGoalsOverview ? '🙈 已隱藏已完成目標 (點擊顯示)' : '👁️ 已顯示已完成目標 (點擊收合)'}
+                        </button>
+                        <div class="flex items-center gap-1.5 bg-slate-200/80 p-1 rounded-xl">
                         <button onclick="toggleOverviewSubMode('grid')" class="px-3 py-1 text-xs font-bold rounded-lg transition-all ${overviewSubMode === 'grid' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}">
                             📱 網格全覽 (不需左右滾動)
                         </button>
@@ -2397,11 +2433,34 @@
             }
 
 
-            const filtered = activeCategory === '全部' ? thoughts : thoughts.filter(t => (t.category || '💼 事業') === activeCategory);
+            const allFiltered = activeCategory === '全部' ? thoughts : thoughts.filter(t => (t.category || '💼 事業') === activeCategory);
+            const filtered = hideCompletedGoalsCards ? allFiltered.filter(t => !t.goalDone) : allFiltered;
+            const hiddenCardsCount = allFiltered.length - filtered.length;
+
+
+            const cardsControlBar = document.createElement('div');
+            cardsControlBar.className = "mb-4 flex items-center justify-between flex-wrap gap-2 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs";
+            cardsControlBar.innerHTML = `
+                <div class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <span>🎴 「${activeCategory}」領域看板卡片列表 (${filtered.length} 個)</span>
+                </div>
+                <button type="button" onclick="toggleHideCompletedGoalsCards()" class="px-3 py-1.5 text-xs font-bold rounded-xl border transition-all ${
+                    hideCompletedGoalsCards ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                }">
+                    ${hideCompletedGoalsCards ? '🙈 已隱藏完成目標 (點擊顯示)' : '👁️ 已顯示全部目標 (點擊收合完成目標)'}
+                </button>
+            `;
+            container.appendChild(cardsControlBar);
 
 
             if (filtered.length === 0) {
-                container.innerHTML = `<div class="text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200 text-sm">目前「${activeCategory}」領域尚無記錄！</div>`;
+                const emptyEl = document.createElement('div');
+                emptyEl.className = "text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200 text-sm space-y-2";
+                emptyEl.innerHTML = `
+                    <div>目前「${activeCategory}」領域尚無未完成目標！</div>
+                    ${hiddenCardsCount > 0 ? `<button onclick="toggleHideCompletedGoalsCards()" class="text-xs text-indigo-600 font-bold hover:underline">👁️ 點擊顯示已收合的 ${hiddenCardsCount} 個完成目標</button>` : ''}
+                `;
+                container.appendChild(emptyEl);
                 return;
             }
 
@@ -2414,8 +2473,14 @@
                 const maxDateAttr = (thought.targetDate && thought.targetDate !== '未指定日期') ? `max="${thought.targetDate}"` : '';
 
 
-                const steps = Array.isArray(thought.steps) ? thought.steps : [];
-                const stepsHtml = steps.map((s, stepIdx) => {
+                                const steps = Array.isArray(thought.steps) ? thought.steps : [];
+                const pendingSteps = steps.filter(s => !s.done);
+                const completedSteps = steps.filter(s => s.done);
+                const isShowCompletedSteps = !!showCompletedStepsMap[thought.id];
+
+
+                const renderStepItem = (s, stepIdx) => {
+                    const linkedThought = s.linkedThoughtId ? thoughts.find(x => x.id === s.linkedThoughtId) : null;
                     const isEditingThisStep = (editingStepIdKey === `${thought.id}-${s.id}`);
                     
                     if (isEditingThisStep) {
@@ -2428,45 +2493,91 @@
                                         <button onclick="saveEditStep(${thought.id}, ${s.id})" class="text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded shadow-sm">💾 儲存</button>
                                     </div>
                                 </div>
-                                <input type="text" id="edit-step-text-${thought.id}-${s.id}" value="${s.text.replace(/"/g, '&quot;')}" class="w-full px-2.5 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                <input type="text" id="edit-step-text-${thought.id}-${s.id}" value="${escapeAttr(s.text)}" class="w-full px-2.5 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
                                 <div class="grid grid-cols-3 gap-2">
-                                    <input type="date" id="edit-step-date-${thought.id}-${s.id}" value="${s.stepDate || ''}" ${maxDateAttr} class="px-2 py-1 text-xs border border-slate-300 rounded text-slate-700">
-                                    <div class="relative w-full">
-                                        <select id="edit-step-slot-${thought.id}-${s.id}" class="w-full px-2 py-1 text-xs border border-slate-300 rounded bg-white text-slate-800 font-medium">
-                                            <option value="全天" ${s.stepTimeSlot === '全天' ? 'selected' : ''}>全天</option>
-                                            <option value="上午" ${s.stepTimeSlot === '上午' ? 'selected' : ''}>上午</option>
-                                            <option value="下午" ${s.stepTimeSlot === '下午' ? 'selected' : ''}>下午</option>
-                                            <option value="晚上" ${s.stepTimeSlot === '晚上' ? 'selected' : ''}>晚上</option>
-                                            <option value="夜間" ${s.stepTimeSlot === '夜間' ? 'selected' : ''}>夜間</option>
-                                        </select>
-                                    </div>
-                                    <input type="text" id="edit-step-time-${thought.id}-${s.id}" value="${(s.stepTime || '').replace(/"/g, '&quot;')}" placeholder="工時(如2小時)" class="px-2 py-1 text-xs border border-slate-300 rounded">
-                                </div>
-                            </li>
-                        `;
-                    } else {
-                        return `
-                            <li id="step-item-${thought.id}-${s.id}" class="flex flex-col sm:flex-row sm:items-center justify-between py-2 px-3 bg-slate-50 rounded-xl gap-2">
-                                <label class="flex items-center gap-2.5 cursor-pointer flex-1">
-                                    <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${thought.id}, ${s.id})" class="w-4 h-4 text-indigo-600 rounded border-slate-300">
-                                    <span class="${s.done ? 'line-through text-slate-400' : 'text-slate-700'} text-sm font-medium">${s.text}</span>
-                                </label>
-                                <div class="flex items-center gap-1.5 text-[11px] ml-6 sm:ml-0 flex-wrap">
-                                    <span class="inline-flex gap-0.5 bg-slate-200/80 rounded px-1 text-slate-600 font-bold">
-                                        <button type="button" onclick="moveStepUp(${thought.id}, ${s.id})" class="hover:text-indigo-600 px-0.5" title="往上移">▲</button>
-                                        <button type="button" onclick="moveStepDown(${thought.id}, ${s.id})" class="hover:text-indigo-600 px-0.5" title="往下移">▼</button>
-                                    </span>
-                                    ${s.stepDate ? `<span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-md font-medium">📅 ${s.stepDate} [${s.stepTimeSlot || '全天'}]</span>` : ''}
-                                    ${s.stepTime ? `<span class="bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-md font-medium">⏰ ${s.stepTime}</span>` : ''}
-                                    <button onclick="startEditStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors">✏️ 編輯</button>
-                                    <button onclick="promoteStepToGoal(${thought.id}, ${s.id})" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-md font-bold transition-colors">🌱 轉目標</button>
-                                    <button onclick="duplicateStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors">📋 複製</button>
-                                    <button onclick="deleteStep(${thought.id}, ${s.id})" class="text-slate-400 hover:text-red-500 px-1 py-1">🗑️ 刪除</button>
+                                    <input type="date" id="edit-step-date-${thought.id}-${s.id}" value="${s.stepDate || ''}" max="${thought.targetDate && thought.targetDate !== '未指定日期' ? thought.targetDate : ''}" class="px-2 py-1 text-[11px] border border-slate-300 rounded bg-white">
+                                    <input type="text" id="edit-step-time-${thought.id}-${s.id}" value="${escapeAttr(s.stepTime || '')}" placeholder="工時(例如: 1.5小時)" class="px-2 py-1 text-[11px] border border-slate-300 rounded bg-white">
+                                    <select id="edit-step-slot-${thought.id}-${s.id}" class="px-2 py-1 text-[11px] border border-slate-300 rounded bg-white">
+                                        <option value="全天" ${s.stepTimeSlot === '全天' ? 'selected' : ''}>全天</option>
+                                        <option value="上午" ${s.stepTimeSlot === '上午' ? 'selected' : ''}>上午</option>
+                                        <option value="下午" ${s.stepTimeSlot === '下午' ? 'selected' : ''}>下午</option>
+                                        <option value="晚上" ${s.stepTimeSlot === '晚上' ? 'selected' : ''}>晚上</option>
+                                        <option value="夜間" ${s.stepTimeSlot === '夜間' ? 'selected' : ''}>夜間</option>
+                                    </select>
                                 </div>
                             </li>
                         `;
                     }
-                }).join('');
+
+
+                    return `
+                        <li id="step-item-${thought.id}-${s.id}" class="group/step p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all space-y-1">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="flex items-center gap-2 flex-1 min-w-0">
+                                    <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStepDone(${thought.id}, ${s.id})" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0">
+                                    <span ondblclick="jumpToStepEdit(${thought.id}, ${s.id})" class="text-xs font-medium text-slate-700 ${s.done ? 'line-through text-slate-400' : ''} truncate cursor-pointer" title="雙擊可精密定位編輯此步驟">
+                                        ${escapeAttr(s.text)}
+                                    </span>
+                                </div>
+                                
+                                <div class="flex items-center gap-1 opacity-80 group-hover/step:opacity-100 transition-opacity shrink-0">
+                                    <button onclick="startEditStep(${thought.id}, ${s.id})" class="text-[10px] text-slate-500 hover:text-indigo-600 px-1 py-0.5 rounded hover:bg-slate-100" title="編輯步驟">✏️</button>
+                                    <button onclick="duplicateStep(${thought.id}, ${s.id})" class="text-[10px] text-slate-500 hover:text-indigo-600 px-1 py-0.5 rounded hover:bg-slate-100" title="複製步驟">📋</button>
+                                    <button onclick="moveStepUp(${thought.id}, ${stepIdx})" class="text-[10px] text-slate-500 hover:text-indigo-600 px-1 py-0.5 rounded hover:bg-slate-100" title="向上移">▲</button>
+                                    <button onclick="moveStepDown(${thought.id}, ${stepIdx})" class="text-[10px] text-slate-500 hover:text-indigo-600 px-1 py-0.5 rounded hover:bg-slate-100" title="向下移">▼</button>
+                                    <button onclick="deleteStep(${thought.id}, ${s.id})" class="text-[10px] text-rose-500 hover:text-rose-700 px-1 py-0.5 rounded hover:bg-rose-50" title="刪除步驟">🗑️</button>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between text-[10px] text-slate-400 pl-6 flex-wrap gap-1">
+                                <div class="flex items-center gap-2">
+                                    ${s.stepDate ? `<span>📅 ${s.stepDate}</span>` : '<span class="text-slate-300">📅 未排日期</span>'}
+                                    ${s.stepTime ? `<span class="text-indigo-600 font-semibold">⏱️ ${escapeAttr(s.stepTime)}</span>` : ''}
+                                    ${s.stepTimeSlot ? `<span class="bg-slate-100 text-slate-600 px-1 rounded">${s.stepTimeSlot}</span>` : ''}
+                                </div>
+                                ${linkedThought ? `
+                                    <span onclick="jumpToGoalEdit(${linkedThought.id})" class="inline-flex items-center gap-1 text-[11px] bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md font-bold cursor-pointer transition-colors shadow-2xs" title="點擊直接跳轉至此獨立拆解目標">
+                                        🌱 已轉獨立目標：${escapeAttr(linkedThought.goal || linkedThought.text)} 🔗
+                                    </span>
+                                ` : `
+                                    <button onclick="promoteStepToGoal(${thought.id}, ${s.id})" class="text-[10px] text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-1.5 py-0.5 rounded font-medium border border-emerald-200 transition-colors">
+                                        🌱 轉目標
+                                    </button>
+                                `}
+                            </div>
+                        </li>
+                    `;
+                };
+
+
+                let stepsHtml = '';
+                
+                if (pendingSteps.length > 0) {
+                    stepsHtml += pendingSteps.map(renderStepItem).join('');
+                } else if (completedSteps.length === 0) {
+                    stepsHtml += `<li class="text-xs text-slate-400 text-center py-2 italic">尚無任何拆解步驟</li>`;
+                }
+
+
+                if (completedSteps.length > 0) {
+                    stepsHtml += `
+                        <li class="pt-2 border-t border-slate-100">
+                            <div onclick="toggleShowCompletedSteps(${thought.id})" class="p-2 bg-slate-50 hover:bg-slate-100/90 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between cursor-pointer select-none transition-colors shadow-2xs">
+                                <span class="flex items-center gap-1.5">
+                                    <span>✅ 已完成步驟 (${completedSteps.length})</span>
+                                </span>
+                                <span class="text-indigo-600 text-[11px] bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 font-bold">
+                                    ${isShowCompletedSteps ? '▲ 收合步驟' : '▼ 展開檢視'}
+                                </span>
+                            </div>
+                            ${isShowCompletedSteps ? `
+                                <ul class="space-y-1 mt-2 pl-1 border-l-2 border-emerald-200">
+                                    ${completedSteps.map(renderStepItem).join('')}
+                                </ul>
+                            ` : ''}
+                        </li>
+                    `;
+                }
 
 
                 if (isEdit) {
