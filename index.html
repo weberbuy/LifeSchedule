@@ -14,7 +14,7 @@
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.1.1-Final (全設定自動同步修復版)</span>
+                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.1.2-Final (變數宣告修復完全版)</span>
                 </div>
                 <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 雙擊目標/步驟精密區分跳轉編輯</p>
             </div>
@@ -2270,7 +2270,6 @@
                 const stepsHtml = steps.map((s, stepIdx) => {
                     const linkedThought = s.linkedThoughtId ? thoughts.find(x => x.id === s.linkedThoughtId) : null;
                     const isEditingThisStep = (editingStepIdKey === `${thought.id}-${s.id}`);
-                    const linkedThought = s.linkedThoughtId ? thoughts.find(x => x.id === s.linkedThoughtId) : null;
                     
                     if (isEditingThisStep) {
                         return `
