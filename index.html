@@ -17,14 +17,14 @@
             </div>
             
             <div class="flex items-center gap-2 flex-wrap justify-end">
-                <button onclick="exportData()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-xl border border-indigo-200 font-medium transition-colors">📥 本地備份</button>
-                <label class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl border border-slate-300 font-medium transition-colors cursor-pointer">
-                    📤 本地匯入
+                <button onclick="exportData()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3.5 py-2 rounded-xl border border-indigo-200 font-medium transition-colors">📥 備份</button>
+                <label class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-xl border border-slate-300 font-medium transition-colors cursor-pointer">
+                    📤 匯入
                     <input type="file" id="importFile" accept=".json" onchange="importData(event)" class="hidden">
                 </label>
-                <button onclick="exportToPi()" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-3 py-2 rounded-xl border border-emerald-200 font-bold transition-colors">☁️ 上傳樹莓派</button>
-                <button onclick="importFromPi()" class="text-xs bg-teal-50 hover:bg-teal-100 text-teal-800 px-3 py-2 rounded-xl border border-teal-200 font-bold transition-colors">☁️ 同步樹莓派</button>
-                <button onclick="openPiSettingsModal()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-2 rounded-xl border border-slate-300 font-bold transition-colors" title="設定樹莓派連線">⚙️ 伺服器設定</button>
+                <button onclick="exportToPi()" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-3.5 py-2 rounded-xl border border-emerald-200 font-bold transition-colors">☁️ 上傳樹莓派</button>
+                <button onclick="importFromPi()" class="text-xs bg-teal-50 hover:bg-teal-100 text-teal-800 px-3.5 py-2 rounded-xl border border-teal-200 font-bold transition-colors">☁️ 同步樹莓派</button>
+                <button onclick="openPiSettingsModal()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl border border-slate-300 font-bold transition-colors" title="設定樹莓派伺服器連線">⚙️ 伺服器設定</button>
             </div>
         </header>
 
@@ -225,169 +225,6 @@
         let piApiKey = localStorage.getItem('pi_api_key') || '';
 
         
-        let autoSaveTimer = null;
-        let lastSyncedFileName = localStorage.getItem('pi_last_synced_file') || '';
-
-        function updatePiSyncBadge(statusText, badgeClass) {
-            const badge = document.getElementById('piSyncStatusBadge');
-            if (badge) {
-                badge.innerHTML = statusText;
-                badge.className = `text-xs px-2.5 py-1.5 rounded-xl font-bold flex items-center gap-1 border transition-all ${badgeClass}`;
-            }
-        }
-
-        function triggerAutoSaveToPi() {
-            if (!piServerUrl || !piApiKey) {
-                updatePiSyncBadge('⚪ 離線模式', 'bg-slate-100 text-slate-600 border-slate-200');
-                return;
-            }
-
-            updatePiSyncBadge('⏳ 待發送...', 'bg-amber-50 text-amber-800 border-amber-200');
-            clearTimeout(autoSaveTimer);
-            autoSaveTimer = setTimeout(() => {
-                performSilentAutoSave();
-            }, 1500);
-        }
-
-        async function performSilentAutoSave() {
-            if (!piServerUrl || !piApiKey || thoughts.length === 0) return;
-
-            updatePiSyncBadge('⏳ 儲存中...', 'bg-indigo-50 text-indigo-800 border-indigo-200 animate-pulse');
-
-            const now = new Date();
-            const yyyy = now.getFullYear();
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            const dd = String(now.getDate()).padStart(2, '0');
-            const hh = String(now.getHours()).padStart(2, '0');
-            const min = String(now.getMinutes()).padStart(2, '0');
-            const ss = String(now.getSeconds()).padStart(2, '0');
-            const fileName = `BL-${yyyy}${mm}${dd}-${hh}${min}${ss}.json`;
-
-            const exportPayload = {
-                thoughts: thoughts,
-                categoryOrder: categoryOrder,
-                blockedSlots: blockedSlots,
-                maxDailyHours: maxDailyHours,
-                maxWeeklyHours: maxWeeklyHours
-            };
-
-            try {
-                let response = await fetch(`${piServerUrl}/api/liveschedule/backup`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': piApiKey
-                    },
-                    body: JSON.stringify({ fileName, data: exportPayload })
-                });
-
-                if (!response.ok) {
-                    const formData = new FormData();
-                    const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
-                    formData.append('photo', blob, fileName);
-
-                    response = await fetch(`${piServerUrl}/upload`, {
-                        method: 'POST',
-                        headers: {
-                            'x-api-key': piApiKey,
-                            'x-original-name': encodeURIComponent(fileName),
-                            'x-target-path': encodeURIComponent('LiveSchedule')
-                        },
-                        body: formData
-                    });
-                }
-
-                if (response.ok) {
-                    lastSyncedFileName = fileName;
-                    localStorage.setItem('pi_last_synced_file', fileName);
-                    updatePiSyncBadge('💾 自動儲存成功', 'bg-emerald-100 text-emerald-900 border-emerald-300');
-                } else {
-                    updatePiSyncBadge('⚠️ 儲存失敗', 'bg-rose-100 text-rose-800 border-rose-200');
-                }
-            } catch (e) {
-                console.error(e);
-                updatePiSyncBadge('⚠️ 離線/連線失敗', 'bg-rose-50 text-rose-700 border-rose-200');
-            }
-        }
-
-        async function checkAndAutoSyncFromPi() {
-            if (!piServerUrl || !piApiKey) {
-                updatePiSyncBadge('⚪ 離線模式', 'bg-slate-100 text-slate-600 border-slate-200');
-                return;
-            }
-
-            updatePiSyncBadge('🔍 檢查同步...', 'bg-indigo-50 text-indigo-700 border-indigo-200');
-
-            try {
-                let backupData = null;
-                let fileName = '';
-
-                let response = await fetch(`${piServerUrl}/api/liveschedule/latest`, {
-                    method: 'GET',
-                    headers: { 'x-api-key': piApiKey }
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    backupData = result.data;
-                    fileName = result.fileName;
-                } else {
-                    const filesRes = await fetch(`${piServerUrl}/files?path=LiveSchedule`, {
-                        headers: { 'x-api-key': piApiKey }
-                    });
-
-                    if (filesRes.ok) {
-                        const filesData = await filesRes.json();
-                        const jsonFiles = (filesData.files || [])
-                            .filter(f => !f.isDirectory && f.name.endsWith('.json'))
-                            .map(f => f.name)
-                            .sort().reverse();
-
-                        if (jsonFiles.length > 0) {
-                            fileName = jsonFiles[0];
-                            const downRes = await fetch(`${piServerUrl}/download/LiveSchedule%2F${encodeURIComponent(fileName)}`, {
-                                headers: { 'x-api-key': piApiKey }
-                            });
-                            if (downRes.ok) {
-                                backupData = await downRes.json();
-                            }
-                        }
-                    }
-                }
-
-                if (backupData && fileName) {
-                    if (fileName > lastSyncedFileName) {
-                        let importedThoughts = null;
-                        if (Array.isArray(backupData)) importedThoughts = backupData;
-                        else if (backupData.thoughts) {
-                            importedThoughts = backupData.thoughts;
-                            if (backupData.categoryOrder) categoryOrder = backupData.categoryOrder;
-                            if (backupData.blockedSlots) blockedSlots = backupData.blockedSlots;
-                            if (backupData.maxDailyHours) maxDailyHours = backupData.maxDailyHours;
-                            if (backupData.maxWeeklyHours) maxWeeklyHours = backupData.maxWeeklyHours;
-                        }
-
-                        if (importedThoughts) {
-                            thoughts = importedThoughts;
-                            syncLinkedData();
-                            localStorage.setItem('my_thoughts_local', JSON.stringify(thoughts));
-                            lastSyncedFileName = fileName;
-                            localStorage.setItem('pi_last_synced_file', fileName);
-                            render();
-                            updatePiSyncBadge('🟢 已同步最新', 'bg-emerald-100 text-emerald-900 border-emerald-300');
-                            return;
-                        }
-                    }
-                    updatePiSyncBadge('🟢 已是最新狀態', 'bg-emerald-50 text-emerald-800 border-emerald-200');
-                } else {
-                    updatePiSyncBadge('🟢 尚無雲端檔案', 'bg-slate-100 text-slate-700 border-slate-200');
-                }
-            } catch (e) {
-                console.error(e);
-                updatePiSyncBadge('⚠️ 連線伺服器失敗', 'bg-rose-50 text-rose-700 border-rose-200');
-            }
-        }
-
         function openPiSettingsModal() {
             const modal = document.getElementById('piSettingsModal');
             const urlInput = document.getElementById('piServerUrlInput');
@@ -1141,7 +978,6 @@
             syncLinkedData();
             localStorage.setItem('my_thoughts_local', JSON.stringify(thoughts));
             render();
-            triggerAutoSaveToPi();
         }
 
         function saveCategoryOrder() {
