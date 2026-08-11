@@ -17,6 +17,7 @@
             </div>
             
             <div class="flex items-center gap-2 flex-wrap justify-end">
+                <div id="piSyncStatusBadge" class="text-xs px-2.5 py-1.5 rounded-xl font-bold flex items-center gap-1 bg-slate-100 text-slate-600 border border-slate-200" title="樹莓派連線與同步狀態">⚪ 離線模式</div>
                 <button onclick="exportData()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3.5 py-2 rounded-xl border border-indigo-200 font-medium transition-colors">📥 備份</button>
                 <label class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-xl border border-slate-300 font-medium transition-colors cursor-pointer">
                     📤 匯入
@@ -312,6 +313,106 @@
             } catch (e) {
                 console.error(e);
                 alert(`❌ 連線樹莓派失敗：${e.message}`);
+            }
+        }
+
+
+        
+        let lastSyncedFileName = localStorage.getItem('pi_last_synced_file') || '';
+
+
+        function updatePiSyncBadge(statusText, badgeClass) {
+            const badge = document.getElementById('piSyncStatusBadge');
+            if (badge) {
+                badge.innerHTML = statusText;
+                badge.className = `text-xs px-2.5 py-1.5 rounded-xl font-bold flex items-center gap-1 border transition-all ${badgeClass}`;
+            }
+        }
+
+
+        async function checkAndAutoSyncFromPi() {
+            if (!piServerUrl || !piApiKey) {
+                updatePiSyncBadge('⚪ 離線模式', 'bg-slate-100 text-slate-600 border-slate-200');
+                return;
+            }
+
+
+            updatePiSyncBadge('🔍 檢查同步...', 'bg-indigo-50 text-indigo-700 border-indigo-200');
+
+
+            try {
+                let backupData = null;
+                let fileName = '';
+
+
+                let response = await fetch(`${piServerUrl}/api/liveschedule/latest`, {
+                    method: 'GET',
+                    headers: { 'x-api-key': piApiKey }
+                });
+
+
+                if (response.ok) {
+                    const result = await response.json();
+                    backupData = result.data;
+                    fileName = result.fileName;
+                } else {
+                    const filesRes = await fetch(`${piServerUrl}/files?path=LiveSchedule`, {
+                        headers: { 'x-api-key': piApiKey }
+                    });
+
+
+                    if (filesRes.ok) {
+                        const filesData = await filesRes.json();
+                        const jsonFiles = (filesData.files || [])
+                            .filter(f => !f.isDirectory && f.name.endsWith('.json'))
+                            .map(f => f.name)
+                            .sort().reverse();
+
+
+                        if (jsonFiles.length > 0) {
+                            fileName = jsonFiles[0];
+                            const downRes = await fetch(`${piServerUrl}/download/LiveSchedule%2F${encodeURIComponent(fileName)}`, {
+                                headers: { 'x-api-key': piApiKey }
+                            });
+                            if (downRes.ok) {
+                                backupData = await downRes.json();
+                            }
+                        }
+                    }
+                }
+
+
+                if (backupData && fileName) {
+                    if (fileName > lastSyncedFileName) {
+                        let importedThoughts = null;
+                        if (Array.isArray(backupData)) importedThoughts = backupData;
+                        else if (backupData.thoughts) {
+                            importedThoughts = backupData.thoughts;
+                            if (backupData.categoryOrder) categoryOrder = backupData.categoryOrder;
+                            if (backupData.blockedSlots) blockedSlots = backupData.blockedSlots;
+                            if (backupData.maxDailyHours) maxDailyHours = backupData.maxDailyHours;
+                            if (backupData.maxWeeklyHours) maxWeeklyHours = backupData.maxWeeklyHours;
+                        }
+
+
+                        if (importedThoughts) {
+                            thoughts = importedThoughts;
+                            syncLinkedData();
+                            localStorage.setItem('my_thoughts_local', JSON.stringify(thoughts));
+                            lastSyncedFileName = fileName;
+                            localStorage.setItem('pi_last_synced_file', fileName);
+                            render();
+                            updatePiSyncBadge('🟢 已同步最新', 'bg-emerald-100 text-emerald-900 border-emerald-300');
+                            return;
+                        }
+                    }
+                    updatePiSyncBadge('🟢 已是最新狀態', 'bg-emerald-50 text-emerald-800 border-emerald-200');
+                } else {
+                    updatePiSyncBadge('🟢 尚無雲端檔案', 'bg-slate-100 text-slate-700 border-slate-200');
+                }
+            } catch (e) {
+                console.error(e);
+                updatePiSyncBadge('⚠️ 連線伺服器失敗', 'bg-rose-50 text-rose-700 border-rose-200');
             }
         }
 
