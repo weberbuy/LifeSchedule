@@ -14,7 +14,7 @@
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.4.1-Final (看板已完成目標預設收合驗證版)</span>
+                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.4.1-Final (看板已完成目標預設收合完美版)</span>
                 </div>
                 <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 雙擊目標/步驟精密區分跳轉編輯</p>
             </div>
@@ -22,7 +22,7 @@
             <div class="flex items-center gap-2 flex-wrap justify-end">
                 <div id="piSyncStatusBadge" onclick="handlePiBadgeClick()" class="text-xs px-2.5 py-1.5 rounded-xl font-bold flex items-center gap-1 bg-slate-100 text-slate-600 border border-slate-200 cursor-pointer hover:opacity-80 transition-all" title="點擊重新檢查樹莓派同步狀態">⚪ 未設定伺服器 (點擊設定)</div>
                 <button onclick="exportData()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-xl border border-indigo-200 font-medium transition-colors">📥 備份</button>
-                <label class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl border border-slate-300 font-medium transition-colors cursor-pointer">
+                <label class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-xl border border-slate-300 font-medium transition-colors cursor-pointer">
                     📤 匯入
                     <input type="file" id="importFile" accept=".json" onchange="importData(event)" class="hidden">
                 </label>
@@ -1823,21 +1823,8 @@
             if (viewMode === 'overview') renderOverview(container);
             else if (viewMode === 'timeline') renderTimelineMatrix(container);
             else renderCards(container);
-            if (hideCompletedGoalsCards && completedGoals.length > 0) {
-                const completedAccordion = document.createElement('div');
-                completedAccordion.className = "mt-6 pt-2";
-                completedAccordion.innerHTML = `
-                    <button type="button" onclick="toggleHideCompletedGoalsCards()" class="w-full p-3.5 bg-emerald-50/80 hover:bg-emerald-100/80 rounded-2xl border border-emerald-200 text-xs font-bold text-emerald-900 flex items-center justify-between cursor-pointer select-none transition-colors shadow-2xs">
-                        <span class="flex items-center gap-2">
-                            <span>🎉 已完成之目標卡片 (${completedGoals.length} 個)</span>
-                        </span>
-                        <span class="text-emerald-700 bg-white px-2.5 py-1 rounded-xl border border-emerald-200 text-[11px] font-extrabold shadow-2xs">
-                            ▼ 點擊展開顯示
-                        </span>
-                    </button>
-                `;
-                container.appendChild(completedAccordion);
-            }
+
+
 
 
         }
@@ -2692,6 +2679,23 @@
 
                 container.appendChild(card);
             });
+
+
+            if (hideCompletedGoalsCards && completedGoals.length > 0) {
+                const completedAccordion = document.createElement('div');
+                completedAccordion.className = "mt-6 pt-2";
+                completedAccordion.innerHTML = `
+                    <button type="button" onclick="toggleHideCompletedGoalsCards()" class="w-full p-3.5 bg-emerald-50/80 hover:bg-emerald-100/80 rounded-2xl border border-emerald-200 text-xs font-bold text-emerald-900 flex items-center justify-between cursor-pointer select-none transition-colors shadow-2xs">
+                        <span class="flex items-center gap-2">
+                            <span>🎉 已完成之目標卡片 (${completedGoals.length} 個)</span>
+                        </span>
+                        <span class="text-emerald-700 bg-white px-2.5 py-1 rounded-xl border border-emerald-200 text-[11px] font-extrabold shadow-2xs">
+                            ▼ 點擊展開顯示
+                        </span>
+                    </button>
+                `;
+                container.appendChild(completedAccordion);
+            }
         }
 
 
