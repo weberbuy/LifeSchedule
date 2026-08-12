@@ -14,7 +14,7 @@
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.2.3-Final (拆解雙向連線完整標示版)</span>
+                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.4.1-Final (看板已完成步驟預設收合驗證版)</span>
                 </div>
                 <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 雙擊目標/步驟精密區分跳轉編輯</p>
             </div>
@@ -688,6 +688,16 @@
                 console.error(e);
                 updatePiSyncBadge('⚠️ 連線失敗 (點擊重試)', 'bg-rose-50 text-rose-700 border-rose-200');
             }
+        }
+
+
+        
+        let showCompletedStepsMap = {};
+
+
+        function toggleShowCompletedSteps(thoughtId) {
+            showCompletedStepsMap[thoughtId] = !showCompletedStepsMap[thoughtId];
+            render();
         }
 
 
@@ -2459,15 +2469,7 @@
                                     ${s.stepDate ? `<span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-md font-medium">📅 ${s.stepDate} [${s.stepTimeSlot || '全天'}]</span>` : ''}
                                     ${s.stepTime ? `<span class="bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-md font-medium">⏰ ${s.stepTime}</span>` : ''}
                                     <button onclick="startEditStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors">✏️ 編輯</button>
-                                    ${s.linkedThoughtId && thoughts.find(x => x.id === s.linkedThoughtId) ? `
-                                        <span onclick="jumpToGoalEdit(${s.linkedThoughtId})" class="inline-flex items-center gap-1 text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-lg font-bold cursor-pointer transition-colors shadow-2xs" title="點擊直接跳轉至此獨立拆解目標">
-                                            🌱 已轉獨立目標：${escapeAttr(thoughts.find(x => x.id === s.linkedThoughtId).goal || thoughts.find(x => x.id === s.linkedThoughtId).text)} 🔗
-                                        </span>
-                                    ` : `
-                                        <button onclick="promoteStepToGoal(${thought.id}, ${s.id})" class="text-xs bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-2.5 py-1 rounded-lg font-bold border border-emerald-200 transition-colors shadow-2xs">
-                                            🌱 轉目標
-                                        </button>
-                                    `}
+                                    <button onclick="promoteStepToGoal(${thought.id}, ${s.id})" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-md font-bold transition-colors">🌱 轉目標</button>
                                     <button onclick="duplicateStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors">📋 複製</button>
                                     <button onclick="deleteStep(${thought.id}, ${s.id})" class="text-slate-400 hover:text-red-500 px-1 py-1">🗑️ 刪除</button>
                                 </div>
@@ -2634,7 +2636,7 @@
         });
 
 
-                if (document.readyState === 'loading') {
+        if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
                 render();
                 checkAndAutoSyncFromPi();
@@ -2649,3 +2651,5 @@
             checkAndAutoSyncFromPi();
         });
     </script>
+</body>
+</html>
