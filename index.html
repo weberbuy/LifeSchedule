@@ -14,7 +14,7 @@
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.3.2-test (看板已完成目標預設自動收合測試修復版)</span>
+                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.3.3-test</span>
                 </div>
                 <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 雙擊目標/步驟精密區分跳轉編輯</p>
             </div>
@@ -32,7 +32,7 @@
             </div>
         </header>
 
-        <!-- 📊 本週 (週一~週日) 總工時統計與警示面板 -->
+        <!-- 本週總工時統計與警示面板 -->
         <div id="weeklyStatsPanel" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4"></div>
 
         <!-- 三模式切換列 -->
@@ -79,8 +79,7 @@
 
                     <div class="md:col-span-3">
                         <label class="block text-xs font-semibold text-slate-600 mb-1">📝 詳細思緒 / 備忘說明 (可斷行)：</label>
-                        <textarea id="detailInput" rows="3" placeholder="在此填入更詳細的想法、背景說明或注意事項..." 
-                            class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                        <textarea id="detailInput" rows="3" placeholder="在此填入更詳細的想法、背景說明 or 注意事項..." class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
                     </div>
 
                     <div class="md:col-span-1">
@@ -112,7 +111,7 @@
         <!-- 頁籤列 -->
         <div id="tabsSection" class="mb-6 hidden">
             <div class="flex items-center justify-between gap-2 mb-2">
-                <span class="text-xs font-bold text-slate-500">📂 領域分頁切換：</span>
+                <span class="text-xs font-bold text-slate-500">📁 領域分頁切換：</span>
                 <div class="flex items-center gap-1.5">
                     <button onclick="scrollTabsLeft()" class="text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-lg border border-slate-300 font-bold" title="向左捲動">◀</button>
                     <button onclick="scrollTabsRight()" class="text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-lg border border-slate-300 font-bold" title="向右捲動">▶</button>
@@ -177,466 +176,210 @@
         <!-- 主顯示區塊 -->
         <div id="mainContentList" class="space-y-6"></div>
     </div>
+</body>
+</html>
 
-    <script>
-        window.onerror = function(msg, url, line, col, error) {
-            var banner = document.getElementById('globalErrorBanner');
-            if (!banner) {
-                banner = document.createElement('div');
-                banner.id = 'globalErrorBanner';
-                banner.className = 'bg-rose-600 text-white p-4 font-bold text-xs sticky top-0 z-50 shadow-md flex items-center justify-between';
-                banner.innerHTML = '<span>⚠️ 程式腳本載入錯誤 (第 ' + line + ' 行): ' + msg + '</span><button onclick="this.parentElement.remove()" class="bg-white/20 px-2 py-0.5 rounded text-white font-bold">✕</button>';
-                document.body.prepend(banner);
-            }
-            return false;
-        };
-
-        function escapeAttr(str) {
-            if (!str) return '';
-            return String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+<script>
+    window.onerror = function(msg, url, line, col, error) {
+        var banner = document.getElementById('globalErrorBanner');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'globalErrorBanner';
+            banner.className = 'bg-rose-600 text-white p-4 font-bold text-xs sticky top-0 z-50 shadow-md flex items-center justify-between';
+            banner.innerHTML = '<span>⚠️ 程式腳本載入錯誤 (第 ' + line + ' 行): ' + msg + '</span><button onclick="this.parentElement.remove()" class="bg-white/20 px-2 py-0.5 rounded text-white font-bold">✕</button>';
+            document.body.prepend(banner);
         }
+        return false;
+    };
 
-        let thoughts = [];
-        try { thoughts = JSON.parse(localStorage.getItem('my_thoughts_local')) || []; } catch(e) { thoughts = []; }
-        if (!Array.isArray(thoughts) || thoughts.length === 0) {
-            thoughts = [
-                { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", detail: "每週固定跑步 3 次。", goal: "順利完賽 11 月半程馬拉松", goalDone: false, targetDate: "2026-11-30", targetTimeSlot: "上午", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "1.5小時", stepTimeSlot: "上午", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", stepTimeSlot: "全天", done: false }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援總覽模式網格全覽一目瞭然與零左右滾動。", goal: "發布支援網格全覽的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計總覽模式響應式多欄網格與視圖切換", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
-            ];
-        }
+    function escapeAttr(str) {
+        if (!str) return '';
+        return String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
 
-        thoughts.forEach(t => {
-            if (!Array.isArray(t.steps)) t.steps = [];
-            if (t.goalDone === undefined) t.goalDone = false;
-            if (!t.category) t.category = '💼 事業';
-            if (!t.targetTimeSlot) t.targetTimeSlot = '全天';
-            t.steps.forEach(s => {
-                if (s.done === undefined) s.done = false;
-                if (!s.stepTimeSlot) s.stepTimeSlot = '全天';
-            });
+    let thoughts = [];
+    try { thoughts = JSON.parse(localStorage.getItem('my_thoughts_local')) || []; } catch(e) { thoughts = []; }
+    if (!Array.isArray(thoughts) || thoughts.length === 0) {
+        thoughts = [
+            { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", detail: "每週固定跑步 3 次。", goal: "順利完賽 11 月半程馬拉松", goalDone: false, targetDate: "2026-11-30", targetTimeSlot: "上午", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "1.5小時", stepTimeSlot: "上午", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", stepTimeSlot: "全天", done: false }] },
+            { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援總覽模式網格全覽一目瞭然與零左右滾動。", goal: "發布支援網格全覽的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計總覽模式響應式多欄網格與視圖切換", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
+        ];
+    }
+
+    thoughts.forEach(t => {
+        if (!Array.isArray(t.steps)) t.steps = [];
+        if (t.goalDone === undefined) t.goalDone = false;
+        if (!t.category) t.category = '💼 事業';
+        if (!t.targetTimeSlot) t.targetTimeSlot = '全天';
+        t.steps.forEach(s => {
+            if (s.done === undefined) s.done = false;
+            if (!s.stepTimeSlot) s.stepTimeSlot = '全天';
         });
+    });
 
-        let blockedSlots = [];
-        try { blockedSlots = JSON.parse(localStorage.getItem('my_blocked_slots')) || []; } catch(e) { blockedSlots = []; }
+    let blockedSlots = [];
+    try { blockedSlots = JSON.parse(localStorage.getItem('my_blocked_slots')) || []; } catch(e) { blockedSlots = []; }
 
-        let customTimelineDates = [];
-        let categoryOrder = [];
-        try { categoryOrder = JSON.parse(localStorage.getItem('my_category_order')) || []; } catch(e) { categoryOrder = []; }
+    let customTimelineDates = [];
+    let categoryOrder = [];
+    try { categoryOrder = JSON.parse(localStorage.getItem('my_category_order')) || []; } catch(e) { categoryOrder = []; }
 
-        let maxDailyHours = parseFloat(localStorage.getItem('my_max_daily_hours')) || 8;
-        let maxWeeklyHours = parseFloat(localStorage.getItem('my_max_weekly_hours')) || 40;
-        let storedTimelineStart = localStorage.getItem('my_timeline_start_date');
+    let maxDailyHours = parseFloat(localStorage.getItem('my_max_daily_hours')) || 8;
+    let maxWeeklyHours = parseFloat(localStorage.getItem('my_max_weekly_hours')) || 40;
+    let storedTimelineStart = localStorage.getItem('my_timeline_start_date');
 
-        const todayObj = new Date();
-        const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
+    const todayObj = new Date();
+    const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
 
-        
-        let piServerUrl = (localStorage.getItem('pi_server_url') || '').trim();
-        let piApiKey = (localStorage.getItem('pi_api_key') || '').trim();
-        let lastSyncedFileName = localStorage.getItem('pi_last_synced_file') || '';
-        let autoSaveTimer = null;
+    let piServerUrl = (localStorage.getItem('pi_server_url') || '').trim();
+    let piApiKey = (localStorage.getItem('pi_api_key') || '').trim();
+    let lastSyncedFileName = localStorage.getItem('pi_last_synced_file') || '';
+    let autoSaveTimer = null;
 
-        let hideCompletedGoalsCards = localStorage.getItem('hide_completed_goals_cards') !== 'false';
-        let showCompletedStepsMap = {};
+    let hideCompletedGoalsCards = localStorage.getItem('hide_completed_goals_cards') !== 'false';
+    let showCompletedStepsMap = {};
 
-        function toggleHideCompletedGoalsCards() {
-            hideCompletedGoalsCards = !hideCompletedGoalsCards;
-            localStorage.setItem('hide_completed_goals_cards', hideCompletedGoalsCards);
-            render();
-        }
+    function toggleHideCompletedGoalsCards() {
+        hideCompletedGoalsCards = !hideCompletedGoalsCards;
+        localStorage.setItem('hide_completed_goals_cards', hideCompletedGoalsCards);
+        render();
+    }
 
-        function toggleShowCompletedSteps(thoughtId) {
-            showCompletedStepsMap[thoughtId] = !showCompletedStepsMap[thoughtId];
-            render();
-        }
+    function toggleShowCompletedSteps(thoughtId) {
+        showCompletedStepsMap[thoughtId] = !showCompletedStepsMap[thoughtId];
+        render();
+    }
 
-        function handlePiBadgeClick() {
-            piServerUrl = (localStorage.getItem('pi_server_url') || '').trim();
-            piApiKey = (localStorage.getItem('pi_api_key') || '').trim();
-            if (!piServerUrl || !piApiKey) {
-                openPiSettingsModal();
-            } else {
-                checkAndAutoSyncFromPi();
-            }
-        }
-
-        function updatePiSyncBadge(statusText, badgeClass) {
-            const badge = document.getElementById('piSyncStatusBadge');
-            if (badge) {
-                badge.innerHTML = statusText;
-                badge.className = `text-xs px-2.5 py-1.5 rounded-xl font-bold flex items-center gap-1 border cursor-pointer hover:opacity-80 transition-all ${badgeClass}`;
-            }
-        }
-
-        function openPiSettingsModal() {
-            const modal = document.getElementById('piSettingsModal');
-            const urlInput = document.getElementById('piServerUrlInput');
-            const keyInput = document.getElementById('piApiKeyInput');
-            if (urlInput) urlInput.value = localStorage.getItem('pi_server_url') || '';
-            if (keyInput) keyInput.value = localStorage.getItem('pi_api_key') || '';
-            if (modal) modal.classList.remove('hidden');
-        }
-
-        function closePiSettingsModal() {
-            const modal = document.getElementById('piSettingsModal');
-            if (modal) modal.classList.add('hidden');
-        }
-
-        function savePiSettings() {
-            const urlInput = document.getElementById('piServerUrlInput');
-            const keyInput = document.getElementById('piApiKeyInput');
-            piServerUrl = urlInput ? urlInput.value.trim().replace(/\/+$/, '') : '';
-            piApiKey = keyInput ? keyInput.value.trim() : '';
-
-            localStorage.setItem('pi_server_url', piServerUrl);
-            localStorage.setItem('pi_api_key', piApiKey);
-            closePiSettingsModal();
-            alert("已儲存樹莓派伺服器連線設定！");
+    function handlePiBadgeClick() {
+        piServerUrl = (localStorage.getItem('pi_server_url') || '').trim();
+        piApiKey = (localStorage.getItem('pi_api_key') || '').trim();
+        if (!piServerUrl || !piApiKey) {
+            openPiSettingsModal();
+        } else {
             checkAndAutoSyncFromPi();
         }
+    }
 
-        function triggerAutoSaveToPi() {
-            piServerUrl = (localStorage.getItem('pi_server_url') || '').trim();
-            piApiKey = (localStorage.getItem('pi_api_key') || '').trim();
+    function updatePiSyncBadge(statusText, badgeClass) {
+        const badge = document.getElementById('piSyncStatusBadge');
+        if (badge) {
+            badge.innerHTML = statusText;
+            badge.className = `text-xs px-2.5 py-1.5 rounded-xl font-bold flex items-center gap-1 border cursor-pointer hover:opacity-80 transition-all ${badgeClass}`;
+        }
+    }
 
-            if (!piServerUrl || !piApiKey) {
-                updatePiSyncBadge('⚪ 未設定伺服器 (點擊設定)', 'bg-slate-100 text-slate-600 border-slate-200');
-                return;
-            }
+    function openPiSettingsModal() {
+        const modal = document.getElementById('piSettingsModal');
+        const urlInput = document.getElementById('piServerUrlInput');
+        const keyInput = document.getElementById('piApiKeyInput');
+        if (urlInput) urlInput.value = localStorage.getItem('pi_server_url') || '';
+        if (keyInput) keyInput.value = localStorage.getItem('pi_api_key') || '';
+        if (modal) modal.classList.remove('hidden');
+    }
 
-            updatePiSyncBadge('⏳ 待發送...', 'bg-amber-50 text-amber-800 border-amber-200');
-            clearTimeout(autoSaveTimer);
-            autoSaveTimer = setTimeout(() => {
-                performSilentAutoSave();
-            }, 1500);
+    function closePiSettingsModal() {
+        const modal = document.getElementById('piSettingsModal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    function savePiSettings() {
+        const urlInput = document.getElementById('piServerUrlInput');
+        const keyInput = document.getElementById('piApiKeyInput');
+        piServerUrl = urlInput ? urlInput.value.trim().replace(/\/+$/, '') : '';
+        piApiKey = keyInput ? keyInput.value.trim() : '';
+
+        localStorage.setItem('pi_server_url', piServerUrl);
+        localStorage.setItem('pi_api_key', piApiKey);
+        closePiSettingsModal();
+        alert("已儲存樹莓派伺服器連線設定！");
+        checkAndAutoSyncFromPi();
+    }
+
+    function triggerAutoSaveToPi() {
+        piServerUrl = (localStorage.getItem('pi_server_url') || '').trim();
+        piApiKey = (localStorage.getItem('pi_api_key') || '').trim();
+
+        if (!piServerUrl || !piApiKey) {
+            updatePiSyncBadge('⚪ 未設定伺服器 (點擊設定)', 'bg-slate-100 text-slate-600 border-slate-200');
+            return;
         }
 
-        async function performSilentAutoSave() {
-            piServerUrl = (localStorage.getItem('pi_server_url') || '').trim();
-            piApiKey = (localStorage.getItem('pi_api_key') || '').trim();
+        updatePiSyncBadge('⏳ 待發送...', 'bg-amber-50 text-amber-800 border-amber-200');
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(() => {
+            performSilentAutoSave();
+        }, 1500);
+    }
 
-            if (!piServerUrl || !piApiKey || thoughts.length === 0) return;
+    async function performSilentAutoSave() {
+        piServerUrl = (localStorage.getItem('pi_server_url') || '').trim();
+        piApiKey = (localStorage.getItem('pi_api_key') || '').trim();
 
-            updatePiSyncBadge('⏳ 儲存中...', 'bg-indigo-50 text-indigo-800 border-indigo-200 animate-pulse');
+        if (!piServerUrl || !piApiKey || thoughts.length === 0) return;
 
-            const now = new Date();
-            const yyyy = now.getFullYear();
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            const dd = String(now.getDate()).padStart(2, '0');
-            const hh = String(now.getHours()).padStart(2, '0');
-            const min = String(now.getMinutes()).padStart(2, '0');
-            const ss = String(now.getSeconds()).padStart(2, '0');
-            const fileName = `BL-${yyyy}${mm}${dd}-${hh}${min}${ss}.json`;
+        updatePiSyncBadge('⏳ 儲存中...', 'bg-indigo-50 text-indigo-800 border-indigo-200 animate-pulse');
 
-            const exportPayload = {
-                thoughts: thoughts,
-                categoryOrder: categoryOrder,
-                blockedSlots: blockedSlots,
-                maxDailyHours: maxDailyHours,
-                maxWeeklyHours: maxWeeklyHours,
-                timelineStartDate: timelineStartDate
-            };
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const hh = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        const ss = String(now.getSeconds()).padStart(2, '0');
+        const fileName = `BL-${yyyy}${mm}${dd}-${hh}${min}${ss}.json`;
 
-            try {
-                let response = await fetch(`${piServerUrl}/api/liveschedule/backup`, {
+        const exportPayload = {
+            thoughts: thoughts,
+            categoryOrder: categoryOrder,
+            blockedSlots: blockedSlots,
+            maxDailyHours: maxDailyHours,
+            maxWeeklyHours: maxWeeklyHours,
+            timelineStartDate: timelineStartDate
+        };
+
+        try {
+            let response = await fetch(`${piServerUrl}/api/liveschedule/backup`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': piApiKey
+                },
+                body: JSON.stringify({ fileName, data: exportPayload })
+            });
+
+            if (!response.ok) {
+                const formData = new FormData();
+                const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
+                formData.append('photo', blob, fileName);
+
+                response = await fetch(`${piServerUrl}/upload`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': piApiKey
+                        'x-api-key': piApiKey,
+                        'x-original-name': encodeURIComponent(fileName),
+                        'x-target-path': encodeURIComponent('LiveSchedule')
                     },
-                    body: JSON.stringify({ fileName, data: exportPayload })
+                    body: formData
                 });
-
-                if (!response.ok) {
-                    const formData = new FormData();
-                    const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
-                    formData.append('photo', blob, fileName);
-
-                    response = await fetch(`${piServerUrl}/upload`, {
-                        method: 'POST',
-                        headers: {
-                            'x-api-key': piApiKey,
-                            'x-original-name': encodeURIComponent(fileName),
-                            'x-target-path': encodeURIComponent('LiveSchedule')
-                        },
-                        body: formData
-                    });
-                }
-
-                if (response.ok) {
-                    lastSyncedFileName = fileName;
-                    localStorage.setItem('pi_last_synced_file', fileName);
-                    updatePiSyncBadge('💾 自動儲存成功', 'bg-emerald-100 text-emerald-900 border-emerald-300');
-                } else {
-                    updatePiSyncBadge('⚠️ 自動儲存失敗', 'bg-rose-100 text-rose-800 border-rose-200');
-                }
-            } catch (e) {
-                console.error(e);
-                updatePiSyncBadge('⚠️ 離線/儲存失敗', 'bg-rose-50 text-rose-700 border-rose-200');
             }
+
+            if (response.ok) {
+                lastSyncedFileName = fileName;
+                localStorage.setItem('pi_last_synced_file', fileName);
+                updatePiSyncBadge('💾 自動儲存成功', 'bg-emerald-100 text-emerald-900 border-emerald-300');
+            } else {
+                updatePiSyncBadge('⚠️ 自動儲存失敗', 'bg-rose-100 text-rose-800 border-rose-200');
+            }
+        } catch (e) {
+            console.error(e);
+            updatePiSyncBadge('⚠️ 離線/儲存失敗', 'bg-rose-50 text-rose-700 border-rose-200');
         }
+    }</script>
 
-        async function exportToPi() {
-            piServerUrl = (localStorage.getItem('pi_server_url') || '').trim();
-            piApiKey = (localStorage.getItem('pi_api_key') || '').trim();
-
-            if (!piServerUrl || !piApiKey) {
-                alert("請先點擊「⚙️ 伺服器設定」設定樹莓派伺服器網址與 API 金鑰！");
-                openPiSettingsModal();
-                return;
-            }
-
-            if (thoughts.length === 0) return alert("目前沒有可備份的資料！");
-
-            const now = new Date();
-            const yyyy = now.getFullYear();
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            const dd = String(now.getDate()).padStart(2, '0');
-            const hh = String(now.getHours()).padStart(2, '0');
-            const min = String(now.getMinutes()).padStart(2, '0');
-            const ss = String(now.getSeconds()).padStart(2, '0');
-            const fileName = `BL-${yyyy}${mm}${dd}-${hh}${min}${ss}.json`;
-
-            const exportPayload = {
-                thoughts: thoughts,
-                categoryOrder: categoryOrder,
-                blockedSlots: blockedSlots,
-                maxDailyHours: maxDailyHours,
-                maxWeeklyHours: maxWeeklyHours,
-                timelineStartDate: timelineStartDate
-            };
-
-            try {
-                let response = await fetch(`${piServerUrl}/api/liveschedule/backup`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': piApiKey
-                    },
-                    body: JSON.stringify({ fileName, data: exportPayload })
-                });
-
-                if (!response.ok) {
-                    const formData = new FormData();
-                    const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
-                    formData.append('photo', blob, fileName);
-
-                    response = await fetch(`${piServerUrl}/upload`, {
-                        method: 'POST',
-                        headers: {
-                            'x-api-key': piApiKey,
-                            'x-original-name': encodeURIComponent(fileName),
-                            'x-target-path': encodeURIComponent('LiveSchedule')
-                        },
-                        body: formData
-                    });
-                }
-
-                if (response.ok) {
-                    lastSyncedFileName = fileName;
-                    localStorage.setItem('pi_last_synced_file', fileName);
-                    updatePiSyncBadge('🟢 已同步最新', 'bg-emerald-100 text-emerald-900 border-emerald-300');
-                    alert(`🎉 成功上傳備份至樹莓派！\n檔名：${fileName}`);
-                } else {
-                    const errData = await response.json().catch(() => ({}));
-                    alert(`❌ 上傳失敗 (${response.status})：${errData.error || errData.message || '請檢查密碼與連線'}`);
-                }
-            } catch (e) {
-                console.error(e);
-                alert(`❌ 連線樹莓派失敗！請檢查伺服器網址與 CORS/SSL 設定。\n錯誤：${e.message}`);
-            }
-        }
-
-        async function importFromPi() {
-            piServerUrl = (localStorage.getItem('pi_server_url') || '').trim();
-            piApiKey = (localStorage.getItem('pi_api_key') || '').trim();
-
-            if (!piServerUrl || !piApiKey) {
-                alert("請先點擊「⚙️ 伺服器設定」設定樹莓派伺服器網址與 API 金鑰！");
-                openPiSettingsModal();
-                return;
-            }
-
-            try {
-                let backupData = null;
-                let fileName = '';
-
-                let response = await fetch(`${piServerUrl}/api/liveschedule/latest`, {
-                    method: 'GET',
-                    headers: { 'x-api-key': piApiKey }
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    backupData = result.data;
-                    fileName = result.fileName;
-                } else {
-                    const filesRes = await fetch(`${piServerUrl}/files?path=LiveSchedule`, {
-                        headers: { 'x-api-key': piApiKey }
-                    });
-
-                    if (filesRes.ok) {
-                        const filesData = await filesRes.json();
-                        const jsonFiles = (filesData.files || [])
-                            .filter(f => !f.isDirectory && f.name.endsWith('.json'))
-                            .map(f => f.name)
-                            .sort().reverse();
-
-                        if (jsonFiles.length > 0) {
-                            fileName = jsonFiles[0];
-                            const downRes = await fetch(`${piServerUrl}/download/LiveSchedule%2F${encodeURIComponent(fileName)}`, {
-                                headers: { 'x-api-key': piApiKey }
-                            });
-                            if (downRes.ok) {
-                                backupData = await downRes.json();
-                            }
-                        }
-                    }
-                }
-
-                if (backupData) {
-                    if (confirm(`確定從樹莓派載入最新備份？\n備份檔名：${fileName}`)) {
-                        let importedThoughts = null;
-                        if (Array.isArray(backupData)) importedThoughts = backupData;
-                        else if (backupData.thoughts) {
-                            importedThoughts = backupData.thoughts;
-                            if (backupData.categoryOrder) {
-                                categoryOrder = backupData.categoryOrder;
-                                localStorage.setItem('my_category_order', JSON.stringify(categoryOrder));
-                            }
-                            if (backupData.blockedSlots) {
-                                blockedSlots = backupData.blockedSlots;
-                                localStorage.setItem('my_blocked_slots', JSON.stringify(blockedSlots));
-                            }
-                            if (backupData.maxDailyHours) {
-                                maxDailyHours = backupData.maxDailyHours;
-                                localStorage.setItem('my_max_daily_hours', maxDailyHours);
-                            }
-                            if (backupData.maxWeeklyHours) {
-                                maxWeeklyHours = backupData.maxWeeklyHours;
-                                localStorage.setItem('my_max_weekly_hours', maxWeeklyHours);
-                            }
-                            if (backupData.timelineStartDate !== undefined) {
-                                timelineStartDate = backupData.timelineStartDate;
-                                localStorage.setItem('my_timeline_start_date', timelineStartDate);
-                            }
-                        }
-
-                        if (importedThoughts) {
-                            thoughts = importedThoughts;
-                            syncLinkedData();
-                            localStorage.setItem('my_thoughts_local', JSON.stringify(thoughts));
-                            lastSyncedFileName = fileName;
-                            localStorage.setItem('pi_last_synced_file', fileName);
-                            render();
-                            updatePiSyncBadge('🟢 已同步最新', 'bg-emerald-100 text-emerald-900 border-emerald-300');
-                            alert("🎉 成功從樹莓派同步最新備份！");
-                        }
-                    }
-                } else {
-                    alert("❌ 樹莓派上尚未找到任何備份檔案，請先執行「☁️ 上傳樹莓派」！");
-                }
-            } catch (e) {
-                console.error(e);
-                alert(`❌ 連線樹莓派失敗：${e.message}`);
-            }
-        }
-
-        async function checkAndAutoSyncFromPi() {
-            piServerUrl = (localStorage.getItem('pi_server_url') || '').trim();
-            piApiKey = (localStorage.getItem('pi_api_key') || '').trim();
-
-            if (!piServerUrl || !piApiKey) {
-                updatePiSyncBadge('⚪ 未設定伺服器 (點擊設定)', 'bg-slate-100 text-slate-600 border-slate-200');
-                return;
-            }
-
-            updatePiSyncBadge('🔍 檢查同步中...', 'bg-indigo-50 text-indigo-700 border-indigo-200 animate-pulse');
-
-            try {
-                let backupData = null;
-                let fileName = '';
-
-                let response = await fetch(`${piServerUrl}/api/liveschedule/latest`, {
-                    method: 'GET',
-                    headers: { 'x-api-key': piApiKey }
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    backupData = result.data;
-                    fileName = result.fileName;
-                } else {
-                    const filesRes = await fetch(`${piServerUrl}/files?path=LiveSchedule`, {
-                        headers: { 'x-api-key': piApiKey }
-                    });
-
-                    if (filesRes.ok) {
-                        const filesData = await filesRes.json();
-                        const jsonFiles = (filesData.files || [])
-                            .filter(f => !f.isDirectory && f.name.endsWith('.json'))
-                            .map(f => f.name)
-                            .sort().reverse();
-
-                        if (jsonFiles.length > 0) {
-                            fileName = jsonFiles[0];
-                            const downRes = await fetch(`${piServerUrl}/download/LiveSchedule%2F${encodeURIComponent(fileName)}`, {
-                                headers: { 'x-api-key': piApiKey }
-                            });
-                            if (downRes.ok) {
-                                backupData = await downRes.json();
-                            }
-                        }
-                    }
-                }
-
-                if (backupData && fileName) {
-                    if (fileName > lastSyncedFileName) {
-                        let importedThoughts = null;
-                        if (Array.isArray(backupData)) importedThoughts = backupData;
-                        else if (backupData.thoughts) {
-                            importedThoughts = backupData.thoughts;
-                            if (backupData.categoryOrder) {
-                                categoryOrder = backupData.categoryOrder;
-                                localStorage.setItem('my_category_order', JSON.stringify(categoryOrder));
-                            }
-                            if (backupData.blockedSlots) {
-                                blockedSlots = backupData.blockedSlots;
-                                localStorage.setItem('my_blocked_slots', JSON.stringify(blockedSlots));
-                            }
-                            if (backupData.maxDailyHours) {
-                                maxDailyHours = backupData.maxDailyHours;
-                                localStorage.setItem('my_max_daily_hours', maxDailyHours);
-                            }
-                            if (backupData.maxWeeklyHours) {
-                                maxWeeklyHours = backupData.maxWeeklyHours;
-                                localStorage.setItem('my_max_weekly_hours', maxWeeklyHours);
-                            }
-                            if (backupData.timelineStartDate !== undefined) {
-                                timelineStartDate = backupData.timelineStartDate;
-                                localStorage.setItem('my_timeline_start_date', timelineStartDate);
-                            }
-                        }
-
-                        if (importedThoughts) {
-                            thoughts = importedThoughts;
-                            syncLinkedData();
-                            localStorage.setItem('my_thoughts_local', JSON.stringify(thoughts));
-                            lastSyncedFileName = fileName;
-                            localStorage.setItem('pi_last_synced_file', fileName);
-                            render();
-                            updatePiSyncBadge('🟢 已同步最新', 'bg-emerald-100 text-emerald-900 border-emerald-300');
-                            return;
-                        }
-                    }
-                    updatePiSyncBadge('🟢 已是最新狀態', 'bg-emerald-50 text-emerald-800 border-emerald-200');
-                } else {
-                    updatePiSyncBadge('🟢 尚無雲端檔案', 'bg-slate-100 text-slate-700 border-slate-200');
-                }
-            } catch (e) {
-                console.error(e);
-                updatePiSyncBadge('⚠️ 連線失敗 (點擊重試)', 'bg-rose-50 text-rose-700 border-rose-200');
-            }
+tch(err) { alert("備份檔案格式不正確。"); }
+            }; 
+            reader.readAsText(file); 
+            event.target.value = ''; 
         }
 
         let activeCategory = "全部";
@@ -692,1776 +435,60 @@
             }, 100);
         }
 
-        function toggleOverviewSubMode(subMode) {
-            overviewSubMode = subMode;
-            render();
-        }
-
-        function toggleTimelineXMode(xMode) {
-            timelineXMode = xMode;
-            render();
-        }
-
-        function getCategoryStats(cat) {
-            const goals = thoughts.filter(t => (t.category || '💼 事業') === cat);
-            const totalGoals = goals.length;
-            const completedGoals = goals.filter(g => g.goalDone).length;
-            
-            let totalHours = 0;
-            let completedHours = 0;
-
-            goals.forEach(g => {
-                if (Array.isArray(g.steps)) {
-                    g.steps.forEach(s => {
-                        const h = parseHours(s.stepTime);
-                        totalHours += h;
-                        if (s.done) completedHours += h;
-                    });
-                }
-            });
-
-            return { totalGoals, completedGoals, totalHours, completedHours };
-        }
-
-        function getCurrentWeekRange() {
-            const d = new Date();
-            const day = d.getDay();
-            const diffToMonday = (day === 0 ? -6 : 1 - day);
-            
-            const monday = new Date(d);
-            monday.setDate(d.getDate() + diffToMonday);
-            
-            const sunday = new Date(monday);
-            sunday.setDate(monday.getDate() + 6);
-            
-            const mondayStr = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
-            const sundayStr = `${sunday.getFullYear()}-${String(sunday.getMonth() + 1).padStart(2, '0')}-${String(sunday.getDate()).padStart(2, '0')}`;
-            
-            return { mondayStr, sundayStr };
-        }
-
-        function getWeeklyTotalHours(excludeStepId = null) {
-            const { mondayStr, sundayStr } = getCurrentWeekRange();
-            let total = 0;
-            thoughts.forEach(t => {
-                if (Array.isArray(t.steps)) {
-                    t.steps.forEach(s => {
-                        if (s.stepDate && s.stepDate >= mondayStr && s.stepDate <= sundayStr && s.id !== excludeStepId) {
-                            total += parseHours(s.stepTime);
-                        }
-                    });
-                }
-            });
-            return total;
-        }
-
-        function updateMaxWeeklyHours(val) {
-            const parsed = parseFloat(val);
-            if (!isNaN(parsed) && parsed > 0) {
-                maxWeeklyHours = parsed;
-                localStorage.setItem('my_max_weekly_hours', maxWeeklyHours);
-                render();
-                triggerAutoSaveToPi();
-            }
-        }
-
-        function renderWeeklyStatsPanel() {
-            const panel = document.getElementById('weeklyStatsPanel');
-            if (!panel) return;
-
-            const weekRange = getCurrentWeekRange();
-            const weeklyTotal = getWeeklyTotalHours();
-            const isWeeklyOverLimit = weeklyTotal > maxWeeklyHours;
-
-            panel.innerHTML = `
-                <div class="flex items-center gap-3 w-full sm:w-auto">
-                    <div class="bg-indigo-100 text-indigo-800 p-2.5 rounded-xl text-lg font-bold">📊</div>
-                    <div>
-                        <div class="text-xs font-bold text-slate-500">本週 (週一 ~ 週日) 累計工作時數：</div>
-                        <div class="text-base font-extrabold text-slate-900 flex items-center gap-2 flex-wrap">
-                            <span>${weeklyTotal.toFixed(1)} / ${maxWeeklyHours} 小時</span>
-                            <span class="text-xs text-slate-500 font-normal">(${weekRange.mondayStr} ~ ${weekRange.sundayStr})</span>
-                            ${isWeeklyOverLimit ? `<span class="text-xs bg-rose-600 text-white font-bold px-2 py-0.5 rounded-full shadow-sm animate-pulse">⚠️ 本週總工時已超標</span>` : ''}
-                        </div>
-                    </div>
-                </div>
-                <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
-                    <div class="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
-                        <span class="text-xs font-bold text-slate-700">週工時上限：</span>
-                        <input type="number" min="1" max="168" step="1" value="${maxWeeklyHours}" oninput="updateMaxWeeklyHours(this.value)" onchange="updateMaxWeeklyHours(this.value)" class="w-14 px-1.5 py-0.5 text-xs font-extrabold text-center border border-slate-300 rounded-lg bg-white">
-                        <span class="text-xs text-slate-500">小時</span>
-                    </div>
-                </div>
-            `;
-        }
-
-        function updateContainerWidth() {
-            const container = document.getElementById('appContainer');
-            if (!container) return;
-
-            if (viewMode === 'overview') {
-                container.className = "max-w-6xl mx-auto w-full transition-all duration-300";
-            } else if (viewMode === 'cards') {
-                container.className = "max-w-5xl mx-auto w-full transition-all duration-300";
-            } else if (viewMode === 'timeline') {
-                container.className = (timelineXMode === 'collapsed') ? "max-w-4xl mx-auto w-full transition-all duration-300" : "max-w-7xl mx-auto w-full transition-all duration-300";
-            }
-        }
-
-        function getOrderedCategories() {
-            const currentCats = Array.from(new Set(thoughts.map(t => t.category || '💼 事業')));
-            currentCats.forEach(c => { if (!categoryOrder.includes(c)) categoryOrder.push(c); });
-            categoryOrder = categoryOrder.filter(c => currentCats.includes(c));
-            return categoryOrder;
-        }
-
-        function scrollTabsLeft() {
-            const el = document.getElementById('tabsScrollContainer');
-            if (el) el.scrollBy({ left: -220, behavior: 'smooth' });
-        }
-
-        function scrollTabsRight() {
-            const el = document.getElementById('tabsScrollContainer');
-            if (el) el.scrollBy({ left: 220, behavior: 'smooth' });
-        }
-
-        function scrollMatrixLeft() {
-            const el = document.getElementById('matrixScrollContainer');
-            if (el) el.scrollBy({ left: -280, behavior: 'smooth' });
-        }
-
-        function scrollMatrixRight() {
-            const el = document.getElementById('matrixScrollContainer');
-            if (el) el.scrollBy({ left: 280, behavior: 'smooth' });
-        }
-
-        function scrollTimelineLeft() {
-            const el = document.getElementById('timelineTableContainer');
-            if (el) el.scrollBy({ left: -280, behavior: 'smooth' });
-        }
-
-        function scrollTimelineRight() {
-            const el = document.getElementById('timelineTableContainer');
-            if (el) el.scrollBy({ left: 280, behavior: 'smooth' });
-        }
-
-        function parseHours(timeStr) {
-            if (!timeStr) return 0;
-            let s = String(timeStr).trim();
-            if (s.includes('分')) {
-                const mins = parseFloat(s) || 0;
-                return mins / 60;
-            }
-            return parseFloat(s) || 0;
-        }
-
-        function getDailyTotalHours(dateStr, excludeStepId = null) {
-            if (!dateStr || dateStr === '未指定日期') return 0;
-            let total = 0;
-            thoughts.forEach(t => {
-                if (Array.isArray(t.steps)) {
-                    t.steps.forEach(s => {
-                        if (s.stepDate === dateStr && s.id !== excludeStepId) {
-                            total += parseHours(s.stepTime);
-                        }
-                    });
-                }
-            });
-            return total;
-        }
-
-        function updateMaxDailyHours(val) {
-            const parsed = parseFloat(val);
-            if (!isNaN(parsed) && parsed > 0) {
-                maxDailyHours = parsed;
-                localStorage.setItem('my_max_daily_hours', maxDailyHours);
-                render();
-                triggerAutoSaveToPi();
-            }
-        }
-
-        function getBlockedSlot(dateStr, itemSlot = '全天') {
-            if (!dateStr || dateStr === '未指定日期') return null;
-            const matches = blockedSlots.filter(b => b.date === dateStr);
-            if (matches.length === 0) return null;
-
-            for (const b of matches) {
-                if (b.timeSlot === '全天' || itemSlot === '全天') return b;
-                if (b.timeSlot === itemSlot || (b.timeSlot === '晚上' && itemSlot === '夜間') || (b.timeSlot === '夜間' && itemSlot === '晚上')) return b;
-            }
-            return null;
-        }
-
-        function validateChildStepsDate(targetThoughtId, newTargetDate) {
-            if (!newTargetDate || newTargetDate === '未指定日期') return true;
-            const targetThought = thoughts.find(x => x.id === targetThoughtId);
-            if (!targetThought || !Array.isArray(targetThought.steps)) return true;
-
-            for (const s of targetThought.steps) {
-                if (s.stepDate && s.stepDate > newTargetDate) {
-                    alert(`🚫 阻擋變更：無法將日期設定為 ${newTargetDate}！因為獨立目標「${targetThought.goal || targetThought.text}」底下已有排定在 ${s.stepDate} 的子步驟「${s.text}」，目標日期不能早於其子步驟日期！`);
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        function syncLinkedData() {
-            thoughts.forEach(t => {
-                if (t.parentStepInfo) {
-                    const parentThought = thoughts.find(x => x.id === t.parentStepInfo.parentThoughtId);
-                    if (parentThought && Array.isArray(parentThought.steps)) {
-                        const parentStep = parentThought.steps.find(s => s.id === t.parentStepInfo.parentStepId);
-                        if (parentStep) {
-                            if (t.goalDone !== parentStep.done) parentStep.done = t.goalDone;
-                            if (t.targetDate !== '未指定日期' && t.targetDate !== parentStep.stepDate) parentStep.stepDate = (t.targetDate !== '未指定日期') ? t.targetDate : '';
-                            if (t.targetTimeSlot && t.targetTimeSlot !== parentStep.stepTimeSlot) parentStep.stepTimeSlot = t.targetTimeSlot;
-                        }
-                    }
-                }
-
-                if (Array.isArray(t.steps)) {
-                    t.steps.forEach(s => {
-                        if (s.linkedThoughtId) {
-                            const childThought = thoughts.find(x => x.id === s.linkedThoughtId);
-                            if (childThought) {
-                                if (s.done !== childThought.goalDone) childThought.goalDone = s.done;
-                                if (s.stepDate && s.stepDate !== childThought.targetDate) childThought.targetDate = s.stepDate;
-                                if (s.stepTimeSlot && s.stepTimeSlot !== childThought.targetTimeSlot) childThought.targetTimeSlot = s.stepTimeSlot;
-                            }
-                        }
-                    });
-                }
-            });
-        }
-
-        function promoteStepToGoal(thoughtId, stepId) {
-            const parentThought = thoughts.find(x => x.id === thoughtId);
-            if (!parentThought) return;
-            const step = parentThought.steps.find(s => s.id === stepId);
-            if (!step) return;
-
-            if (step.linkedThoughtId) return alert("此步驟已經另存為獨立目標囉！");
-
-            const newThoughtId = Date.now();
-            const newGoalThought = {
-                id: newThoughtId,
-                category: parentThought.category || '💼 事業',
-                text: `拆解目標: ${step.text}`,
-                detail: `來自母目標「${parentThought.goal || parentThought.text}」的延伸拆解步驟。`,
-                goal: step.text,
-                goalDone: step.done || false,
-                targetDate: step.stepDate || parentThought.targetDate || '未指定日期',
-                targetTimeSlot: step.stepTimeSlot || '全天',
-                parentStepInfo: { parentThoughtId: thoughtId, parentStepId: stepId },
-                steps: []
-            };
-
-            step.linkedThoughtId = newThoughtId;
-            thoughts.push(newGoalThought);
-            saveData();
-            alert(`已將步驟「${step.text}」另存為獨立目標！兩者將保持狀態與日期雙向聯動。`);
-        }
-
-        function autoCheckExpiredInTimeline() {
-            let count = 0;
-            thoughts.forEach(t => {
-                if (t.targetDate && t.targetDate !== '未指定日期' && t.targetDate < todayStr && !t.goalDone) {
-                    t.targetDate = '未指定日期'; count++;
-                }
-                if (Array.isArray(t.steps)) {
-                    t.steps.forEach(s => {
-                        if (s.stepDate && s.stepDate < todayStr && !s.done) {
-                            s.stepDate = ''; count++;
-                        }
-                    });
-                }
-            });
-
-            if (count > 0) {
-                saveData();
-            }
-        }
-
-        function convertExpiredToUnscheduled() {
-            let count = 0;
-            thoughts.forEach(t => {
-                if (t.targetDate && t.targetDate !== '未指定日期' && t.targetDate < todayStr && !t.goalDone) {
-                    t.targetDate = '未指定日期'; count++;
-                }
-                if (Array.isArray(t.steps)) {
-                    t.steps.forEach(s => {
-                        if (s.stepDate && s.stepDate < todayStr && !s.done) {
-                            s.stepDate = ''; count++;
-                        }
-                    });
-                }
-            });
-
-            if (count > 0) {
-                saveData();
-                alert(`已成功將 ${count} 個過期未完成的目標/步驟移動至「待排定事項區」！`);
-            } else {
-                alert("目前沒有過期且未完成的目標或步驟！");
-            }
-        }
-
-        function moveStepUp(thoughtId, stepId) {
-            const t = thoughts.find(x => x.id === thoughtId);
-            if (!t || !Array.isArray(t.steps)) return;
-            const idx = t.steps.findIndex(s => s.id === stepId);
-            if (idx > 0) {
-                const temp = t.steps[idx]; t.steps[idx] = t.steps[idx - 1]; t.steps[idx - 1] = temp; saveData();
-            }
-        }
-
-        function moveStepDown(thoughtId, stepId) {
-            const t = thoughts.find(x => x.id === thoughtId);
-            if (!t || !Array.isArray(t.steps)) return;
-            const idx = t.steps.findIndex(s => s.id === stepId);
-            if (idx !== -1 && idx < t.steps.length - 1) {
-                const temp = t.steps[idx]; t.steps[idx] = t.steps[idx + 1]; t.steps[idx + 1] = temp; saveData();
-            }
-        }
-
-        function moveCategoryLeft(cat, ev) {
-            if (ev) ev.stopPropagation();
-            getOrderedCategories();
-            const idx = categoryOrder.indexOf(cat);
-            if (idx > 0) {
-                const temp = categoryOrder[idx]; categoryOrder[idx] = categoryOrder[idx - 1]; categoryOrder[idx - 1] = temp; saveCategoryOrder();
-            }
-        }
-
-        function moveCategoryRight(cat, ev) {
-            if (ev) ev.stopPropagation();
-            getOrderedCategories();
-            const idx = categoryOrder.indexOf(cat);
-            if (idx !== -1 && idx < categoryOrder.length - 1) {
-                const temp = categoryOrder[idx]; categoryOrder[idx] = categoryOrder[idx + 1]; categoryOrder[idx + 1] = temp; saveCategoryOrder();
-            }
-        }
-
-        function toggleGoalDone(thoughtId) {
-            const t = thoughts.find(x => x.id === thoughtId);
-            if (t) { t.goalDone = !t.goalDone; saveData(); }
-        }
-
-        function setTimelineStartToToday() {
-            timelineStartDate = todayStr;
-            localStorage.setItem('my_timeline_start_date', timelineStartDate);
-            render();
-            triggerAutoSaveToPi();
-        }
-        function showAllTimelineHistory() {
-            timelineStartDate = '';
-            localStorage.setItem('my_timeline_start_date', timelineStartDate);
-            render();
-            triggerAutoSaveToPi();
-        }
-        function changeTimelineStartDate(val) {
-            timelineStartDate = val || '';
-            localStorage.setItem('my_timeline_start_date', timelineStartDate);
-            render();
-            triggerAutoSaveToPi();
-        }
-
-        function toggleBlockPanel() { isBlockPanelOpen = !isBlockPanelOpen; render(); }
-        function saveBlockedSlots() { localStorage.setItem('my_blocked_slots', JSON.stringify(blockedSlots)); render(); triggerAutoSaveToPi(); }
-
-        function addBlockedSlot() {
-            const dateInput = document.getElementById('blockDateInput');
-            const slotSelect = document.getElementById('blockTimeSlotSelect');
-            const noteInput = document.getElementById('blockNoteInput');
-
-            const date = dateInput ? dateInput.value : '';
-            const timeSlot = slotSelect ? slotSelect.value : '全天';
-            const note = noteInput ? noteInput.value.trim() : '';
-
-            if (!date) return alert("請選擇要設定不排事的日期！");
-
-            blockedSlots.push({ id: Date.now(), date, timeSlot, note: note || '忙碌不排事' });
-            dateInput.value = ''; if (noteInput) noteInput.value = '';
-            saveBlockedSlots();
-        }
-
-        function deleteBlockedSlot(id) {
-            blockedSlots = blockedSlots.filter(b => b.id !== id);
-            saveBlockedSlots();
-        }
-
-        function openDatePickerModal(type, thoughtId, stepId) {
-            pendingDropItem = { type, thoughtId, stepId };
-            const modal = document.getElementById('datePickerModal');
-            const picker = document.getElementById('modalDatePicker');
-            if (picker) picker.value = new Date().toISOString().slice(0, 10);
-            if (modal) modal.classList.remove('hidden');
-        }
-
-        function closeDatePickerModal() {
-            pendingDropItem = null;
-            const modal = document.getElementById('datePickerModal');
-            if (modal) modal.classList.add('hidden');
-        }
-
-        function confirmModalDate() {
-            const picker = document.getElementById('modalDatePicker');
-            const slotSelect = document.getElementById('modalSlotSelect');
-            const selectedDate = picker ? picker.value : '';
-            const selectedSlot = slotSelect ? slotSelect.value : '全天';
-
-            if (!selectedDate) return alert("請選擇有效日期！");
-
-            const blocked = getBlockedSlot(selectedDate, selectedSlot);
-            if (blocked) {
-                alert(`🚫 警告：${selectedDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})！`);
-                return;
-            }
-
-            if (pendingDropItem) {
-                const { type, thoughtId, stepId } = pendingDropItem;
-                const t = thoughts.find(x => x.id === thoughtId);
-                if (t) {
-                    if (type === 'goal') {
-                        if (!validateChildStepsDate(t.id, selectedDate)) return;
-                        t.targetDate = selectedDate;
-                        t.targetTimeSlot = selectedSlot;
-                        saveData();
-                    } else if (type === 'step') {
-                        if (selectedDate && t.targetDate && t.targetDate !== '未指定日期' && selectedDate > t.targetDate) {
-                            alert(`步驟預期日期 (${selectedDate}) 不能超過最終目標預期日期 (${t.targetDate})！`);
-                            closeDatePickerModal();
-                            return;
-                        }
-
-                        const weekRange = getCurrentWeekRange();
-                        if (selectedDate >= weekRange.mondayStr && selectedDate <= weekRange.sundayStr) {
-                            const currentWeeklyTotal = getWeeklyTotalHours(stepId);
-                            const stepObj = t.steps.find(x => x.id === stepId);
-                            const addedHours = parseHours(stepObj ? stepObj.stepTime : '');
-                            if (currentWeeklyTotal + addedHours > maxWeeklyHours) {
-                                if (!confirm(`⚠️ 提醒：本週 (週一~週日) 跨領域累計總工時將達 ${(currentWeeklyTotal + addedHours).toFixed(1)} 小時，已超過週工時上限 (${maxWeeklyHours} 小時)！確定要排程嗎？`)) {
-                                    closeDatePickerModal();
-                                    return;
-                                }
-                            }
-                        }
-
-                        const s = t.steps.find(x => x.id === stepId);
-                        if (s) {
-                            if (s.linkedThoughtId && !validateChildStepsDate(s.linkedThoughtId, selectedDate)) return;
-                            s.stepDate = selectedDate;
-                            s.stepTimeSlot = selectedSlot;
-                            saveData();
-                        }
-                    }
-                }
-            }
-            closeDatePickerModal();
-        }
-
-        function toggleForm() {
-            isFormOpen = !isFormOpen;
-            const content = document.getElementById('formContent');
-            const btn = document.getElementById('toggleFormBtn');
-            if (content && btn) {
-                if (isFormOpen) {
-                    content.classList.remove('hidden'); btn.innerText = "➖ 收納表單";
-                } else {
-                    content.classList.add('hidden'); btn.innerText = "➕ 展開表單";
-                }
-            }
-        }
-
-        function getDateStatus(dateStr) {
-            if (!dateStr || dateStr === '未指定日期') return { text: dateStr, style: '', badge: '' };
-            const d = new Date(dateStr + "T00:00:00");
-            const dayOfWeek = d.getDay();
-            const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
-            const dayName = dayNames[dayOfWeek];
-            const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
-            const isToday = (dateStr === todayStr);
-            const isPast = (dateStr < todayStr);
-
-            let style = "bg-white";
-            let badge = `<span class="text-slate-400 font-normal text-[10px] ml-1">(週${dayName})</span>`;
-
-            if (isToday) {
-                style = "bg-emerald-50/90 border-emerald-300";
-                badge = `<span class="bg-emerald-600 text-white font-bold text-[10px] px-1.5 py-0.5 rounded-full ml-1 shadow-sm">今日 🌟</span>`;
-            } else if (isPast) {
-                style = "bg-slate-100/80 text-slate-500";
-                badge = `<span class="bg-slate-200 text-slate-500 font-medium text-[10px] px-1.5 py-0.5 rounded ml-1">已過去 (週${dayName})</span>`;
-            } else if (isWeekend) {
-                style = "bg-blue-50/70 border-blue-200";
-                badge = `<span class="bg-blue-100 text-blue-800 font-bold text-[10px] px-1.5 py-0.5 rounded ml-1">週${dayName}</span>`;
-            }
-
-            return { isToday, isPast, isWeekend, dayName, style, badge };
-        }
-
-        function setCategory(cat) { document.getElementById('categoryInput').value = cat; }
-
         function setViewMode(mode) {
             viewMode = mode;
+            render();
+        }
+
+        function render() {
+            const mainContentList = document.getElementById('mainContentList');
+            if (!mainContentList) return;
+            mainContentList.innerHTML = '';
+
             const btnOverview = document.getElementById('btnViewOverview');
             const btnCards = document.getElementById('btnViewCards');
             const btnTimeline = document.getElementById('btnViewTimeline');
             const tabsSection = document.getElementById('tabsSection');
+            const appContainer = document.getElementById('appContainer');
 
-            const activeClass = "flex-1 py-2.5 px-3 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 bg-white text-indigo-600 shadow-md whitespace-nowrap";
-            const inactiveClass = "flex-1 py-2.5 px-3 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900 whitespace-nowrap";
-
-            btnOverview.className = (mode === 'overview') ? activeClass : inactiveClass;
-            btnCards.className = (mode === 'cards') ? activeClass : inactiveClass;
-            btnTimeline.className = (mode === 'timeline') ? activeClass : inactiveClass;
+            if (appContainer) {
+                if (viewMode === 'overview') {
+                    appContainer.className = 'max-w-[1400px] mx-auto w-full transition-all duration-300';
+                } else {
+                    appContainer.className = 'max-w-4xl mx-auto w-full transition-all duration-300';
+                }
+            }
 
             if (tabsSection) {
-                if (mode === 'cards') tabsSection.classList.remove('hidden');
+                if (viewMode === 'cards') tabsSection.classList.remove('hidden');
                 else tabsSection.classList.add('hidden');
             }
 
-            if (mode === 'timeline') {
-                autoCheckExpiredInTimeline();
-            }
-
-            render();
-        }
-
-        function toggleReorderMode() {
-            isReorderMode = !isReorderMode;
-            const btn = document.getElementById('reorderBtn');
-            if (btn) {
-                btn.innerText = isReorderMode ? "✅ 完成排序" : "⚙️ 調整頁籤順序";
-                btn.className = isReorderMode 
-                    ? "text-[11px] text-white bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1 rounded-lg transition-colors font-medium shadow-sm ml-1"
-                    : "text-[11px] text-slate-600 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg border border-slate-300 transition-colors ml-1";
-            }
-            render();
-        }
-
-        function saveData() {
-            syncLinkedData();
-            localStorage.setItem('my_thoughts_local', JSON.stringify(thoughts));
-            render();
-            triggerAutoSaveToPi();
-        }
-
-        function saveCategoryOrder() {
-            localStorage.setItem('my_category_order', JSON.stringify(categoryOrder));
-            render();
-        }
-
-        function addCustomDateRow() {
-            const picker = document.getElementById('newDateRowInput');
-            const val = picker ? picker.value : '';
-            if (!val) return alert("請選擇要插入時間軸的日期！");
-            if (!customTimelineDates.includes(val)) customTimelineDates.push(val);
-            picker.value = '';
-            render();
-        }
-
-        function addThought() {
-            const cat = document.getElementById('categoryInput').value.trim() || '💼 事業';
-            const text = document.getElementById('thoughtInput').value.trim();
-            const detail = document.getElementById('detailInput').value.trim();
-            const goal = document.getElementById('goalInput').value.trim();
-            const date = document.getElementById('dateInput').value;
-            const slotSelect = document.getElementById('goalSlotSelect');
-            const targetTimeSlot = slotSelect ? slotSelect.value : '全天';
-
-            if (!text) return alert("請填入思緒/想法主題！");
-
-            const blocked = getBlockedSlot(date, targetTimeSlot);
-            if (blocked) {
-                return alert(`🚫 警告：${date} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})！`);
-            }
-
-            thoughts.push({ id: Date.now(), category: cat, text: text, detail: detail || '', goal: goal || '未設定目標', goalDone: false, targetDate: date || '未指定日期', targetTimeSlot: targetTimeSlot, steps: [] });
-            document.getElementById('thoughtInput').value = '';
-            document.getElementById('detailInput').value = '';
-            document.getElementById('goalInput').value = '';
-            document.getElementById('dateInput').value = '';
-            activeCategory = cat;
-            saveData();
-        }
-
-        function duplicateThought(id) {
-            const original = thoughts.find(t => t.id === id);
-            if (!original) return;
-
-            const clonedSteps = (original.steps || []).map(s => ({
-                id: Date.now() + Math.random(),
-                text: s.text,
-                stepDate: s.stepDate || '',
-                stepTime: s.stepTime || '',
-                stepTimeSlot: s.stepTimeSlot || '全天',
-                done: false
-            }));
-
-            thoughts.push({
-                id: Date.now(),
-                category: original.category,
-                text: `${original.text} (副本)`,
-                detail: original.detail || '',
-                goal: original.goal || '',
-                goalDone: false,
-                targetDate: original.targetDate || '未指定日期',
-                targetTimeSlot: original.targetTimeSlot || '全天',
-                steps: clonedSteps
-            });
-            saveData();
-        }
-
-        function deleteThought(id) {
-            if (confirm("確定刪除這項思緒？")) {
-                thoughts = thoughts.filter(t => t.id !== id);
-                if (editingId === id) editingId = null;
-                saveData();
-            }
-        }
-
-        function startEdit(id) { editingId = id; render(); }
-        function cancelEdit() { editingId = null; render(); }
-
-        function saveEdit(id) {
-            const cat = document.getElementById(`edit-cat-${id}`).value.trim();
-            const text = document.getElementById(`edit-text-${id}`).value.trim();
-            const detail = document.getElementById(`edit-detail-${id}`).value.trim();
-            const goal = document.getElementById(`edit-goal-${id}`).value.trim();
-            const date = document.getElementById(`edit-date-${id}`).value;
-            const slotSelect = document.getElementById(`edit-slot-${id}`);
-            const targetTimeSlot = slotSelect ? slotSelect.value : '全天';
-
-            if (!text) return alert("思緒主題不能為空！");
-
-            const blocked = getBlockedSlot(date, targetTimeSlot);
-            if (blocked) {
-                return alert(`🚫 警告：${date} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})！`);
-            }
-
-            if (!validateChildStepsDate(id, date)) return;
-
-            const t = thoughts.find(x => x.id === id);
-            if (t) {
-                t.category = cat || '💼 事業'; t.text = text; t.detail = detail || ''; t.goal = goal || '未設定目標'; t.targetDate = date || '未指定日期'; t.targetTimeSlot = targetTimeSlot;
-                editingId = null; saveData();
-            }
-        }
-
-        function addStep(thoughtId) {
-            const textInput = document.getElementById(`step-text-${thoughtId}`);
-            const dateInput = document.getElementById(`step-date-${thoughtId}`);
-            const timeInput = document.getElementById(`step-time-${thoughtId}`);
-            const slotSelect = document.getElementById(`step-slot-${thoughtId}`);
-
-            const text = textInput ? textInput.value.trim() : '';
-            const stepDate = dateInput ? dateInput.value : '';
-            const stepTime = timeInput ? timeInput.value.trim() : '';
-            const stepTimeSlot = slotSelect ? slotSelect.value : '全天';
-
-            if (!text) return alert("請填入步驟內容！");
-
-            const blocked = getBlockedSlot(stepDate, stepTimeSlot);
-            if (blocked) {
-                return alert(`🚫 警告：${stepDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})！`);
-            }
-
-            if (stepDate) {
-                const currentDailyTotal = getDailyTotalHours(stepDate);
-                const addedHours = parseHours(stepTime);
-                if (currentDailyTotal + addedHours > maxDailyHours) {
-                    if (!confirm(`⚠️ 提醒：${stepDate} 跨領域累計總工時將達 ${(currentDailyTotal + addedHours).toFixed(1)} 小時，已超過設定單日上限 (${maxDailyHours} 小時)！確定要新增嗎？`)) {
-                        return;
-                    }
-                }
-            }
-
-            const weekRange = getCurrentWeekRange();
-            if (stepDate && stepDate >= weekRange.mondayStr && stepDate <= weekRange.sundayStr) {
-                const currentWeeklyTotal = getWeeklyTotalHours();
-                const addedHours = parseHours(stepTime);
-                if (currentWeeklyTotal + addedHours > maxWeeklyHours) {
-                    if (!confirm(`⚠️ 提醒：本週 (週一~週日) 跨領域累計總工時將達 ${(currentWeeklyTotal + addedHours).toFixed(1)} 小時，已超過設定週工時上限 (${maxWeeklyHours} 小時)！確定要新增嗎？`)) {
-                        return;
-                    }
-                }
-            }
-
-            const t = thoughts.find(x => x.id === thoughtId);
-            if (t) {
-                if (stepDate && t.targetDate && t.targetDate !== '未指定日期' && stepDate > t.targetDate) {
-                    return alert(`步驟預期日期 (${stepDate}) 不能超過最終目標預期日期 (${t.targetDate})！`);
-                }
-                t.steps.push({ id: Date.now(), text: text, stepDate: stepDate || '', stepTime: stepTime || '', stepTimeSlot: stepTimeSlot, done: false });
-                textInput.value = ''; if (dateInput) dateInput.value = ''; if (timeInput) timeInput.value = '';
-                saveData();
-            }
-        }
-
-        function duplicateStep(thoughtId, stepId) {
-            const t = thoughts.find(x => x.id === thoughtId);
-            if (!t) return;
-            const s = t.steps.find(x => x.id === stepId);
-            if (!s) return;
-
-            t.steps.push({ id: Date.now(), text: s.text, stepDate: s.stepDate || '', stepTime: s.stepTime || '', stepTimeSlot: s.stepTimeSlot || '全天', done: false });
-            saveData();
-        }
-
-        function toggleStep(thoughtId, stepId) {
-            const t = thoughts.find(x => x.id === thoughtId);
-            if (t) { const s = t.steps.find(x => x.id === stepId); if (s) { s.done = !s.done; saveData(); } }
-        }
-
-        function deleteStep(thoughtId, stepId) {
-            const t = thoughts.find(x => x.id === thoughtId);
-            if (t) { t.steps = t.steps.filter(x => x.id !== stepId); saveData(); }
-        }
-
-        function startEditStep(thoughtId, stepId) { editingStepIdKey = `${thoughtId}-${stepId}`; render(); }
-        function cancelEditStep() { editingStepIdKey = null; render(); }
-
-        function saveEditStep(thoughtId, stepId) {
-            const textInput = document.getElementById(`edit-step-text-${thoughtId}-${stepId}`);
-            const dateInput = document.getElementById(`edit-step-date-${thoughtId}-${stepId}`);
-            const timeInput = document.getElementById(`edit-step-time-${thoughtId}-${stepId}`);
-            const slotSelect = document.getElementById(`edit-step-slot-${thoughtId}-${stepId}`);
-
-            const text = textInput ? textInput.value.trim() : '';
-            const stepDate = dateInput ? dateInput.value : '';
-            const stepTime = timeInput ? timeInput.value.trim() : '';
-            const stepTimeSlot = slotSelect ? slotSelect.value : '全天';
-
-            if (!text) return alert("步驟內容不能為空！");
-
-            const blocked = getBlockedSlot(stepDate, stepTimeSlot);
-            if (blocked) {
-                return alert(`🚫 警告：${stepDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})！`);
-            }
-
-            if (stepDate) {
-                const currentDailyTotal = getDailyTotalHours(stepDate, stepId);
-                const newHours = parseHours(stepTime);
-                if (currentDailyTotal + newHours > maxDailyHours) {
-                    if (!confirm(`⚠️ 提醒：${stepDate} 跨領域累計總工時將達 ${(currentDailyTotal + newHours).toFixed(1)} 小時，已超過設定單日上限 (${maxDailyHours} 小時)！確定要儲存嗎？`)) {
-                        return;
-                    }
-                }
-            }
-
-            const weekRange = getCurrentWeekRange();
-            if (stepDate && stepDate >= weekRange.mondayStr && stepDate <= weekRange.sundayStr) {
-                const currentWeeklyTotal = getWeeklyTotalHours(stepId);
-                const newHours = parseHours(stepTime);
-                if (currentWeeklyTotal + newHours > maxWeeklyHours) {
-                    if (!confirm(`⚠️ 提醒：本週 (週一~週日) 跨領域累計總工時將達 ${(currentWeeklyTotal + newHours).toFixed(1)} 小時，已超過週工時上限 (${maxWeeklyHours} 小時)！確定要儲存嗎？`)) {
-                        return;
-                    }
-                }
-            }
-
-            const t = thoughts.find(x => x.id === thoughtId);
-            if (t) {
-                if (stepDate && t.targetDate && t.targetDate !== '未指定日期' && stepDate > t.targetDate) {
-                    return alert(`步驟日期 (${stepDate}) 不能超過目標日期 (${t.targetDate})！`);
-                }
-                const s = t.steps.find(x => x.id === stepId);
-                if (s) {
-                    if (s.linkedThoughtId && !validateChildStepsDate(s.linkedThoughtId, stepDate)) return;
-                    s.text = text; s.stepDate = stepDate; s.stepTime = stepTime; s.stepTimeSlot = stepTimeSlot; editingStepIdKey = null; saveData();
-                }
-            }
-        }
-
-        function handleDragStart(ev, type, thoughtId, stepId) {
-            draggedItemInfo = { type, thoughtId, stepId };
-            ev.dataTransfer.setData("text/plain", JSON.stringify(draggedItemInfo));
-        }
-
-        function handleDragOver(ev) { ev.preventDefault(); }
-
-        function handleDrop(ev, targetDate) {
-            ev.preventDefault();
-            if (!draggedItemInfo) return;
-
-            if (targetDate === '__prompt_new_date__') {
-                const { type, thoughtId, stepId } = draggedItemInfo;
-                openDatePickerModal(type, thoughtId, stepId);
-                draggedItemInfo = null;
-                return;
-            }
-
-            const { type, thoughtId, stepId } = draggedItemInfo;
-            const t = thoughts.find(x => x.id === thoughtId);
-            if (!t) return;
-
-            let itemSlot = '全天';
-            if (type === 'goal') itemSlot = t.targetTimeSlot || '全天';
-            else if (type === 'step') {
-                const s = t.steps.find(x => x.id === stepId);
-                if (s) itemSlot = s.stepTimeSlot || '全天';
-            }
-
-            if (targetDate !== '__unscheduled__') {
-                const blocked = getBlockedSlot(targetDate, itemSlot);
-                if (blocked) {
-                    alert(`🚫 警告：${targetDate} 的 [${blocked.timeSlot}] 已設定為不排事 (${blocked.note})！`);
-                    draggedItemInfo = null; return;
-                }
-            }
-
-            if (type === 'goal') {
-                if (targetDate !== '__unscheduled__' && !validateChildStepsDate(t.id, targetDate)) {
-                    draggedItemInfo = null; return;
-                }
-                t.targetDate = (targetDate === '__unscheduled__') ? '未指定日期' : targetDate;
-                saveData();
-            } else if (type === 'step') {
-                const newStepDate = (targetDate === '__unscheduled__') ? '' : targetDate;
-                if (newStepDate && t.targetDate && t.targetDate !== '未指定日期' && newStepDate > t.targetDate) {
-                    alert(`步驟預期日期 (${newStepDate}) 不能超過最終目標預期日期 (${t.targetDate})！`);
-                    draggedItemInfo = null; return;
-                }
-                const s = t.steps.find(x => x.id === stepId);
-                if (s) {
-                    if (s.linkedThoughtId && newStepDate && !validateChildStepsDate(s.linkedThoughtId, newStepDate)) {
-                        draggedItemInfo = null; return;
-                    }
-                    s.stepDate = newStepDate; saveData();
-                }
-            }
-            draggedItemInfo = null;
-        }
-
-        function exportData() {
-            if (thoughts.length === 0) return alert("目前沒有可匯出的思緒資料！");
-            const now = new Date();
-            const yyyy = now.getFullYear();
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            const dd = String(now.getDate()).padStart(2, '0');
-            const hh = String(now.getHours()).padStart(2, '0');
-            const min = String(now.getMinutes()).padStart(2, '0');
-            const ss = String(now.getSeconds()).padStart(2, '0');
-
-            const fileName = `BL-${yyyy}${mm}${dd}-${hh}${min}${ss}.json`;
-            
-            const exportPayload = {
-                thoughts: thoughts,
-                categoryOrder: categoryOrder,
-                blockedSlots: blockedSlots,
-                maxDailyHours: maxDailyHours,
-                maxWeeklyHours: maxWeeklyHours
-            };
-
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportPayload, null, 2));
-            const a = document.createElement('a'); a.href = dataStr;
-            a.download = fileName; a.click();
-        }
-
-        function importData(e) {
-            const file = e.target.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                try {
-                    const data = JSON.parse(evt.target.result);
-                    
-                    let importedThoughts = null;
-                    let importedCategoryOrder = null;
-                    let importedBlockedSlots = null;
-                    let importedMaxDaily = null;
-                    let importedMaxWeekly = null;
-
-                    if (Array.isArray(data)) {
-                        importedThoughts = data;
-                    } else if (data && typeof data === 'object') {
-                        if (Array.isArray(data.thoughts)) importedThoughts = data.thoughts;
-                        if (Array.isArray(data.categoryOrder)) importedCategoryOrder = data.categoryOrder;
-                        if (Array.isArray(data.blockedSlots)) importedBlockedSlots = data.blockedSlots;
-                        if (typeof data.maxDailyHours === 'number') importedMaxDaily = data.maxDailyHours;
-                        if (typeof data.maxWeeklyHours === 'number') importedMaxWeekly = data.maxWeeklyHours;
-                    }
-
-                    if (importedThoughts && confirm("確定匯入並覆蓋當前資料與領域順序設定？")) {
-                        thoughts = importedThoughts;
-                        
-                        if (importedCategoryOrder) {
-                            categoryOrder = importedCategoryOrder;
-                            localStorage.setItem('my_category_order', JSON.stringify(categoryOrder));
-                        }
-                        if (importedBlockedSlots) {
-                            blockedSlots = importedBlockedSlots;
-                            localStorage.setItem('my_blocked_slots', JSON.stringify(blockedSlots));
-                        }
-                        if (importedMaxDaily) {
-                            maxDailyHours = importedMaxDaily;
-                            localStorage.setItem('my_max_daily_hours', maxDailyHours);
-                        }
-                        if (importedMaxWeekly) {
-                            maxWeeklyHours = importedMaxWeekly;
-                            localStorage.setItem('my_max_weekly_hours', maxWeeklyHours);
-                        }
-
-                        editingId = null;
-                        activeCategory = "全部";
-                        saveData();
-                        alert("成功匯入備份資料與領域順序設定！");
-                    } else if (!importedThoughts) {
-                        alert("備份檔案內容無效。");
-                    }
-                } catch(err) { alert("備份檔案格式不正確。"); }
-            }; 
-            reader.readAsText(file); 
-            e.target.value = '';
-        }
-
-        function setCategoryTab(cat) { activeCategory = cat; render(); }
-
-        function render() {
-            syncLinkedData();
-            updateContainerWidth();
-            renderWeeklyStatsPanel();
-            const container = document.getElementById('mainContentList'); container.innerHTML = '';
-            if (viewMode === 'overview') renderOverview(container);
-            else if (viewMode === 'timeline') renderTimelineMatrix(container);
-            else renderCards(container);
-            if (hideCompletedGoalsCards && completedGoals.length > 0) {
-                const completedAccordion = document.createElement('div');
-                completedAccordion.className = "mt-6 pt-2";
-                completedAccordion.innerHTML = `
-                    <button type="button" onclick="toggleHideCompletedGoalsCards()" class="w-full p-3.5 bg-emerald-50/80 hover:bg-emerald-100/80 rounded-2xl border border-emerald-200 text-xs font-bold text-emerald-900 flex items-center justify-between cursor-pointer select-none transition-colors shadow-2xs">
-                        <span class="flex items-center gap-2">
-                            <span>🎉 已完成之目標卡片 (${completedGoals.length} 個)</span>
-                        </span>
-                        <span class="text-emerald-700 bg-white px-2.5 py-1 rounded-xl border border-emerald-200 text-[11px] font-extrabold shadow-2xs">
-                            ▼ 點擊展開顯示
-                        </span>
-                    </button>
-                `;
-                container.appendChild(completedAccordion);
-            }
-
-        }
-
-        function renderTimelineMatrix(container) {
-            const datesSet = new Set(customTimelineDates);
-            const categoriesList = getOrderedCategories();
-
-            blockedSlots.forEach(b => datesSet.add(b.date));
-            thoughts.forEach(t => {
-                if (t.targetDate && t.targetDate !== '未指定日期') datesSet.add(t.targetDate);
-                if (Array.isArray(t.steps)) { t.steps.forEach(s => { if (s.stepDate) datesSet.add(s.stepDate); }); }
+            [btnOverview, btnCards, btnTimeline].forEach(btn => {
+                if (btn) btn.className = 'flex-1 py-2.5 px-3 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900 whitespace-nowrap';
             });
 
-            let sortedDates = Array.from(datesSet).sort();
-            if (timelineStartDate) {
-                sortedDates = sortedDates.filter(d => d >= timelineStartDate);
+            if (viewMode === 'overview' && btnOverview) {
+                btnOverview.className = 'flex-1 py-2.5 px-3 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 bg-white text-indigo-600 shadow-md whitespace-nowrap';
+            } else if (viewMode === 'cards' && btnCards) {
+                btnCards.className = 'flex-1 py-2.5 px-3 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 bg-white text-indigo-600 shadow-md whitespace-nowrap';
+            } else if (viewMode === 'timeline' && btnTimeline) {
+                btnTimeline.className = 'flex-1 py-2.5 px-3 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 bg-white text-indigo-600 shadow-md whitespace-nowrap';
             }
 
-            const undatedGoals = thoughts.filter(t => !t.targetDate || t.targetDate === '未指定日期');
-            const undatedSteps = [];
-            thoughts.forEach(t => { if (Array.isArray(t.steps)) { t.steps.forEach(s => { if (!s.stepDate) undatedSteps.push({ thought: t, step: s }); }); } });
-
-            const wrapper = document.createElement('div');
-            wrapper.className = "bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4 w-full";
-
-            let dateFilterControlHtml = `
-                <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-100/90 p-3 rounded-xl border border-slate-200">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs font-bold text-slate-700">📅 起始日期：</span>
-                        <input type="date" value="${timelineStartDate}" onchange="changeTimelineStartDate(this.value)" class="px-2.5 py-1 text-xs border border-slate-300 rounded-lg text-slate-800 font-medium bg-white">
-                    </div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <div class="flex items-center gap-1">
-                            <span class="text-xs font-bold text-slate-700">⏱️ 單日工時上限：</span>
-                            <input type="number" min="1" max="24" step="0.5" value="${maxDailyHours}" oninput="updateMaxDailyHours(this.value)" onchange="updateMaxDailyHours(this.value)" class="w-16 px-2 py-1 text-xs border border-slate-300 rounded-lg text-slate-800 font-bold bg-white text-center">
-                            <span class="text-xs text-slate-500">小時</span>
-                        </div>
-                        <button onclick="setTimelineStartToToday()" class="text-xs bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold px-3 py-1 rounded-lg border border-emerald-300 transition-colors">🌟 從今天開始</button>
-                        <button onclick="showAllTimelineHistory()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-3 py-1 rounded-lg transition-colors">📜 顯示全部歷史</button>
-                    </div>
-                </div>
-            `;
-
-            let blockedManagerHtml = `
-                <div class="bg-rose-50/80 p-3.5 rounded-xl border border-rose-200 space-y-2">
-                    <div class="flex items-center justify-between cursor-pointer select-none" onclick="toggleBlockPanel()">
-                        <span class="text-xs font-bold text-rose-900 flex items-center gap-1.5">
-                            <span>🚫 設定不排事/忙碌時段 (${blockedSlots.length} 個設定)</span>
-                            <span class="text-[10px] text-rose-700 bg-white px-2 py-0.5 rounded font-normal border border-rose-200">（點擊展開/收納）</span>
-                        </span>
-                        <button type="button" class="text-[11px] font-bold text-rose-800 bg-white hover:bg-rose-100 px-2.5 py-1 rounded-lg border border-rose-300 transition-colors">
-                            ${isBlockPanelOpen ? '➖ 收納設定' : '➕ 展開設定'}
-                        </button>
-                    </div>
-
-                    <div class="${isBlockPanelOpen ? 'block' : 'hidden'} pt-2 border-t border-rose-200/80 space-y-2">
-                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                            <input type="date" id="blockDateInput" class="px-2 py-1 text-xs border border-rose-300 rounded-lg text-slate-800">
-                            <select id="blockTimeSlotSelect" class="px-2 py-1 text-xs border border-rose-300 rounded-lg bg-white text-slate-800 font-medium">
-                                <option value="全天">全天 (00:00 - 24:00)</option>
-                                <option value="上午">上午 (08:00 - 12:00)</option>
-                                <option value="下午">下午 (13:00 - 18:00)</option>
-                                <option value="晚上">晚上 (18:00 - 22:00)</option>
-                                <option value="夜間">夜間 (22:00 - 08:00)</option>
-                            </select>
-                            <input type="text" id="blockNoteInput" placeholder="原因 (如:休假/重要會議)" class="px-2 py-1 text-xs border border-rose-300 rounded-lg text-slate-800">
-                            <button onclick="addBlockedSlot()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3 py-1 rounded-lg transition-colors">＋ 設定不排事</button>
-                        </div>
-
-                        ${blockedSlots.length > 0 ? `
-                            <div class="flex flex-wrap gap-1.5 pt-1">
-                                ${blockedSlots.map(b => `
-                                    <span class="inline-flex items-center gap-1 text-[11px] bg-white text-rose-800 border border-rose-200 px-2 py-0.5 rounded-md font-medium">
-                                        🚫 ${b.date} [${b.timeSlot}] (${b.note})
-                                        <button onclick="deleteBlockedSlot(${b.id})" class="text-rose-400 hover:text-rose-700 font-bold ml-1">✕</button>
-                                    </span>
-                                `).join('')}
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-
-            let unscheduledHtml = `
-                <div ondragover="handleDragOver(event)" ondrop="handleDrop(event, '__unscheduled__')"
-                    class="bg-slate-100/90 p-3.5 rounded-xl border-2 border-dashed border-slate-300 space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-slate-800">📌 待排定/未指定日期的目標與步驟 (${undatedGoals.length + undatedSteps.length})</span>
-                        <span class="text-[11px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded font-bold">💡 提示：拖拉至下方日期即可完成排程</span>
-                    </div>
-                    <div class="flex flex-wrap gap-2 pt-1">
-            `;
-
-            if (undatedGoals.length === 0 && undatedSteps.length === 0) {
-                unscheduledHtml += `<span class="text-xs text-slate-400 italic">所有目標與步驟皆已完成日期排程！</span>`;
-            } else {
-                undatedGoals.forEach(g => {
-                    unscheduledHtml += `<div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" ondblclick="jumpToGoalEdit(${g.id})" class="p-2 bg-amber-100 border border-amber-300 rounded-lg text-amber-950 text-xs font-bold shadow-sm cursor-grab">🎯 [${g.category}] ${g.goal || g.text}</div>`;
-                });
-                undatedSteps.forEach(item => {
-                    unscheduledHtml += `<div draggable="true" ondragstart="handleDragStart(event, 'step', ${item.thought.id}, ${item.step.id})" ondblclick="jumpToStepEdit(${item.thought.id}, ${item.step.id})" class="p-2 bg-white border border-slate-300 rounded-lg text-slate-800 text-xs font-bold shadow-sm cursor-grab">📋 [${item.thought.category}] ${item.step.text}</div>`;
-                });
-            }
-            unscheduledHtml += `</div></div>`;
-
-            let html = dateFilterControlHtml + blockedManagerHtml + unscheduledHtml;
-
-            html += `
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3 pt-2">
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <h2 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                            <span>⏳ 跨領域時間對照視圖</span>
-                            <span class="text-xs font-normal text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">💡 雙擊卡片可直接跳轉至看板編輯</span>
-                        </h2>
-                        <div class="flex items-center gap-1 bg-slate-200/80 p-1 rounded-xl">
-                            <button onclick="toggleTimelineXMode('collapsed')" class="px-3 py-1 text-xs font-bold rounded-lg transition-all ${timelineXMode === 'collapsed' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}">
-                                📋 每日事項合起模式
-                            </button>
-                            <button onclick="toggleTimelineXMode('expanded')" class="px-3 py-1 text-xs font-bold rounded-lg transition-all ${timelineXMode === 'expanded' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}">
-                                ↔️ 領域展開模式
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-2 flex-wrap">
-                        ${timelineXMode === 'expanded' ? `
-                            <button onclick="scrollTimelineLeft()" class="text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg border border-slate-300 font-bold" title="向左捲動領域欄位">◀ 領域滾動</button>
-                            <button onclick="scrollTimelineRight()" class="text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg border border-slate-300 font-bold" title="向右捲動領域欄位">領域滾動 ▶</button>
-                        ` : ''}
-                        <input type="date" id="newDateRowInput" class="px-2.5 py-1 text-xs border border-slate-300 rounded-lg text-slate-700">
-                        <button onclick="addCustomDateRow()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-lg border border-indigo-200">➕ 插入新日期行</button>
-                    </div>
-                </div>
-
-                <div ondragover="handleDragOver(event)" ondrop="handleDrop(event, '__prompt_new_date__')" class="p-2.5 border-2 border-dashed border-indigo-300 bg-indigo-50/50 rounded-xl text-center text-xs text-indigo-700 font-bold hover:bg-indigo-100/50 cursor-pointer">
-                    📍 拖曳卡片至此處放開 ➔ 快速點選月曆指定全新日期與時段
-                </div>
-
-                <div id="timelineTableContainer" class="max-h-[70vh] overflow-y-auto overflow-x-auto rounded-xl border border-slate-200 w-full scroll-smooth">
-                    <table class="w-full border-collapse text-sm min-w-full">
-                        <thead class="sticky top-0 z-20 bg-indigo-100 border-b-2 border-indigo-200 shadow-sm">
-                            <tr class="text-indigo-950 font-bold text-sm">
-                                <th class="p-3.5 text-left border border-indigo-200 w-36 bg-indigo-100 shrink-0">📅 日期時間</th>
-                                ${timelineXMode === 'expanded' 
-                                    ? categoriesList.map(c => `<th class="p-3.5 text-left border border-indigo-200 bg-indigo-100 text-indigo-950 min-w-[160px] font-bold text-sm">${c}</th>`).join('')
-                                    : `<th class="p-3.5 text-left border border-indigo-200 bg-indigo-100 text-indigo-950 font-bold text-sm">📋 當日預定要做的事項 (按領域合起)</th>`
-                                }
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-
-            if (sortedDates.length === 0) {
-                html += `<tr><td colspan="${timelineXMode === 'expanded' ? categoriesList.length + 1 : 2}" class="text-center py-8 text-slate-400 text-xs">起始日期以內尚無任何目標排程。點擊「📜 顯示全部歷史」可查閱過往記錄。</td></tr>`;
-            }
-
-            sortedDates.forEach(date => {
-                const dateInfo = getDateStatus(date);
-                const dayBlocks = blockedSlots.filter(b => b.date === date);
-                const totalHoursOnDate = getDailyTotalHours(date);
-                const isOverHoursLimit = totalHoursOnDate > maxDailyHours;
-
-                html += `<tr ondragover="handleDragOver(event)" ondrop="handleDrop(event, '${date}')" class="hover:bg-slate-100/50 transition-colors">`;
-                html += `<td class="p-3.5 border border-slate-200 font-bold text-sm ${dateInfo.style} align-top shrink-0">
-                    <div>${date}</div>
-                    <div>${dateInfo.badge}</div>
-                    ${totalHoursOnDate > 0 ? `
-                        <div class="mt-1 text-[10px] ${isOverHoursLimit ? 'bg-amber-600 text-white font-bold' : 'bg-indigo-100 text-indigo-900 font-semibold'} px-1.5 py-0.5 rounded-md inline-block">
-                            ⏱️ 總工時: ${totalHoursOnDate.toFixed(1)}h ${isOverHoursLimit ? '⚠️已超標' : ''}
-                        </div>
-                    ` : ''}
-                    ${dayBlocks.length > 0 ? `<div class="mt-1 flex flex-wrap gap-1">${dayBlocks.map(b => `<span class="text-[10px] bg-rose-600 text-white font-bold px-1.5 py-0.5 rounded-md">🚫 不排事 (${b.timeSlot})</span>`).join('')}</div>` : ''}
-                </td>`;
-
-                if (timelineXMode === 'expanded') {
-                    categoriesList.forEach(cat => {
-                        html += `<td class="p-2.5 border border-slate-200 align-top space-y-1.5 ${dayBlocks.length > 0 ? 'bg-rose-50/30' : (dateInfo.isToday ? 'bg-emerald-50/20' : (dateInfo.isPast ? 'bg-slate-50/40' : 'bg-white'))}">`;
-
-                        if (dayBlocks.length > 0) {
-                            dayBlocks.forEach(b => {
-                                html += `<div class="p-1.5 rounded-lg bg-rose-100/80 text-rose-900 border border-rose-200 text-[11px] font-bold">🚫 不排事: ${b.timeSlot} (${b.note})</div>`;
-                            });
-                        }
-
-                        let cellItems = [];
-                        const matchingGoals = thoughts.filter(t => (t.category || '💼 事業') === cat && t.targetDate === date);
-                        matchingGoals.forEach(g => cellItems.push({ type: 'goal', slot: g.targetTimeSlot || '全天', item: g }));
-
-                        thoughts.filter(t => (t.category || '💼 事業') === cat).forEach(t => {
-                            if (Array.isArray(t.steps)) {
-                                t.steps.filter(s => s.stepDate === date).forEach(s => cellItems.push({ type: 'step', slot: s.stepTimeSlot || '全天', parentThought: t, item: s }));
-                            }
-                        });
-
-                        cellItems.sort((a, b) => (slotPriorityMap[a.slot] || 0) - (slotPriorityMap[b.slot] || 0));
-
-                        cellItems.forEach(ci => {
-                            if (ci.type === 'goal') {
-                                const g = ci.item;
-                                html += `
-                                    <div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" ondblclick="jumpToGoalEdit(${g.id})"
-                                        class="p-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab" title="雙擊跳轉至看板編輯該目標">
-                                        <label class="flex items-start gap-1.5 cursor-pointer">
-                                            <input type="checkbox" ${g.goalDone ? 'checked' : ''} onchange="toggleGoalDone(${g.id})" class="mt-0.5 w-3.5 h-3.5 text-amber-600 rounded">
-                                            <span class="${g.goalDone ? 'line-through text-slate-400 font-normal' : 'font-bold text-slate-900'} text-xs leading-snug">🎯 ${g.goal || g.text}</span>
-                                        </label>
-                                    </div>
-                                `;
-                            } else if (ci.type === 'step') {
-                                const s = ci.item;
-                                const t = ci.parentThought;
-                                html += `
-                                    <div draggable="true" ondragstart="handleDragStart(event, 'step', ${t.id}, ${s.id})" ondblclick="jumpToStepEdit(${t.id}, ${s.id})"
-                                        class="p-2 rounded-xl bg-white border border-slate-200 text-slate-900 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab" title="雙擊跳轉至看板編輯該步驟">
-                                        <label class="flex items-start gap-1.5 cursor-pointer">
-                                            <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${t.id}, ${s.id})" class="mt-0.5 w-3.5 h-3.5 text-indigo-600 rounded">
-                                            <span class="${s.done ? 'line-through text-slate-400 font-normal' : 'font-medium text-slate-800'} text-xs leading-snug">${s.text}</span>
-                                        </label>
-                                    </div>
-                                `;
-                            }
-                        });
-
-                        html += `</td>`;
-                    });
-                } else {
-                    html += `<td class="p-2.5 border border-slate-200 align-top ${dayBlocks.length > 0 ? 'bg-rose-50/30' : (dateInfo.isToday ? 'bg-emerald-50/20' : (dateInfo.isPast ? 'bg-slate-50/40' : 'bg-white'))}">`;
-
-                    if (dayBlocks.length > 0) {
-                        dayBlocks.forEach(b => {
-                            html += `<div class="p-1.5 rounded-lg bg-rose-100/80 text-rose-900 border border-rose-200 text-[11px] font-bold mb-2">🚫 不排事: ${b.timeSlot} (${b.note})</div>`;
-                        });
-                    }
-
-                    let dayItems = [];
-                    thoughts.forEach(t => {
-                        if (t.targetDate === date) {
-                            dayItems.push({ type: 'goal', slot: t.targetTimeSlot || '全天', category: t.category || '💼 事業', item: t });
-                        }
-                        if (Array.isArray(t.steps)) {
-                            t.steps.filter(s => s.stepDate === date).forEach(s => {
-                                dayItems.push({ type: 'step', slot: s.stepTimeSlot || '全天', category: t.category || '💼 事業', parentThought: t, item: s });
-                            });
-                        }
-                    });
-
-                    dayItems.sort((a, b) => (slotPriorityMap[a.slot] || 0) - (slotPriorityMap[b.slot] || 0));
-
-                    if (dayItems.length === 0) {
-                        html += `<div class="text-xs text-slate-400 italic py-1">無排定事項</div>`;
-                    } else {
-                        html += `<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">`;
-                        dayItems.forEach(ci => {
-                            if (ci.type === 'goal') {
-                                const g = ci.item;
-                                html += `
-                                    <div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" ondblclick="jumpToGoalEdit(${g.id})"
-                                        class="p-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab flex flex-col justify-between" title="雙擊跳轉至看板編輯該目標">
-                                        <label class="flex items-start gap-1.5 cursor-pointer">
-                                            <input type="checkbox" ${g.goalDone ? 'checked' : ''} onchange="toggleGoalDone(${g.id})" class="mt-0.5 w-3.5 h-3.5 text-amber-600 rounded">
-                                            <span class="${g.goalDone ? 'line-through text-slate-400 font-normal' : 'font-bold text-slate-900'} text-xs leading-snug">🎯 ${g.goal || g.text}</span>
-                                        </label>
-                                        <div class="text-[10px] text-amber-800/80 mt-1.5 font-semibold text-right">${ci.category}</div>
-                                    </div>
-                                `;
-                            } else if (ci.type === 'step') {
-                                const s = ci.item;
-                                const t = ci.parentThought;
-                                html += `
-                                    <div draggable="true" ondragstart="handleDragStart(event, 'step', ${t.id}, ${s.id})" ondblclick="jumpToStepEdit(${t.id}, ${s.id})"
-                                        class="p-2 rounded-xl bg-white border border-slate-200 text-slate-900 shadow-2xs hover:shadow-sm transition-all select-none cursor-grab flex flex-col justify-between" title="雙擊跳轉至看板編輯該步驟">
-                                        <label class="flex items-start gap-1.5 cursor-pointer">
-                                            <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${t.id}, ${s.id})" class="mt-0.5 w-3.5 h-3.5 text-indigo-600 rounded">
-                                            <span class="${s.done ? 'line-through text-slate-400 font-normal' : 'font-medium text-slate-800'} text-xs leading-snug">${s.text}</span>
-                                        </label>
-                                        <div class="text-[10px] text-indigo-600 mt-1.5 font-semibold text-right">${ci.category}</div>
-                                    </div>
-                                `;
-                            }
-                        });
-                        html += `</div>`;
-                    }
-
-                    html += `</td>`;
-                }
-
-                html += `</tr>`;
-            });
-
-            html += `</tbody></table></div>`;
-            wrapper.innerHTML = html;
-            container.appendChild(wrapper);
+            if (viewMode === 'overview') renderOverview(mainContentList);
+            else if (viewMode === 'cards') renderCards(mainContentList);
+            else if (viewMode === 'timeline') renderTimelineMatrix(mainContentList);
         }
 
-        function renderOverview(container) {
-            if (thoughts.length === 0) {
-                container.innerHTML = `<div class="text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200 text-sm">目前尚無記錄！</div>`;
-                return;
-            }
-
-            const categoriesList = getOrderedCategories();
-
-            const dashboardBox = document.createElement('div');
-            dashboardBox.className = "bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 mb-6 space-y-3";
-
-            let dashboardHtml = `
-                <div class="border-b border-slate-100 pb-2.5">
-                    <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                        <span>📊 各領域目標與工時精簡儀表板</span>
-                        <span class="text-xs font-normal text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">💡 點擊卡片可直接跳轉至該領域看板</span>
-                    </h2>
-                    <p class="text-xs text-slate-500 mt-0.5">即時統計各領域之目標達成率與工時完成狀況</p>
-                </div>
-
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    ${categoriesList.map(cat => {
-                        const stats = getCategoryStats(cat);
-                        const percentGoals = stats.totalGoals > 0 ? Math.round((stats.completedGoals / stats.totalGoals) * 100) : 0;
-                        const strokeDash = Math.round((percentGoals / 100) * 100);
-
-                        return `
-                            <div onclick="jumpToCardsCategory('${escapeAttr(cat)}')" 
-                                class="bg-slate-50/90 hover:bg-indigo-50/60 p-3.5 rounded-xl border border-slate-200 hover:border-indigo-300 text-center flex flex-col items-center justify-between space-y-2 cursor-pointer transition-all group shadow-xs hover:shadow-sm" 
-                                title="點擊跳轉至「${cat}」看板分頁進行編輯">
-                                <div class="relative w-14 h-14 flex items-center justify-center">
-                                    <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                                        <path class="text-slate-200" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                        <path class="text-indigo-600 stroke-current transition-all duration-500" stroke-width="3.5" stroke-dasharray="${strokeDash}, 100" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                    </svg>
-                                    <span class="absolute text-xs font-extrabold text-slate-800">${percentGoals}%</span>
-                                </div>
-                                <div class="font-bold text-xs text-slate-900 group-hover:text-indigo-600 truncate w-full flex items-center justify-center gap-1">
-                                    <span>${cat}</span>
-                                    <span class="text-[10px] text-indigo-500 font-normal">🔗</span>
-                                </div>
-                                <div class="space-y-0.5 text-[11px] w-full">
-                                    <div class="text-slate-600 font-medium">🎯 目標: <span class="font-bold text-slate-800">${stats.completedGoals}/${stats.totalGoals}</span></div>
-                                    <div class="text-slate-600 font-medium">⏱️ 工時: <span class="font-bold text-emerald-600">${stats.completedHours.toFixed(1)}h</span> / ${stats.totalHours.toFixed(1)}h</div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            `;
-
-            dashboardBox.innerHTML = dashboardHtml;
-            container.appendChild(dashboardBox);
-
-            const viewControlWrapper = document.createElement('div');
-            viewControlWrapper.className = "space-y-3";
-
-            let viewControlHtml = `
-                <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
-                    <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
-                        <span>🎯 各領域與目標全覽視圖</span>
-                    </h2>
-                    <div class="flex items-center gap-1.5 bg-slate-200/80 p-1 rounded-xl">
-                        <button onclick="toggleOverviewSubMode('grid')" class="px-3 py-1 text-xs font-bold rounded-lg transition-all ${overviewSubMode === 'grid' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}">
-                            📱 網格全覽 (不需左右滾動)
-                        </button>
-                        <button onclick="toggleOverviewSubMode('matrix')" class="px-3 py-1 text-xs font-bold rounded-lg transition-all ${overviewSubMode === 'matrix' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}">
-                            ↔️ 橫向對照矩陣
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            if (overviewSubMode === 'grid') {
-                viewControlHtml += `
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-                        ${categoriesList.map(cat => {
-                            const cardList = thoughts.filter(t => (t.category || '💼 事業') === cat);
-                            const stats = getCategoryStats(cat);
-                            const percentGoals = stats.totalGoals > 0 ? Math.round((stats.completedGoals / stats.totalGoals) * 100) : 0;
-
-                            return `
-                                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3 flex flex-col justify-between hover:border-indigo-200 transition-all">
-                                    <div>
-                                        <div onclick="jumpToCardsCategory('${escapeAttr(cat)}')" class="flex items-center justify-between border-b border-slate-100 pb-2.5 cursor-pointer group" title="點擊跳轉至「${cat}」看板分頁">
-                                            <h3 class="font-bold text-base text-slate-900 group-hover:text-indigo-600 flex items-center gap-1.5">
-                                                <span>${cat}</span>
-                                                <span class="text-xs text-indigo-500">🔗</span>
-                                            </h3>
-                                            <div class="flex items-center gap-1.5">
-                                                <span class="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-bold border border-indigo-100">${cardList.length} 個目標</span>
-                                                <span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-bold border border-emerald-100">${percentGoals}%</span>
-                                            </div>
-                                        </div>
-
-                                        <div class="space-y-2.5 mt-3">
-                                            ${cardList.length === 0 ? `<div class="text-xs text-slate-400 italic py-3 text-center">尚無目標</div>` : ''}
-                                            ${cardList.map((t, i) => {
-                                                const steps = Array.isArray(t.steps) ? t.steps : [];
-                                                const doneCount = steps.filter(s => s.done).length;
-                                                const totalCount = steps.length;
-                                                const percent = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
-
-                                                return `
-                                                    <div onclick="jumpToCardsCategory('${escapeAttr(cat)}')" class="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 hover:border-indigo-400 hover:shadow-xs transition-all space-y-1.5 cursor-pointer" title="點擊跳轉至「${cat}」看板分頁編輯此目標">
-                                                        <div class="flex items-start justify-between gap-2">
-                                                            <div class="flex items-start gap-1.5 flex-1 min-w-0">
-                                                                <span class="inline-flex items-center justify-center bg-indigo-100 text-indigo-700 font-bold text-[10px] w-4 h-4 rounded-full shrink-0 mt-0.5">${i + 1}</span>
-                                                                <span class="font-bold text-slate-900 text-xs truncate leading-snug hover:text-indigo-600">${t.text}</span>
-                                                            </div>
-                                                            <span class="text-[10px] text-indigo-600 font-extrabold bg-indigo-50 px-1.5 py-0.5 rounded shrink-0">${doneCount}/${totalCount} (${percent}%)</span>
-                                                        </div>
-
-                                                        <div class="flex items-center justify-between text-[10px] text-slate-500">
-                                                            <span class="text-amber-800 font-medium truncate">🎯 <span class="${t.goalDone ? 'line-through text-slate-400' : ''}">${t.goal || '未設定'}</span></span>
-                                                            <span class="shrink-0 font-medium">📅 ${t.targetDate || '未指定'}</span>
-                                                        </div>
-
-                                                        <div class="w-full bg-slate-200 h-1 rounded-full overflow-hidden">
-                                                            <div class="bg-indigo-600 h-full transition-all duration-300" style="width: ${percent}%"></div>
-                                                        </div>
-                                                    </div>
-                                                `;
-                                            }).join('')}
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                `;
-            } else {
-                viewControlHtml += `
-                    <div class="flex items-center justify-end gap-1.5 mb-2">
-                        <button onclick="scrollMatrixLeft()" class="text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg border border-slate-300 font-bold" title="向左捲動">◀ 滾動</button>
-                        <button onclick="scrollMatrixRight()" class="text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg border border-slate-300 font-bold" title="向右捲動">滾動 ▶</button>
-                    </div>
-
-                    <div id="matrixScrollContainer" class="overflow-x-auto pb-4 scroll-smooth w-full">
-                        <div class="flex gap-3.5 items-start min-w-max">
-                            ${categoriesList.map(cat => {
-                                const cardList = thoughts.filter(t => (t.category || '💼 事業') === cat);
-
-                                return `
-                                    <div class="w-64 sm:w-72 bg-white p-3.5 rounded-2xl shadow-sm border border-slate-200 space-y-3 shrink-0">
-                                        <div onclick="jumpToCardsCategory('${escapeAttr(cat)}')" class="flex items-center justify-between border-b border-slate-100 pb-2.5 cursor-pointer hover:text-indigo-600 group" title="點擊跳轉至「${cat}」看板分頁">
-                                            <h3 class="font-bold text-sm text-slate-900 group-hover:text-indigo-600 flex items-center gap-1.5">
-                                                <span>${cat}</span>
-                                                <span class="text-xs text-indigo-500">🔗</span>
-                                            </h3>
-                                            <span class="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-bold border border-indigo-100">${cardList.length} 個目標</span>
-                                        </div>
-
-                                        <div class="space-y-3">
-                                            ${cardList.length === 0 ? `<div class="text-xs text-slate-400 italic py-4 text-center">尚無目標</div>` : ''}
-                                            ${cardList.map((t, i) => {
-                                                const steps = Array.isArray(t.steps) ? t.steps : [];
-                                                const doneCount = steps.filter(s => s.done).length;
-                                                const totalCount = steps.length;
-                                                const percent = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
-
-                                                return `
-                                                    <div onclick="jumpToCardsCategory('${escapeAttr(cat)}')" class="bg-slate-50/90 p-3 rounded-xl border border-slate-200/80 hover:border-indigo-400 hover:shadow-sm transition-all space-y-2 cursor-pointer" title="點擊跳轉至「${cat}」看板分頁編輯此目標">
-                                                        <div class="flex items-start gap-2">
-                                                            <span class="inline-flex items-center justify-center bg-indigo-100 text-indigo-700 font-bold text-xs w-5 h-5 rounded-full shrink-0 mt-0.5">${i + 1}</span>
-                                                            <div class="flex-1 min-w-0">
-                                                                <h4 class="font-bold text-slate-900 text-sm leading-snug hover:text-indigo-600 transition-colors">${t.text}</h4>
-                                                                <div class="text-xs text-amber-800 font-medium mt-1">🎯 <span class="${t.goalDone ? 'line-through text-slate-400' : ''}">${t.goal || '未設定'}</span></div>
-                                                            </div>
-                                                        </div>
-
-                                                        ${t.detail ? `<p class="text-[11px] text-slate-600 bg-white/80 p-2 rounded-lg whitespace-pre-wrap leading-relaxed border border-slate-200/60">📝 ${t.detail}</p>` : ''}
-
-                                                        <div class="flex items-center justify-between text-[11px] text-slate-500 font-medium pt-1">
-                                                            <span>📅 ${t.targetDate || '未指定'} (${t.targetTimeSlot || '全天'})</span>
-                                                            <span class="text-indigo-600 font-bold">${doneCount}/${totalCount} (${percent}%)</span>
-                                                        </div>
-
-                                                        <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                                                            <div class="bg-indigo-600 h-full transition-all duration-300" style="width: ${percent}%"></div>
-                                                        </div>
-                                                    </div>
-                                                `;
-                                            }).join('')}
-                                        </div>
-                                    </div>
-                                `;
-                            }).join('')}
-                        </div>
-                    </div>
-                `;
-            }
-
-            viewControlWrapper.innerHTML = viewControlHtml;
-            container.appendChild(viewControlWrapper);
-        }
-
-        function renderCards(container) {
-            const categoriesList = getOrderedCategories();
-
-            const tabsContainer = document.getElementById('categoryTabs');
-            if (tabsContainer) {
-                tabsContainer.innerHTML = '';
-                const displayCategories = ['全部', ...categoriesList];
-                if (!displayCategories.includes(activeCategory)) activeCategory = '全部';
-
-                displayCategories.forEach((cat) => {
-                    const count = cat === '全部' ? thoughts.length : thoughts.filter(t => (t.category || '💼 事業') === cat).length;
-                    const isActive = (activeCategory === cat);
-                    
-                    const tabWrapper = document.createElement('div');
-                    tabWrapper.className = `px-3.5 py-1.5 text-xs font-semibold rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 select-none shrink-0 ${
-                        isActive ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200'
-                    }`;
-
-                    let tabContentHtml = `
-                        <span onclick="setCategoryTab('${escapeAttr(cat)}')" class="cursor-pointer flex items-center gap-1">
-                            ${cat} <span class="${isActive ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'} px-1.5 py-0.5 rounded-full text-[10px]">${count}</span>
-                        </span>
-                    `;
-
-                    if (isReorderMode && cat !== '全部') {
-                        tabContentHtml += `
-                            <span class="inline-flex gap-1 ml-1 pl-1 border-l ${isActive ? 'border-indigo-400' : 'border-slate-300'}">
-                                <button type="button" onclick="moveCategoryLeft('${escapeAttr(cat)}', event)" class="hover:bg-black/20 rounded px-1 font-bold text-xs cursor-pointer" title="向左移">‹</button>
-                                <button type="button" onclick="moveCategoryRight('${escapeAttr(cat)}', event)" class="hover:bg-black/20 rounded px-1 font-bold text-xs cursor-pointer" title="向右移">›</button>
-                            </span>
-                        `;
-                    }
-
-                    tabWrapper.innerHTML = tabContentHtml;
-                    tabsContainer.appendChild(tabWrapper);
-                });
-            }
-
-            const allCategoryGoals = activeCategory === '全部' ? thoughts : thoughts.filter(t => (t.category || '💼 事業') === activeCategory);
-            const pendingGoals = allCategoryGoals.filter(t => !t.goalDone);
-            const completedGoals = allCategoryGoals.filter(t => t.goalDone);
-
-            if (allCategoryGoals.length > 0) {
-                const cardsControlBar = document.createElement('div');
-                cardsControlBar.className = "mb-4 flex items-center justify-between flex-wrap gap-2 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs";
-                cardsControlBar.innerHTML = `
-                    <div class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                        <span>🎴 「${activeCategory}」領域看板 (${pendingGoals.length} 個進行中 / 共 ${allCategoryGoals.length} 個目標)</span>
-                    </div>
-                    ${completedGoals.length > 0 ? `
-                        <button type="button" onclick="toggleHideCompletedGoalsCards()" class="px-3 py-1.5 text-xs font-bold rounded-xl border transition-all ${
-                            hideCompletedGoalsCards ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
-                        }">
-                            ${hideCompletedGoalsCards ? `🙈 已收合 ${completedGoals.length} 個完成目標 (點擊展開)` : '👁️ 已顯示全部目標 (點擊收合完成目標)'}
-                        </button>
-                    ` : ''}
-                `;
-                container.appendChild(cardsControlBar);
-            }
-
-            const goalsToRender = hideCompletedGoalsCards ? pendingGoals : allCategoryGoals;
-
-            if (allCategoryGoals.length === 0) {
-                const emptyEl = document.createElement('div');
-                emptyEl.className = "text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200 text-sm";
-                emptyEl.innerHTML = `目前「${activeCategory}」領域尚無記錄！`;
-                container.appendChild(emptyEl);
-                return;
-            } else if (goalsToRender.length === 0 && hideCompletedGoalsCards) {
-                const emptyEl = document.createElement('div');
-                emptyEl.className = "text-center py-12 text-slate-500 bg-white rounded-2xl border border-slate-200 text-sm space-y-2";
-                emptyEl.innerHTML = `
-                    <div class="font-bold">🎉 「${activeCategory}」領域目前所有目標皆已完成！</div>
-                    <button type="button" onclick="toggleHideCompletedGoalsCards()" class="text-xs text-indigo-600 font-bold bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl border border-indigo-200 transition-colors">👁️ 點擊展開查看已完成的 ${completedGoals.length} 個目標卡片</button>
-                `;
-                container.appendChild(emptyEl);
-                return;
-            }
-
-            goalsToRender.forEach((thought, index) => {
-                const card = document.createElement('div');
-                card.id = `card-${thought.id}`;
-                card.className = "bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden";
-                const isEdit = (editingId === thought.id);
-                const maxDateAttr = (thought.targetDate && thought.targetDate !== '未指定日期') ? `max="${thought.targetDate}"` : '';
-
-                const steps = Array.isArray(thought.steps) ? thought.steps : [];
-                const pendingSteps = steps.filter(s => !s.done);
-                const completedSteps = steps.filter(s => s.done);
-                const isShowCompleted = !!showCompletedStepsMap[thought.id];
-
-                const renderStepItem = (s, stepIdx) => {
-                    const isEditingThisStep = (editingStepIdKey === `${thought.id}-${s.id}`);
-                    
-                    if (isEditingThisStep) {
-                        return `
-                            <li id="step-item-${thought.id}-${s.id}" class="p-2.5 bg-amber-50/60 rounded-xl border border-amber-200 space-y-2">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-[11px] font-bold text-amber-800">✏️ 編輯步驟</span>
-                                    <div class="flex gap-1">
-                                        <button onclick="cancelEditStep()" class="text-[10px] bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-1 rounded">取消</button>
-                                        <button onclick="saveEditStep(${thought.id}, ${s.id})" class="text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded shadow-sm">💾 儲存</button>
-                                    </div>
-                                </div>
-                                <input type="text" id="edit-step-text-${thought.id}-${s.id}" value="${s.text.replace(/"/g, '&quot;')}" class="w-full px-2.5 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                                <div class="grid grid-cols-3 gap-2">
-                                    <input type="date" id="edit-step-date-${thought.id}-${s.id}" value="${s.stepDate || ''}" ${maxDateAttr} class="px-2 py-1 text-xs border border-slate-300 rounded text-slate-700">
-                                    <div class="relative w-full">
-                                        <select id="edit-step-slot-${thought.id}-${s.id}" class="w-full px-2 py-1 text-xs border border-slate-300 rounded bg-white text-slate-800 font-medium">
-                                            <option value="全天" ${s.stepTimeSlot === '全天' ? 'selected' : ''}>全天</option>
-                                            <option value="上午" ${s.stepTimeSlot === '上午' ? 'selected' : ''}>上午</option>
-                                            <option value="下午" ${s.stepTimeSlot === '下午' ? 'selected' : ''}>下午</option>
-                                            <option value="晚上" ${s.stepTimeSlot === '晚上' ? 'selected' : ''}>晚上</option>
-                                            <option value="夜間" ${s.stepTimeSlot === '夜間' ? 'selected' : ''}>夜間</option>
-                                        </select>
-                                    </div>
-                                    <input type="text" id="edit-step-time-${thought.id}-${s.id}" value="${(s.stepTime || '').replace(/"/g, '&quot;')}" placeholder="工時(如2小時)" class="px-2 py-1 text-xs border border-slate-300 rounded">
-                                </div>
-                            </li>
-                        `;
-                    } else {
-                        return `
-                            <li id="step-item-${thought.id}-${s.id}" class="flex flex-col sm:flex-row sm:items-center justify-between py-2 px-3 bg-slate-50 rounded-xl gap-2">
-                                <label class="flex items-center gap-2.5 cursor-pointer flex-1">
-                                    <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep(${thought.id}, ${s.id})" class="w-4 h-4 text-indigo-600 rounded border-slate-300">
-                                    <span class="${s.done ? 'line-through text-slate-400' : 'text-slate-700'} text-sm font-medium">${s.text}</span>
-                                </label>
-                                <div class="flex items-center gap-1.5 text-[11px] ml-6 sm:ml-0 flex-wrap">
-                                    <span class="inline-flex gap-0.5 bg-slate-200/80 rounded px-1 text-slate-600 font-bold">
-                                        <button type="button" onclick="moveStepUp(${thought.id}, ${s.id})" class="hover:text-indigo-600 px-0.5" title="往上移">▲</button>
-                                        <button type="button" onclick="moveStepDown(${thought.id}, ${s.id})" class="hover:text-indigo-600 px-0.5" title="往下移">▼</button>
-                                    </span>
-                                    ${s.stepDate ? `<span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-md font-medium">📅 ${s.stepDate} [${s.stepTimeSlot || '全天'}]</span>` : ''}
-                                    ${s.stepTime ? `<span class="bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-md font-medium">⏰ ${s.stepTime}</span>` : ''}
-                                    <button onclick="startEditStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors">✏️ 編輯</button>
-                                    ${s.linkedThoughtId && thoughts.find(x => x.id === s.linkedThoughtId) ? `
-                                        <span onclick="jumpToGoalEdit(${s.linkedThoughtId})" class="inline-flex items-center gap-1 text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-lg font-bold cursor-pointer transition-colors shadow-2xs" title="點擊直接跳轉至此獨立拆解目標">
-                                            🌱 已轉獨立目標：${escapeAttr(thoughts.find(x => x.id === s.linkedThoughtId).goal || thoughts.find(x => x.id === s.linkedThoughtId).text)} 🔗
-                                        </span>
-                                    ` : `
-                                        <button onclick="promoteStepToGoal(${thought.id}, ${s.id})" class="text-xs bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-2.5 py-1 rounded-lg font-bold border border-emerald-200 transition-colors shadow-2xs">
-                                            🌱 轉目標
-                                        </button>
-                                    `}
-                                    <button onclick="duplicateStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors">📋 複製</button>
-                                    <button onclick="deleteStep(${thought.id}, ${s.id})" class="text-slate-400 hover:text-red-500 px-1 py-1">🗑️ 刪除</button>
-                                </div>
-                            </li>
-                        `;
-                    }
-                };
-
-                let stepsHtml = '';
-                if (pendingSteps.length > 0) {
-                    stepsHtml += pendingSteps.map(renderStepItem).join('');
-                } else if (completedSteps.length === 0) {
-                    stepsHtml += `<li class="text-xs text-slate-400 text-center py-2 italic">尚無任何拆解步驟</li>`;
-                }
-
-                if (completedSteps.length > 0) {
-                    stepsHtml += `
-                        <li class="pt-2 border-t border-slate-100">
-                            <button type="button" onclick="toggleShowCompletedSteps(${thought.id})" class="w-full py-2 px-3 bg-slate-100/90 hover:bg-slate-200/90 text-slate-700 font-bold text-xs rounded-xl flex items-center justify-between transition-colors cursor-pointer border border-slate-200 select-none">
-                                <span class="flex items-center gap-1.5">
-                                    <span>✅ 已完成步驟 (${completedSteps.length} 個)</span>
-                                </span>
-                                <span class="text-indigo-600 bg-white px-2 py-0.5 rounded-md border border-indigo-100 text-[11px] shadow-2xs font-extrabold">
-                                    ${isShowCompleted ? '▲ 收合步驟' : '▼ 點擊展開'}
-                                </span>
-                            </button>
-                            ${isShowCompleted ? `
-                                <ul class="space-y-2 mt-2 pl-2 border-l-2 border-emerald-300">
-                                    ${completedSteps.map(renderStepItem).join('')}
-                                </ul>
-                            ` : ''}
-                        </li>
-                    `;
-                }
-
-                if (isEdit) {
-                    card.innerHTML = `
-                        <div class="p-5 bg-amber-50/40 border-b border-amber-200/60 space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">✏️ 正在編輯 #${index + 1}</span>
-                                <div class="flex gap-2">
-                                    <button onclick="cancelEdit()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1.5 rounded-lg font-medium">取消</button>
-                                    <button onclick="saveEdit(${thought.id})" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1.5 rounded-lg font-medium shadow-sm">💾 儲存修改</button>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">領域類別：</label>
-                                    <input type="text" id="edit-cat-${thought.id}" value="${(thought.category || '💼 事業').replace(/"/g, '&quot;')}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white">
-                                </div>
-                                <div class="md:col-span-2">
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">思緒 / 想法主題：</label>
-                                    <input type="text" id="edit-text-${thought.id}" value="${thought.text.replace(/"/g, '&quot;')}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg">
-                                </div>
-                                <div class="md:col-span-3">
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">📝 詳細思緒 / 備忘說明 (可斷行)：</label>
-                                    <textarea id="edit-detail-${thought.id}" rows="3" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg">${thought.detail || ''}</textarea>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">🎯 最終目標：</label>
-                                    <input type="text" id="edit-goal-${thought.id}" value="${(thought.goal || '').replace(/"/g, '&quot;')}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">📅 預期達成日期：</label>
-                                    <input type="date" id="edit-date-${thought.id}" value="${thought.targetDate !== '未指定日期' ? (thought.targetDate || '') : ''}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg">
-                                </div>
-                                <div class="relative w-full">
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">⏰ 目標時段：</label>
-                                    <select id="edit-slot-${thought.id}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white font-medium">
-                                        <option value="全天" ${thought.targetTimeSlot === '全天' ? 'selected' : ''}>全天</option>
-                                        <option value="上午" ${thought.targetTimeSlot === '上午' ? 'selected' : ''}>上午</option>
-                                        <option value="下午" ${thought.targetTimeSlot === '下午' ? 'selected' : ''}>下午</option>
-                                        <option value="晚上" ${thought.targetTimeSlot === '晚上' ? 'selected' : ''}>晚上</option>
-                                        <option value="夜間" ${thought.targetTimeSlot === '夜間' ? 'selected' : ''}>夜間</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    card.innerHTML = `
-                        <div class="p-4 border-b border-slate-100 bg-slate-50/50">
-                            <div class="flex items-start justify-between gap-3 mb-2">
-                                <div class="flex items-start gap-3">
-                                    <span class="inline-flex items-center justify-center bg-indigo-100 text-indigo-700 font-bold text-sm w-7 h-7 rounded-full shrink-0 mt-0.5">${index + 1}</span>
-                                    <div>
-                                        <span class="inline-block bg-slate-200/80 text-slate-700 font-semibold text-[10px] px-2 py-0.5 rounded-md mb-1">${thought.category || '💼 事業'}</span>
-                                        ${thought.parentStepInfo && thoughts.find(x => x.id === thought.parentStepInfo.parentThoughtId) ? `
-                                            <span onclick="jumpToStepEdit(${thought.parentStepInfo.parentThoughtId}, ${thought.parentStepInfo.parentStepId})" class="inline-block bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-[11px] px-2.5 py-0.5 rounded-md mb-1 ml-1 cursor-pointer transition-colors shadow-2xs" title="點擊直接跳轉至母思緒卡片的對應步驟">
-                                                🔗 來自母步驟：${escapeAttr(thoughts.find(x => x.id === thought.parentStepInfo.parentThoughtId).text)}
-                                            </span>
-                                        ` : ''}
-                                        <h2 class="font-bold text-slate-800 text-lg leading-snug">${thought.text}</h2>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-2 shrink-0 pt-0.5">
-                                    <button onclick="duplicateThought(${thought.id})" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1 rounded-md font-medium border border-slate-200">📋 複製</button>
-                                    <button onclick="startEdit(${thought.id})" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1 rounded-md font-medium border border-slate-200">✏️ 編輯卡片</button>
-                                    <button onclick="deleteThought(${thought.id})" class="text-xs text-slate-400 hover:text-red-500 px-1 py-1">刪除</button>
-                                </div>
-                            </div>
-                            <div class="ml-10 space-y-2">
-                                ${thought.detail ? `<p class="text-xs text-slate-600 bg-white/80 p-2.5 rounded-xl whitespace-pre-wrap leading-relaxed border border-slate-200/60">📝 ${thought.detail}</p>` : ''}
-                                <div class="flex flex-wrap gap-2 text-xs">
-                                    <label class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-900 border border-amber-200/80 px-2.5 py-1 rounded-md font-medium cursor-pointer">
-                                        <input type="checkbox" ${thought.goalDone ? 'checked' : ''} onchange="toggleGoalDone(${thought.id})" class="w-4 h-4 text-amber-600 rounded border-slate-300">
-                                        <span class="${thought.goalDone ? 'line-through text-slate-400 font-normal' : 'font-bold'}">🎯 最終目標：${thought.goal || '未設定'}</span>
-                                    </label>
-                                    <span class="inline-flex items-center gap-1 bg-indigo-50 text-indigo-800 border border-indigo-200/60 px-2.5 py-1 rounded-md font-medium">📅 預期日期：${thought.targetDate || '未指定'} [${thought.targetTimeSlot || '全天'}]</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-4">
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">📋 行動拆解步驟與時程</h3>
-                            <ul class="space-y-2 mb-4">${stepsHtml || '<li class="text-xs text-slate-400 italic">尚未新增拆解步驟...</li>'}</ul>
-                            
-                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/80">
-                                <div class="flex flex-col gap-2">
-                                    <input type="text" id="step-text-${thought.id}" placeholder="+ 新增步驟內容..." class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
-                                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                                        <input type="date" id="step-date-${thought.id}" ${maxDateAttr} class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
-                                        <div class="relative w-full">
-                                            <select id="step-slot-${thought.id}" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
-                                                <option value="全天">全天</option>
-                                                <option value="上午">上午</option>
-                                                <option value="下午">下午</option>
-                                                <option value="晚上">晚上</option>
-                                                <option value="夜間">夜間</option>
-                                            </select>
-                                        </div>
-                                        <input type="text" id="step-time-${thought.id}" placeholder="預估工時(如2小時)" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
-                                        <button onclick="addStep(${thought.id})" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">＋ 新增步驟</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-
-                container.appendChild(card);
-            });
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const thoughtInput = document.getElementById('thoughtInput');
-            if (thoughtInput) {
-                thoughtInput.addEventListener('keypress', function (e) {
-                    if (e.key === 'Enter') addThought();
-                });
-            }
-
-            const tabsContainer = document.getElementById('tabsScrollContainer');
-            if (tabsContainer) {
-                tabsContainer.addEventListener('wheel', (e) => {
-                    if (e.deltaY !== 0) {
-                        e.preventDefault();
-                        tabsContainer.scrollLeft += e.deltaY;
-                    }
-                });
-            }
-
-            const matrixContainer = document.getElementById('matrixScrollContainer');
-            if (matrixContainer) {
-                matrixContainer.addEventListener('wheel', (e) => {
-                    if (e.deltaY !== 0) {
-                        e.preventDefault();
-                        matrixContainer.scrollLeft += e.deltaY;
-                    }
-                });
-            }
-
-            const timelineContainer = document.getElementById('timelineTableContainer');
-            if (timelineContainer) {
-                timelineContainer.addEventListener('wheel', (e) => {
-                    if (e.shiftKey) {
-                        e.preventDefault();
-                        timelineContainer.scrollLeft += e.deltaY;
-                    }
-                });
-            }
+        window.addEventListener('load', () => {
+            render();
+            checkAndAutoSyncFromPi();
         });
 
-        render();
+        window.addEventListener('focus', () => {
+            checkAndAutoSyncFromPi();
+        });
     </script>
 </body>
 </html>
-
