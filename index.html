@@ -247,6 +247,20 @@ const todayObj = new Date();
 const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
 let timelineStartDate = (storedTimelineStart !== null) ? storedTimelineStart : todayStr;
 
+// UI & Interaction State Variables
+let activeCategory = "全部";
+let viewMode = "overview";
+let overviewSubMode = "grid";
+let timelineXMode = "collapsed";
+let isFormOpen = false;
+let isBlockPanelOpen = false;
+let editingId = null;
+let editingStepIdKey = null;
+let isReorderMode = false;
+let draggedItemInfo = null;
+let pendingDropItem = null;
+const slotPriorityMap = { '全天': 0, '上午': 1, '下午': 2, '晚上': 3, '夜間': 4 };
+
 let piServerUrl = (localStorage.getItem('pi_server_url') || '').trim();
 let piApiKey = (localStorage.getItem('pi_api_key') || '').trim();
 let piAccount = (localStorage.getItem('pi_account') || '').trim().replace(/[^a-zA-Z0-9_-]/g, '');
