@@ -196,73 +196,56 @@
     </div>
     <script>
         window.onerror = function(msg, url, line, col, error) {
-            var banner = document.getElementById('globalErrorBanner');
-            if (!banner) {
-                banner = document.createElement('div');
-                banner.id = 'globalErrorBanner';
-                banner.className = 'bg-rose-600 text-white p-4 font-bold text-xs sticky top-0 z-50 shadow-md flex items-center justify-between';
-                banner.innerHTML = '<span>⚠️ 程式腳本載入錯誤 (第 ' + line + ' 行): ' + msg + '</span><button onclick="this.parentElement.remove()" class="bg-white/20 px-2 py-0.5 rounded text-white font-bold">✕</button>';
-                document.body.prepend(banner);
-            }
-            return false;
-        };
+    var banner = document.getElementById('globalErrorBanner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'globalErrorBanner';
+        banner.className = 'bg-rose-600 text-white p-4 font-bold text-xs sticky top-0 z-50 shadow-md flex items-center justify-between';
+        banner.innerHTML = '<span>⚠️ 程式腳本載入錯誤 (第 ' + line + ' 行): ' + msg + '</span><button onclick="this.parentElement.remove()" class="bg-white/20 px-2 py-0.5 rounded text-white font-bold">✕</button>';
+        document.body.prepend(banner);
+    }
+    return false;
+};
 
+function escapeAttr(str) {
+    if (!str) return '';
+    return String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
 
-        function escapeAttr(str) {
-            if (!str) return '';
-            return String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
-        }
-
-
-        let thoughts = [];
-
+let thoughts = [];
 try { thoughts = JSON.parse(localStorage.getItem('my_thoughts_local')) || []; } catch(e) { thoughts = []; }
-        if (!Array.isArray(thoughts) || thoughts.length === 0) {
-            thoughts = [
-                { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", detail: "每週固定跑步 3 次。", goal: "順利完賽 11 月半程馬拉松", goalDone: false, targetDate: "2026-11-30", targetTimeSlot: "上午", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "1.5小時", stepTimeSlot: "上午", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", stepTimeSlot: "全天", done: false }] },
-                { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援總覽模式網格全覽一目瞭然與零左右滾動。", goal: "發布支援網格全覽的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計總覽模式響應式多欄網格與視圖切換", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
-            ];
-        }
+if (!Array.isArray(thoughts) || thoughts.length === 0) {
+    thoughts = [
+        { id: Date.now(), category: "❤️ 健康", text: "規畫半馬跑步訓練計劃", detail: "每週固定跑步 3 次。", goal: "順利完賽 11 月半程馬拉松", goalDone: false, targetDate: "2026-11-30", targetTimeSlot: "上午", steps: [{ id: 1, text: "每週安排 3 次 5K 輕鬆跑", stepDate: "2026-08-10", stepTime: "1.5小時", stepTimeSlot: "上午", done: true }, { id: 2, text: "購買合適慢跑鞋", stepDate: "", stepTime: "", stepTimeSlot: "全天", done: false }] },
+        { id: Date.now() + 1, category: "💼 事業", text: "建立個人專案管理系統", detail: "支援總覽模式網格全覽一目瞭然與零左右滾動。", goal: "發布支援網格全覽的 App", goalDone: false, targetDate: "2026-12-31", targetTimeSlot: "全天", steps: [{ id: 1, text: "設計總覽模式響應式多欄網格與視圖切換", stepDate: "2026-08-08", stepTime: "2小時", stepTimeSlot: "下午", done: true }] }
+    ];
+}
 
+thoughts.forEach(t => {
+    if (!Array.isArray(t.steps)) t.steps = [];
+    if (t.goalDone === undefined) t.goalDone = false;
+    if (!t.category) t.category = '💼 事業';
+    if (!t.targetTimeSlot) t.targetTimeSlot = '全天';
+    t.steps.forEach(s => {
+        if (s.done === undefined) s.done = false;
+        if (!s.stepTimeSlot) s.stepTimeSlot = '全天';
+    });
+});
 
-        thoughts.forEach(t => {
-            if (!Array.isArray(t.steps)) t.steps = [];
-            if (t.goalDone === undefined) t.goalDone = false;
-            if (!t.category) t.category = '💼 事業';
-            if (!t.targetTimeSlot) t.targetTimeSlot = '全天';
-            t.steps.forEach(s => {
-                if (s.done === undefined) s.done = false;
-                if (!s.stepTimeSlot) s.stepTimeSlot = '全天';
-            });
-        });
+let blockedSlots = [];
+try { blockedSlots = JSON.parse(localStorage.getItem('my_blocked_slots')) || []; } catch(e) { blockedSlots = []; }
 
+let customTimelineDates = [];
+let categoryOrder = [];
+try { categoryOrder = JSON.parse(localStorage.getItem('my_category_order')) || []; } catch(e) { categoryOrder = []; }
 
-        let blockedSlots = [];
-        try { blockedSlots = JSON.parse(localStorage.getItem('my_blocked_slots')) || []; } catch(e) { blockedSlots = []; }
+let maxDailyHours = parseFloat(localStorage.getItem('my_max_daily_hours')) || 8;
+let maxWeeklyHours = parseFloat(localStorage.getItem('my_max_weekly_hours')) || 40;
+let storedTimelineStart = localStorage.getItem('my_timeline_start_date');
 
-
-        let customTimelineDates = [];
-        let categoryOrder = [];
-        try { categoryOrder = JSON.parse(localStorage.getItem('my_category_order')) || []; } catch(e) { categoryOrder = []; }
-
-
-        let maxDailyHours = parseFloat(localStorage.getItem('my_max_daily_hours')) || 8;
-        let maxWeeklyHours = parseFloat(localStorage.getItem('my_max_weekly_hours')) || 40;
-        let storedTimelineStart = localStorage.getItem('my_timeline_start_date');
-
-
-        const todayObj = new Date();
-        const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
-
-
-        
-        let piServerUrl = (localStorage.getItem('pi_server_url') || '').trim();
-        let piApiKey = (localStorage.getItem('pi_api_key') || '').trim();
-        let lastSyncedFileName = localStorage.getItem('pi_last_synced_file') || '';
-        let autoSaveTimer = null;
-
-
-        let showCompletedStepsMap = {};
+const todayObj = new Date();
+const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
+let timelineStartDate = (storedTimelineStart !== null) ? storedTimelineStart : todayStr;
 
 let piServerUrl = (localStorage.getItem('pi_server_url') || '').trim();
 let piApiKey = (localStorage.getItem('pi_api_key') || '').trim();
