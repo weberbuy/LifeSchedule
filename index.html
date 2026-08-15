@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
@@ -32,10 +32,8 @@
             </div>
         </header>
 
-
         <!-- 📊 本週 (週一~週日) 總工時統計與警示面板 -->
         <div id="weeklyStatsPanel" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4"></div>
-
 
         <!-- 三模式切換列 -->
         <div class="mb-6 bg-slate-200/80 p-1.5 rounded-2xl flex items-center shadow-inner border border-slate-300/60 gap-1 overflow-x-auto">
@@ -49,7 +47,6 @@
                 ⏳ 時間軸模式 (對照矩陣)
             </button>
         </div>
-
 
         <!-- 表單輸入區 -->
         <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6">
@@ -80,13 +77,11 @@
                         <input type="text" id="thoughtInput" placeholder="例如：規畫半馬跑步訓練..." class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
 
-
                     <div class="md:col-span-3">
                         <label class="block text-xs font-semibold text-slate-600 mb-1">📝 詳細思緒 / 備忘說明 (可斷行)：</label>
                         <textarea id="detailInput" rows="3" placeholder="在此填入更詳細的想法、背景說明或注意事項..." 
                             class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
                     </div>
-
 
                     <div class="md:col-span-1">
                         <label class="block text-xs font-semibold text-slate-600 mb-1">🎯 最終目標：</label>
@@ -108,13 +103,11 @@
                     </div>
                 </div>
 
-
                 <div class="flex justify-end pt-1">
                     <button onclick="addThought()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-6 py-2.5 rounded-xl transition-colors shadow-sm">＋ 新增思緒目標</button>
                 </div>
             </div>
         </div>
-
 
         <!-- 頁籤列 -->
         <div id="tabsSection" class="mb-6 hidden">
@@ -133,7 +126,6 @@
             </div>
         </div>
 
-
         <!-- 樹莓派連線設定彈出視窗 -->
         <div id="piSettingsModal" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 hidden z-50">
             <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100 space-y-4">
@@ -147,8 +139,6 @@
                         <input type="text" id="piServerUrlInput" placeholder="例如: https://pi.yourdomain.com 或 http://192.168.1.100:3000" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">API 金鑰 (x-api-key)：</label>
-                                            <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">使用者帳號 (Account)：</label>
                         <input type="text" id="piAccountInput" placeholder="例如: weber, alice (英數不含空格)" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono">
                         <p class="text-[10px] text-slate-400 mt-0.5">💡 備份檔將命名為 BL-...-[帳號].json，實現多帳號隔離儲存</p>
@@ -164,7 +154,6 @@
                 </div>
             </div>
         </div>
-
 
         <!-- 日期選擇器彈出視窗 -->
         <div id="datePickerModal" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 hidden z-50">
@@ -190,12 +179,12 @@
             </div>
         </div>
 
-
         <!-- 主顯示區塊 -->
         <div id="mainContentList" class="space-y-6"></div>
     </div>
+
     <script>
-        window.onerror = function(msg, url, line, col, error) {
+window.onerror = function(msg, url, line, col, error) {
     var banner = document.getElementById('globalErrorBanner');
     if (!banner) {
         banner = document.createElement('div');
