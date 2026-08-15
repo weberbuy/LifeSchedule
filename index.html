@@ -2684,20 +2684,35 @@ function renderCards(container) {
         }
 
 function render() {
-            syncLinkedData();
-            updateContainerWidth();
-            renderWeeklyStatsPanel();
-            const container = document.getElementById('mainContentList'); container.innerHTML = '';
-            if (viewMode === 'overview') renderOverview(container);
-            else if (viewMode === 'timeline') renderTimelineMatrix(container);
-            else renderCards(container);
-        }
+    syncLinkedData();
+    updateContainerWidth();
+    renderWeeklyStatsPanel();
+    const container = document.getElementById('mainContentList');
+    if (!container) return;
+    container.innerHTML = '';
+    if (viewMode === 'overview') renderOverview(container);
+    else if (viewMode === 'timeline') renderTimelineMatrix(container);
+    else renderCards(container);
+}
 
+window.addEventListener('DOMContentLoaded', () => {
+    render();
+    checkAndAutoSyncFromPi();
+});
 
+window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        checkAndAutoSyncFromPi();
+    }
+});
 
-        window.addEventListener('focus', () => {
-            checkAndAutoSyncFromPi();
-        });
+window.addEventListener('focus', () => {
+    checkAndAutoSyncFromPi();
+});
+
+// Immediate execution to ensure UI renders instantly on load
+render();
+checkAndAutoSyncFromPi();
     </script>
 </body>
 </html>
