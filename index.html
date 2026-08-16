@@ -14,7 +14,7 @@
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.3.6-test (總覽點擊目標精確跳轉定位修復版)</span>
+                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.3.7-test (步驟重複循環與自動順延下一次驗證版)</span>
                 </div>
                 <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 雙擊目標/步驟精密區分跳轉編輯</p>
             </div>
@@ -228,6 +228,7 @@ thoughts.forEach(t => {
     t.steps.forEach(s => {
         if (s.done === undefined) s.done = false;
         if (!s.stepTimeSlot) s.stepTimeSlot = '全天';
+                if (!s.recurrence) s.recurrence = 'none';
     });
 });
 
@@ -608,6 +609,36 @@ async function checkAndAutoSyncFromPi() {
     } catch (e) {
         updatePiSyncBadge('⚠️ 連線失敗 (點擊重試)', 'bg-rose-50 text-rose-700 border-rose-200');
     }
+}
+
+function getRecurrenceLabel(recurrence) {
+    if (recurrence === 'daily') return '每日循環';
+    if (recurrence === 'weekdays') return '工作日(一~五)';
+    if (recurrence === 'weekly') return '每週循環';
+    if (recurrence === 'monthly') return '每月循環';
+    return '';
+}
+
+function getNextRecurrenceDate(baseDateStr, recurrence) {
+    if (!baseDateStr || baseDateStr === '未指定日期') baseDateStr = todayStr;
+    const d = new Date(baseDateStr + 'T00:00:00');
+    if (isNaN(d.getTime())) return todayStr;
+
+    if (recurrence === 'daily') {
+        d.setDate(d.getDate() + 1);
+    } else if (recurrence === 'weekdays') {
+        do {
+            d.setDate(d.getDate() + 1);
+        } while (d.getDay() === 0 || d.getDay() === 6); // Skip Sun(0) & Sat(6)
+    } else if (recurrence === 'weekly') {
+        d.setDate(d.getDate() + 7);
+    } else if (recurrence === 'monthly') {
+        d.setMonth(d.getMonth() + 1);
+    }
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
 }
 
 function jumpToCardsCategory(cat) {
@@ -1408,7 +1439,7 @@ function updateContainerWidth() {
             const dateInput = document.getElementById(`step-date-${thoughtId}`);
             const timeInput = document.getElementById(`step-time-${thoughtId}`);
             const slotSelect = document.getElementById(`step-slot-${thoughtId}`);
-
+            const recSelect = document.getElementById(`step-recurrence-${thoughtId}`);
 
             const text = textInput ? textInput.value.trim() : '';
             const stepDate = dateInput ? dateInput.value : '';
@@ -1416,6 +1447,7 @@ function updateContainerWidth() {
             const parsedH = parseFloat(rawTime);
             const stepTime = (!isNaN(parsedH) && parsedH > 0) ? `${parsedH}小時` : '';
             const stepTimeSlot = slotSelect ? slotSelect.value : '全天';
+            const recurrence = recSelect ? recSelect.value : 'none';
 
 
             if (!text) return alert("請填入步驟內容！");
@@ -1476,7 +1508,23 @@ function updateContainerWidth() {
 
         function toggleStep(thoughtId, stepId) {
             const t = thoughts.find(x => x.id === thoughtId);
-            if (t) { const s = t.steps.find(x => x.id === stepId); if (s) { s.done = !s.done; saveData(); } }
+            if (!t) return;
+            const s = (t.steps || []).find(x => x.id === stepId);
+            if (!s) return;
+
+            // 方案一：步驟重複循環與自動順延下一次
+            if (!s.done && s.recurrence && s.recurrence !== 'none') {
+                const nextDate = getNextRecurrenceDate(s.stepDate || todayStr, s.recurrence);
+                const oldDate = s.stepDate || '今天';
+                s.stepDate = nextDate;
+                s.done = false; // 保持為未完成狀態，等待下一個週期
+                saveData();
+                const recLabel = getRecurrenceLabel(s.recurrence);
+                alert(`🎉 步驟「${s.text}」已完成本次 (${oldDate})！\n\n🔄 [${recLabel}] 已自動為您順延排程至下一次：${nextDate}`);
+            } else {
+                s.done = !s.done;
+                saveData();
+            }
         }
 
 
@@ -1495,7 +1543,7 @@ function updateContainerWidth() {
             const dateInput = document.getElementById(`edit-step-date-${thoughtId}-${stepId}`);
             const timeInput = document.getElementById(`edit-step-time-${thoughtId}-${stepId}`);
             const slotSelect = document.getElementById(`edit-step-slot-${thoughtId}-${stepId}`);
-
+            const recSelect = document.getElementById(`edit-step-recurrence-${thoughtId}-${stepId}`);
 
             const text = textInput ? textInput.value.trim() : '';
             const stepDate = dateInput ? dateInput.value : '';
@@ -1503,6 +1551,7 @@ function updateContainerWidth() {
             const parsedH = parseFloat(rawTime);
             const stepTime = (!isNaN(parsedH) && parsedH > 0) ? `${parsedH}小時` : '';
             const stepTimeSlot = slotSelect ? slotSelect.value : '全天';
+            const recurrence = recSelect ? recSelect.value : 'none';
 
 
             if (!text) return alert("步驟內容不能為空！");
@@ -1545,7 +1594,7 @@ function updateContainerWidth() {
                 const s = t.steps.find(x => x.id === stepId);
                 if (s) {
                     if (s.linkedThoughtId && !validateChildStepsDate(s.linkedThoughtId, stepDate)) return;
-                    s.text = text; s.stepDate = stepDate; s.stepTime = stepTime; s.stepTimeSlot = stepTimeSlot; editingStepIdKey = null; saveData();
+                    s.text = text; s.stepDate = stepDate; s.stepTime = stepTime; s.stepTimeSlot = stepTimeSlot; s.recurrence = recurrence; editingStepIdKey = null; saveData();
                 }
             }
         }
@@ -2393,6 +2442,7 @@ function renderCards(container) {
                                         <button type="button" onclick="moveStepDown(${thought.id}, ${s.id})" class="hover:text-indigo-600 px-0.5" title="往下移">▼</button>
                                     </span>
                                     ${s.stepDate ? `<span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-md font-medium">📅 ${s.stepDate} [${s.stepTimeSlot || '全天'}]</span>` : ''}
+                                    ${s.recurrence && s.recurrence !== 'none' ? `<span class="bg-teal-50 text-teal-800 border border-teal-200 px-2 py-0.5 rounded-md font-medium">🔄 ${getRecurrenceLabel(s.recurrence)}</span>` : ''}
                                     ${s.stepTime ? `<span class="bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-md font-medium">⏰ ${s.stepTime}</span>` : ''}
                                     <button onclick="startEditStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors">✏️ 編輯</button>
                                     ${s.linkedThoughtId && thoughts.find(x => x.id === s.linkedThoughtId) ? `
