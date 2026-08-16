@@ -14,7 +14,7 @@
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.3.5-test (已完成目標卡片預設自動收合修復版)</span>
+                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.3.6-test (總覽點擊目標精確跳轉定位修復版)</span>
                 </div>
                 <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 雙擊目標/步驟精密區分跳轉編輯</p>
             </div>
@@ -615,31 +615,63 @@ function jumpToCardsCategory(cat) {
             setViewMode('cards');
         }
 
+        function jumpToGoalCard(thoughtId) {
+            const t = thoughts.find(x => x.id === thoughtId);
+            if (!t) return;
+            activeCategory = t.category || '💼 事業';
+            if (t.goalDone && hideCompletedGoalsCards) {
+                hideCompletedGoalsCards = false;
+                localStorage.setItem('hide_completed_goals_cards', 'false');
+            }
+            editingId = null;
+            editingStepIdKey = null;
+            setViewMode('cards');
+
+            setTimeout(() => {
+                const el = document.getElementById(`card-${thoughtId}`);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.classList.add('ring-4', 'ring-indigo-500', 'ring-offset-2', 'transition-all', 'duration-500');
+                    setTimeout(() => {
+                        el.classList.remove('ring-4', 'ring-indigo-500', 'ring-offset-2');
+                    }, 2000);
+                }
+            }, 150);
+        }
 
         function jumpToGoalEdit(thoughtId) {
             const t = thoughts.find(x => x.id === thoughtId);
             if (!t) return;
             activeCategory = t.category || '💼 事業';
+            if (t.goalDone && hideCompletedGoalsCards) {
+                hideCompletedGoalsCards = false;
+                localStorage.setItem('hide_completed_goals_cards', 'false');
+            }
             editingId = thoughtId;
             editingStepIdKey = null;
             setViewMode('cards');
 
-
             setTimeout(() => {
                 const el = document.getElementById(`card-${thoughtId}`);
                 if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 100);
+            }, 150);
         }
-
 
         function jumpToStepEdit(thoughtId, stepId) {
             const t = thoughts.find(x => x.id === thoughtId);
             if (!t) return;
             activeCategory = t.category || '💼 事業';
+            if (t.goalDone && hideCompletedGoalsCards) {
+                hideCompletedGoalsCards = false;
+                localStorage.setItem('hide_completed_goals_cards', 'false');
+            }
+            const step = (t.steps || []).find(s => s.id === stepId);
+            if (step && step.done) {
+                showCompletedStepsMap[thoughtId] = true;
+            }
             editingId = null;
             editingStepIdKey = `${thoughtId}-${stepId}`;
             setViewMode('cards');
-
 
             setTimeout(() => {
                 const el = document.getElementById(`step-item-${thoughtId}-${stepId}`);
@@ -649,7 +681,7 @@ function jumpToCardsCategory(cat) {
                     const cardEl = document.getElementById(`card-${thoughtId}`);
                     if (cardEl) cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
-            }, 100);
+            }, 150);
         }
 
 
@@ -2117,7 +2149,7 @@ function renderOverview(container) {
 
 
                                                 return `
-                                                    <div onclick="jumpToCardsCategory('${escapeAttr(cat)}')" class="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 hover:border-indigo-400 hover:shadow-xs transition-all space-y-1.5 cursor-pointer" title="點擊跳轉至「${cat}」看板分頁編輯此目標">
+                                                    <div onclick="jumpToGoalCard(${t.id})" class="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 hover:border-indigo-400 hover:shadow-xs transition-all space-y-1.5 cursor-pointer" title="點擊跳轉至看板模式並精確定位至此目標卡片">
                                                         <div class="flex items-start justify-between gap-2">
                                                             <div class="flex items-start gap-1.5 flex-1 min-w-0">
                                                                 <span class="inline-flex items-center justify-center bg-indigo-100 text-indigo-700 font-bold text-[10px] w-4 h-4 rounded-full shrink-0 mt-0.5">${i + 1}</span>
@@ -2181,7 +2213,7 @@ function renderOverview(container) {
 
 
                                                 return `
-                                                    <div onclick="jumpToCardsCategory('${escapeAttr(cat)}')" class="bg-slate-50/90 p-3 rounded-xl border border-slate-200/80 hover:border-indigo-400 hover:shadow-sm transition-all space-y-2 cursor-pointer" title="點擊跳轉至「${cat}」看板分頁編輯此目標">
+                                                    <div onclick="jumpToGoalCard(${t.id})" class="bg-slate-50/90 p-3 rounded-xl border border-slate-200/80 hover:border-indigo-400 hover:shadow-sm transition-all space-y-2 cursor-pointer" title="點擊跳轉至看板模式並精確定位至此目標卡片">
                                                         <div class="flex items-start gap-2">
                                                             <span class="inline-flex items-center justify-center bg-indigo-100 text-indigo-700 font-bold text-xs w-5 h-5 rounded-full shrink-0 mt-0.5">${i + 1}</span>
                                                             <div class="flex-1 min-w-0">
