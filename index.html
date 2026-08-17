@@ -1216,7 +1216,7 @@ function updateContainerWidth() {
             let badge = `<span class="text-slate-400 font-normal text-[10px] ml-1">(週${dayName})</span>`;
             if (isToday) {
                 style = "bg-emerald-50/90 border-emerald-300";
-                badge = `<span class="bg-emerald-600 text-white font-bold text-[10px] px-1.5 py-0.5 rounded-full ml-1 shadow-sm">今日 ð</span>`;
+                badge = `<span class="bg-emerald-600 text-white font-bold text-[10px] px-1.5 py-0.5 rounded-full ml-1 shadow-sm">今日 🌟</span>`;
             } else if (isPast) {
                 style = "bg-slate-100/80 text-slate-500";
                 badge = `<span class="bg-slate-200 text-slate-500 font-medium text-[10px] px-1.5 py-0.5 rounded ml-1">已過去 (週${dayName})</span>`;
@@ -1671,8 +1671,8 @@ function renderTimelineMatrix(container) {
                             <input type="number" min="1" max="24" step="0.5" value="${maxDailyHours}" oninput="updateMaxDailyHours(this.value)" onchange="updateMaxDailyHours(this.value)" class="w-16 px-2 py-1 text-xs border border-slate-300 rounded-lg text-slate-800 font-bold bg-white text-center">
                             <span class="text-xs text-slate-500">小時</span>
                         </div>
-                        <button onclick="setTimelineStartToToday()" class="text-xs bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold px-3 py-1 rounded-lg border border-emerald-300 transition-colors">ð 從今天開始</button>
-                        <button onclick="showAllTimelineHistory()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-3 py-1 rounded-lg transition-colors">ð 顯示全部歷史</button>
+                        <button onclick="setTimelineStartToToday()" class="text-xs bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold px-3 py-1 rounded-lg border border-emerald-300 transition-colors">🌟 從今天開始</button>
+                        <button onclick="showAllTimelineHistory()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-3 py-1 rounded-lg transition-colors">📜 顯示全部歷史</button>
                     </div>
                 </div>
             `;
@@ -1719,7 +1719,7 @@ function renderTimelineMatrix(container) {
                 <div ondragover="handleDragOver(event)" ondrop="handleDrop(event, '__unscheduled__')"
                     class="bg-slate-100/90 p-3.5 rounded-xl border-2 border-dashed border-slate-300 space-y-2">
                     <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-slate-800">ð 待排定/未指定日期的目標與步驟 (${undatedGoals.length + undatedSteps.length})</span>
+                        <span class="text-xs font-bold text-slate-800">📌 待排定/未指定日期的目標與步驟 (${undatedGoals.length + undatedSteps.length})</span>
                         <span class="text-[11px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded font-bold">💡 提示：拖拉至下方日期即可完成排程</span>
                     </div>
                     <div class="flex flex-wrap gap-2 pt-1">
@@ -1731,7 +1731,7 @@ function renderTimelineMatrix(container) {
                     unscheduledHtml += `<div draggable="true" ondragstart="handleDragStart(event, 'goal', ${g.id}, null)" ondblclick="jumpToGoalEdit(${g.id})" class="p-2 bg-amber-100 border border-amber-300 rounded-lg text-amber-950 text-xs font-bold shadow-sm cursor-grab">🎯 [${g.category}] ${g.goal || g.text}</div>`;
                 });
                 undatedSteps.forEach(item => {
-                    unscheduledHtml += `<div draggable="true" ondragstart="handleDragStart(event, 'step', ${item.thought.id}, ${item.step.id})" ondblclick="jumpToStepEdit(${item.thought.id}, ${item.step.id})" class="p-2 bg-white border border-slate-300 rounded-lg text-slate-800 text-xs font-bold shadow-sm cursor-grab">ð [${item.thought.category}] ${item.step.text}</div>`;
+                    unscheduledHtml += `<div draggable="true" ondragstart="handleDragStart(event, 'step', ${item.thought.id}, ${item.step.id})" ondblclick="jumpToStepEdit(${item.thought.id}, ${item.step.id})" class="p-2 bg-white border border-slate-300 rounded-lg text-slate-800 text-xs font-bold shadow-sm cursor-grab">📋 [${item.thought.category}] ${item.step.text}</div>`;
                 });
             }
             unscheduledHtml += `</div></div>`;
@@ -1746,7 +1746,7 @@ function renderTimelineMatrix(container) {
                         </h2>
                         <div class="flex items-center gap-1 bg-slate-200/80 p-1 rounded-xl">
                             <button onclick="toggleTimelineXMode('collapsed')" class="px-3 py-1 text-xs font-bold rounded-lg transition-all ${timelineXMode === 'collapsed' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}">
-                                ð 每日事項合起模式
+                                📋 每日事項合起模式
                             </button>
                             <button onclick="toggleTimelineXMode('expanded')" class="px-3 py-1 text-xs font-bold rounded-lg transition-all ${timelineXMode === 'expanded' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}">
                                 ↔️ 領域展開模式
@@ -1763,7 +1763,7 @@ function renderTimelineMatrix(container) {
                     </div>
                 </div>
                 <div ondragover="handleDragOver(event)" ondrop="handleDrop(event, '__prompt_new_date__')" class="p-2.5 border-2 border-dashed border-indigo-300 bg-indigo-50/50 rounded-xl text-center text-xs text-indigo-700 font-bold hover:bg-indigo-100/50 cursor-pointer">
-                    ð 拖曳卡片至此處放開 ➔ 快速點選月曆指定全新日期與時段
+                    📍 拖曳卡片至此處放開 ➔ 快速點選月曆指定全新日期與時段
                 </div>
 
                 <div id="timelineTableContainer" class="max-h-[70vh] overflow-y-auto overflow-x-auto rounded-xl border border-slate-200 w-full scroll-smooth">
@@ -1773,14 +1773,14 @@ function renderTimelineMatrix(container) {
                                 <th class="p-3.5 text-left border border-indigo-200 w-36 bg-indigo-100 shrink-0">📅 日期時間</th>
                                 ${timelineXMode === 'expanded'
                                     ? categoriesList.map(c => `<th class="p-3.5 text-left border border-indigo-200 bg-indigo-100 text-indigo-950 min-w-[160px] font-bold text-sm">${c}</th>`).join('')
-                                    : `<th class="p-3.5 text-left border border-indigo-200 bg-indigo-100 text-indigo-950 font-bold text-sm">ð 當日預定要做的事項 (按領域合起)</th>`
+                                    : `<th class="p-3.5 text-left border border-indigo-200 bg-indigo-100 text-indigo-950 font-bold text-sm">📋 當日預定要做的事項 (按領域合起)</th>`
                                 }
                             </tr>
                         </thead>
                         <tbody>
             `;
             if (sortedDates.length === 0) {
-                html += `<tr><td colspan="${timelineXMode === 'expanded' ? categoriesList.length + 1 : 2}" class="text-center py-8 text-slate-400 text-xs">起始日期以內尚無任何目標排程。點擊「ð 顯示全部歷史」可查閱過往記錄。</td></tr>`;
+                html += `<tr><td colspan="${timelineXMode === 'expanded' ? categoriesList.length + 1 : 2}" class="text-center py-8 text-slate-400 text-xs">起始日期以內尚無任何目標排程。點擊「📜 顯示全部歷史」可查閱過往記錄。</td></tr>`;
             }
             sortedDates.forEach(date => {
 
@@ -1973,7 +1973,7 @@ function renderOverview(container) {
                     </h2>
                     <div class="flex items-center gap-1.5 bg-slate-200/80 p-1 rounded-xl">
                         <button onclick="toggleOverviewSubMode('grid')" class="px-3 py-1 text-xs font-bold rounded-lg transition-all ${overviewSubMode === 'grid' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}">
-                            ð± 網格全覽 (不需左右滾動)
+                            📱 網格全覽 (不需左右滾動)
                         </button>
                         <button onclick="toggleOverviewSubMode('matrix')" class="px-3 py-1 text-xs font-bold rounded-lg transition-all ${overviewSubMode === 'matrix' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}">
                             ↔️ 橫向對照矩陣
@@ -2248,8 +2248,8 @@ function renderCards(container) {
                                             🌱 轉目標
                                         </button>
                                     `}
-                                    <button onclick="duplicateStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors">ð 複製</button>
-                                    <button onclick="deleteStep(${thought.id}, ${s.id})" class="text-slate-400 hover:text-red-500 px-1 py-1">ð️ 刪除</button>
+                                    <button onclick="duplicateStep(${thought.id}, ${s.id})" class="bg-slate-200/80 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-md font-medium transition-colors">📋 複製</button>
+                                    <button onclick="deleteStep(${thought.id}, ${s.id})" class="text-slate-400 hover:text-red-500 px-1 py-1">🗑️ 刪除</button>
                                 </div>
                             </li>
                         `;
@@ -2346,7 +2346,7 @@ function renderCards(container) {
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-1.5 sm:gap-2 shrink-0 self-end sm:self-start pt-0.5 flex-wrap">
-                                    <button onclick="duplicateThought(${thought.id})" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1 rounded-md font-medium border border-slate-200">ð 複製</button>
+                                    <button onclick="duplicateThought(${thought.id})" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1 rounded-md font-medium border border-slate-200">📋 複製</button>
                                     <button onclick="startEdit(${thought.id})" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1 rounded-md font-medium border border-slate-200">✏️ 編輯卡片</button>
                                     <button onclick="deleteThought(${thought.id})" class="text-xs text-slate-400 hover:text-red-500 px-1 py-1">刪除</button>
                                 </div>
@@ -2363,7 +2363,7 @@ function renderCards(container) {
                             </div>
                         </div>
                         <div class="p-4">
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">ð 行動拆解步驟與時程</h3>
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">📋 行動拆解步驟與時程</h3>
                             <ul class="space-y-2 mb-4">${stepsHtml || '<li class="text-xs text-slate-400 italic">尚未新增拆解步驟...</li>'}</ul>
                             <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/80">
                                 <div class="flex flex-col gap-2">
