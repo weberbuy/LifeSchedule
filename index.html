@@ -18,7 +18,7 @@
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.3.7-test (步驟重複循環與自動順延下一次完整版)</span>
+                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.3.8-test (拆解目標刪除後原步驟恢復可轉目標完整版)</span>
                 </div>
                 <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 雙擊目標/步驟精密區分跳轉編輯</p>
             </div>
@@ -920,27 +920,31 @@ function updateContainerWidth() {
         function syncLinkedData() {
             thoughts.forEach(t => {
                 if (t.parentStepInfo) {
-
                     const parentThought = thoughts.find(x => x.id === t.parentStepInfo.parentThoughtId);
                     if (parentThought && Array.isArray(parentThought.steps)) {
-
                         const parentStep = parentThought.steps.find(s => s.id === t.parentStepInfo.parentStepId);
                         if (parentStep) {
                             if (t.goalDone !== parentStep.done) parentStep.done = t.goalDone;
                             if (t.targetDate !== '未指定日期' && t.targetDate !== parentStep.stepDate) parentStep.stepDate = (t.targetDate !== '未指定日期') ? t.targetDate : '';
                             if (t.targetTimeSlot && t.targetTimeSlot !== parentStep.stepTimeSlot) parentStep.stepTimeSlot = t.targetTimeSlot;
+                        } else {
+                            t.parentStepInfo = null;
                         }
+                    } else {
+                        t.parentStepInfo = null;
                     }
                 }
                 if (Array.isArray(t.steps)) {
                     t.steps.forEach(s => {
                         if (s.linkedThoughtId) {
-
                             const childThought = thoughts.find(x => x.id === s.linkedThoughtId);
                             if (childThought) {
                                 if (s.done !== childThought.goalDone) childThought.goalDone = s.done;
                                 if (s.stepDate && s.stepDate !== childThought.targetDate) childThought.targetDate = s.stepDate;
                                 if (s.stepTimeSlot && s.stepTimeSlot !== childThought.targetTimeSlot) childThought.targetTimeSlot = s.stepTimeSlot;
+                            } else {
+                                // 連結的拆解目標已被刪除或不存在，自動解除連結以允許重新轉為目標
+                                s.linkedThoughtId = null;
                             }
                         }
                     });
@@ -949,13 +953,15 @@ function updateContainerWidth() {
         }
 
         function promoteStepToGoal(thoughtId, stepId) {
-
             const parentThought = thoughts.find(x => x.id === thoughtId);
             if (!parentThought) return;
 
             const step = parentThought.steps.find(s => s.id === stepId);
             if (!step) return;
-            if (step.linkedThoughtId) return alert("此步驟已經另存為獨立目標囉！");
+            // 嚴格檢查：只有當連結的目標實質存在於 thoughts 中時才阻擋
+            if (step.linkedThoughtId && thoughts.some(x => x.id === step.linkedThoughtId)) {
+                return alert("此步驟已經另存為獨立目標囉！");
+            }
 
             const newThoughtId = Date.now();
             const newGoalThought = {
@@ -1339,6 +1345,27 @@ function updateContainerWidth() {
 
         function deleteThought(id) {
             if (confirm("確定刪除這項思緒？")) {
+                const deletedThought = thoughts.find(t => t.id === id);
+                // 若刪除的目標是來自母步驟的拆解目標，同步解除母步驟的連結標記
+                if (deletedThought && deletedThought.parentStepInfo) {
+                    const parentThought = thoughts.find(x => x.id === deletedThought.parentStepInfo.parentThoughtId);
+                    if (parentThought && Array.isArray(parentThought.steps)) {
+                        const parentStep = parentThought.steps.find(s => s.id === deletedThought.parentStepInfo.parentStepId);
+                        if (parentStep) {
+                            parentStep.linkedThoughtId = null;
+                        }
+                    }
+                }
+                // 若其他目標底下的步驟有連結至此目標，一併重設其 linkedThoughtId
+                thoughts.forEach(t => {
+                    if (Array.isArray(t.steps)) {
+                        t.steps.forEach(s => {
+                            if (s.linkedThoughtId === id) {
+                                s.linkedThoughtId = null;
+                            }
+                        });
+                    }
+                });
                 thoughts = thoughts.filter(t => t.id !== id);
                 if (editingId === id) editingId = null;
                 saveData();
@@ -1411,13 +1438,18 @@ function updateContainerWidth() {
         }
 
         function duplicateStep(thoughtId, stepId) {
-
             const t = thoughts.find(x => x.id === thoughtId);
             if (!t) return;
-
             const s = t.steps.find(x => x.id === stepId);
             if (!s) return;
-            t.steps.push({ id: Date.now(), text: s.text, stepDate: s.stepDate || '', stepTime: s.stepTime || '', stepTimeSlot: s.stepTimeSlot || '全天', done: false });
+            t.steps.push({
+                ...s,
+                id: Date.now(),
+                text: `${s.text} (副本)`,
+                recurrence: s.recurrence || 'none',
+                linkedThoughtId: null,
+                done: false
+            });
             saveData();
         }
 
@@ -1447,9 +1479,18 @@ function updateContainerWidth() {
         }
 
         function deleteStep(thoughtId, stepId) {
-
             const t = thoughts.find(x => x.id === thoughtId);
-            if (t) { t.steps = t.steps.filter(x => x.id !== stepId); saveData(); }
+            if (t) {
+                const s = (t.steps || []).find(x => x.id === stepId);
+                if (s && s.linkedThoughtId) {
+                    const childThought = thoughts.find(x => x.id === s.linkedThoughtId);
+                    if (childThought && childThought.parentStepInfo) {
+                        childThought.parentStepInfo = null;
+                    }
+                }
+                t.steps = t.steps.filter(x => x.id !== stepId);
+                saveData();
+            }
         }
 
         function startEditStep(thoughtId, stepId) { editingStepIdKey = `${thoughtId}-${stepId}`; render(); }
