@@ -61,7 +61,7 @@
               Weber Workspace
             </h1>
             <span class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-              v1.0.1-test
+              v1.0.2-test
             </span>
           </div>
           <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2">
@@ -159,7 +159,7 @@
 
     <!-- 頁尾資訊 -->
     <footer class="mt-12 text-center text-xs text-slate-400 dark:text-slate-600">
-      <p>Weber Personal Workspace · <span class="font-mono">homepage-1.0.1-test</span></p>
+      <p>Weber Personal Workspace · <span class="font-mono">homepage-1.0.2-test</span></p>
     </footer>
   </div>
 
@@ -652,7 +652,7 @@
     // 匯出 / 匯入設定
     function exportConfig() {
       const data = {
-        version: '1.0.1',
+        version: '1.0.2',
         exportedAt: new Date().toISOString(),
         apps: currentApps,
         scratchpad: localStorage.getItem('weber_scratchpad') || '',
@@ -667,7 +667,6 @@
       a.click();
       URL.revokeObjectURL(url);
     }
-
     function importConfig(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -680,7 +679,6 @@
             currentApps = imported.apps;
             saveAppsToStorage();
             renderApps();
-          }
           }
           if (imported.scratchpad !== undefined) {
             localStorage.setItem('weber_scratchpad', imported.scratchpad);
@@ -698,6 +696,7 @@
       };
       reader.readAsText(file);
     }
+
   </script>
 </body>
 </html>
