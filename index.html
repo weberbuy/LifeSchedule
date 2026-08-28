@@ -61,7 +61,7 @@
               Weber Workspace
             </h1>
             <span class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-              v1.0.0-test
+              v1.0.1-test
             </span>
           </div>
           <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2">
@@ -159,7 +159,7 @@
 
     <!-- 頁尾資訊 -->
     <footer class="mt-12 text-center text-xs text-slate-400 dark:text-slate-600">
-      <p>Weber Personal Workspace · <span class="font-mono">homepage-1.0.0-test</span></p>
+      <p>Weber Personal Workspace · <span class="font-mono">homepage-1.0.1-test</span></p>
     </footer>
   </div>
 
@@ -435,7 +435,7 @@
         const theme = getColorClasses(app.color || 'indigo');
         const finalUrl = (app.url.startsWith('http://') || app.url.startsWith('https://')) 
           ? app.url 
-          : (basePath ? `${basePath.replace(/\\/$/, '')}/${app.url}` : app.url);
+          : (basePath ? `${basePath.replace(/\/+$/, '')}/${app.url}` : app.url);
 
         const isFaIcon = app.icon.startsWith('fa-');
         const iconHtml = isFaIcon 
@@ -652,7 +652,7 @@
     // 匯出 / 匯入設定
     function exportConfig() {
       const data = {
-        version: '1.0.0',
+        version: '1.0.1',
         exportedAt: new Date().toISOString(),
         apps: currentApps,
         scratchpad: localStorage.getItem('weber_scratchpad') || '',
@@ -663,24 +663,26 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `weber-workspace-config-${new Date().toISOString().slice(0,10)}.json`;
+      a.download = `weber_workspace_config_${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
     }
 
-    function importConfig(event) {
-      const file = event.target.files[0];
+    function importConfig(e) {
+      const file = e.target.files[0];
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = (event) => {
         try {
-          const imported = JSON.parse(e.target.result);
+          const imported = JSON.parse(event.target.result);
           if (imported.apps && Array.isArray(imported.apps)) {
             currentApps = imported.apps;
             saveAppsToStorage();
+            renderApps();
           }
-          if (imported.scratchpad) {
+          }
+          if (imported.scratchpad !== undefined) {
             localStorage.setItem('weber_scratchpad', imported.scratchpad);
             loadScratchpad();
           }
@@ -689,7 +691,7 @@
 
           loadServerSettings();
           renderApps();
-          alert('設定已成功匯入！');
+          alert('設定匯入成功！');
         } catch (err) {
           alert('匯入失敗：JSON 格式無效');
         }
