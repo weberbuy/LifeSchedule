@@ -18,7 +18,7 @@
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.4.0-test (新增步驟預設收合與點擊展開完整版)</span>
+                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.5.0-test (新增週末循環與完成當日保留工時自動建立下期完整版)</span>
                 </div>
                 <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 雙擊目標/步驟精密區分跳轉編輯</p>
             </div>
@@ -283,6 +283,7 @@ function toggleHideCompletedGoalsCards() {
 function getRecurrenceLabel(recurrence) {
     if (recurrence === 'daily') return '每日循環';
     if (recurrence === 'weekdays') return '工作日(一~五)';
+    if (recurrence === 'weekends') return '週末循環(六、日)';
     if (recurrence === 'weekly') return '每週循環';
     if (recurrence === 'monthly') return '每月循環';
     return '';
@@ -299,6 +300,10 @@ function getNextRecurrenceDate(baseDateStr, recurrence) {
         do {
             d.setDate(d.getDate() + 1);
         } while (d.getDay() === 0 || d.getDay() === 6);
+    } else if (recurrence === 'weekends') {
+        do {
+            d.setDate(d.getDate() + 1);
+        } while (d.getDay() !== 0 && d.getDay() !== 6);
     } else if (recurrence === 'weekly') {
         d.setDate(d.getDate() + 7);
     } else if (recurrence === 'monthly') {
@@ -1473,19 +1478,32 @@ function updateContainerWidth() {
             const s = (t.steps || []).find(x => x.id === stepId);
             if (!s) return;
 
-            // 方案一：步驟重複循環與自動順延下一次
-            if (!s.done && s.recurrence && s.recurrence !== 'none') {
+            if (!s.done) {
+                s.done = true;
+                if (s.recurrence && s.recurrence !== 'none') {
+                    const oldDate = s.stepDate || todayStr;
+                    const nextDate = getNextRecurrenceDate(oldDate, s.recurrence);
+                    const recLabel = getRecurrenceLabel(s.recurrence);
 
-                const nextDate = getNextRecurrenceDate(s.stepDate || todayStr, s.recurrence);
-                const oldDate = s.stepDate || '今天';
-                s.stepDate = nextDate;
-                s.done = false; // 保持為未完成狀態，等待下一個週期
+                    const alreadyHasNext = t.steps.some(x => x.text === s.text && x.stepDate === nextDate && !x.done);
+                    if (!alreadyHasNext) {
+                        t.steps.push({
+                            id: Date.now(),
+                            text: s.text,
+                            stepDate: nextDate,
+                            stepTime: s.stepTime,
+                            stepTimeSlot: s.stepTimeSlot,
+                            recurrence: s.recurrence,
+                            done: false
+                        });
+                    }
+                    saveData();
+                    alert(`🎉 步驟「${s.text}」已完成本次 (${oldDate})！\n\n✅ 本次完成紀錄與工時已如實保留。\n🔄 [${recLabel}] 已自動為您建立下一次待辦步驟：${nextDate}`);
+                    return;
+                }
                 saveData();
-
-                const recLabel = getRecurrenceLabel(s.recurrence);
-                alert(`🎉 步驟「${s.text}」已完成本次 (${oldDate})！\n\n🔄 [${recLabel}] 已自動為您順延排程至下一次：${nextDate}`);
             } else {
-                s.done = !s.done;
+                s.done = false;
                 saveData();
             }
         }
@@ -2269,6 +2287,7 @@ function renderCards(container) {
                                             <option value="none" ${(s.recurrence || 'none') === 'none' ? 'selected' : ''}>單次任務 (不重複)</option>
                                             <option value="daily" ${s.recurrence === 'daily' ? 'selected' : ''}>🔄 每日循環</option>
                                             <option value="weekdays" ${s.recurrence === 'weekdays' ? 'selected' : ''}>🔄 工作日 (週一~五)</option>
+                                            <option value="weekends" ${s.recurrence === 'weekends' ? 'selected' : ''}>🔄 週末循環 (週六、日)</option>
                                             <option value="weekly" ${s.recurrence === 'weekly' ? 'selected' : ''}>🔄 每週循環</option>
                                             <option value="monthly" ${s.recurrence === 'monthly' ? 'selected' : ''}>🔄 每月循環</option>
                                         </select>
@@ -2447,6 +2466,7 @@ function renderCards(container) {
                                                     <option value="none">單次任務 (不重複)</option>
                                                     <option value="daily">🔄 每日循環</option>
                                                     <option value="weekdays">🔄 工作日 (週一~五)</option>
+                                                    <option value="weekends">🔄 週末循環 (週六、日)</option>
                                                     <option value="weekly">🔄 每週循環</option>
                                                     <option value="monthly">🔄 每月循環</option>
                                                 </select>
