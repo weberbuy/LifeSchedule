@@ -19,117 +19,236 @@
         })();
     </script>
     <style>
-        /* 深色模式全域基礎適配 */
+        /* ============================================================
+           深色/夜間模式 (Dark Mode) 高對比舒適閱讀調色盤
+           針對背景深淺層次、文字清晰度、標籤徽章與表單全面優化
+           ============================================================ */
+
+        /* 1. 頁面底色與全局文字 (柔和深藍黑，舒適不刺眼) */
         html.dark body {
-            background-color: #0b0f19 !important;
-            color: #f1f5f9 !important;
+            background-color: #0f172a !important; /* slate-900 */
+            color: #e2e8f0 !important; /* slate-200 */
         }
 
-        /* 卡片與容器深色模式適配 */
+        /* 2. 主卡片與核心容器 (slate-800 凸顯層次) */
         html.dark .bg-white {
-            background-color: #1e293b !important;
-            color: #f8fafc !important;
+            background-color: #1e293b !important; /* slate-800 */
+            color: #f8fafc !important; /* slate-50 */
+            border-color: #334155 !important; /* slate-700 */
         }
 
+        /* 3. 次級區塊與底層面板 */
         html.dark .bg-slate-50 {
-            background-color: #0f172a !important;
+            background-color: #0b1120 !important; /* 更深一層 slate-950 */
+            border-color: #334155 !important;
         }
 
         html.dark .bg-slate-100,
         html.dark .bg-slate-100\/80,
         html.dark .bg-slate-100\/90 {
-            background-color: #334155 !important;
-            color: #f1f5f9 !important;
+            background-color: #334155 !important; /* slate-700 */
+            color: #f8fafc !important;
+            border-color: #475569 !important; /* slate-600 */
         }
 
         html.dark .bg-slate-200 {
-            background-color: #475569 !important;
-            color: #f1f5f9 !important;
+            background-color: #475569 !important; /* slate-600 */
+            color: #f8fafc !important;
+            border-color: #64748b !important;
         }
 
-        /* 邊框線深色適配 */
+        /* 4. 文字色彩深色對比全面翻轉優化 (解決暗色字在深底無法辨識問題) */
+        html.dark .text-slate-900,
+        html.dark .text-slate-800 {
+            color: #f8fafc !important; /* 純白最高對比 */
+        }
+
+        html.dark .text-slate-700 {
+            color: #e2e8f0 !important; /* 明亮清晰字 */
+        }
+
+        html.dark .text-slate-600 {
+            color: #cbd5e1 !important; /* 次要文字 (slate-300) */
+        }
+
+        html.dark .text-slate-500 {
+            color: #94a3b8 !important; /* 輔助說明字 (slate-400) */
+        }
+
+        html.dark .text-slate-400 {
+            color: #94a3b8 !important;
+        }
+
+        /* 5. 專案分類與彩色標籤之文字高對比度適配 */
+        /* 💼 靛藍色系 (事業 / 預估工時 / 重點標籤) */
+        html.dark .text-indigo-950,
+        html.dark .text-indigo-900,
+        html.dark .text-indigo-800,
+        html.dark .text-indigo-700,
+        html.dark .text-indigo-600 {
+            color: #a5b4fc !important; /* indigo-300 明亮好讀 */
+        }
+
+        /* 🏃 翡翠綠色系 (體能訓練 / 完成 / 同步正常) */
+        html.dark .text-emerald-900,
+        html.dark .text-emerald-800,
+        html.dark .text-emerald-700,
+        html.dark .text-emerald-600 {
+            color: #6ee7b7 !important; /* emerald-300 明亮翠綠 */
+        }
+
+        /* 📚 琥珀金色系 (學習成長) */
+        html.dark .text-amber-950,
+        html.dark .text-amber-900,
+        html.dark .text-amber-800,
+        html.dark .text-amber-700,
+        html.dark .text-amber-600 {
+            color: #fcd34d !important; /* amber-300 明亮金黃 */
+        }
+
+        /* 👨‍👩‍👧 玫瑰紅色系 (家庭生活 / 警示 / 不排事) */
+        html.dark .text-rose-900,
+        html.dark .text-rose-800,
+        html.dark .text-rose-700 {
+            color: #fda4af !important; /* rose-300 明亮柔粉 */
+        }
+
+        /* 💰 青綠色系 (財務投資 / 循環頻率徽章) */
+        html.dark .text-teal-900,
+        html.dark .text-teal-800,
+        html.dark .text-teal-700 {
+            color: #5eead4 !important; /* teal-300 明亮青綠 */
+        }
+
+        /* 藍色系 (連結與時鐘) */
+        html.dark .text-blue-900,
+        html.dark .text-blue-800,
+        html.dark .text-blue-700 {
+            color: #93c5fd !important; /* blue-300 */
+        }
+
+        /* 6. 彩色標籤背景與邊框 (半透明暗色背景 + 柔和邊框) */
+        html.dark .bg-indigo-50,
+        html.dark .bg-indigo-100 {
+            background-color: rgba(49, 46, 129, 0.45) !important; /* indigo-950/45 */
+            border-color: #4338ca !important;
+        }
+
+        html.dark .bg-emerald-50,
+        html.dark .bg-emerald-50\/70,
+        html.dark .bg-emerald-100,
+        html.dark .bg-emerald-200 {
+            background-color: rgba(6, 78, 59, 0.45) !important; /* emerald-950/45 */
+            border-color: #065f46 !important;
+        }
+
+        html.dark .bg-teal-50 {
+            background-color: rgba(19, 78, 74, 0.45) !important; /* teal-950/45 */
+            border-color: #115e59 !important;
+        }
+
+        html.dark .bg-rose-50,
+        html.dark .bg-rose-50\/80,
+        html.dark .bg-rose-100 {
+            background-color: rgba(136, 19, 55, 0.4) !important; /* rose-950/40 */
+            border-color: #9f1239 !important;
+        }
+
+        html.dark .bg-amber-50,
+        html.dark .bg-amber-100 {
+            background-color: rgba(120, 53, 15, 0.4) !important; /* amber-950/40 */
+            border-color: #92400e !important;
+        }
+
+        html.dark .bg-blue-50,
+        html.dark .bg-blue-100 {
+            background-color: rgba(30, 58, 138, 0.4) !important;
+            border-color: #1d4ed8 !important;
+        }
+
+        /* 7. 表單輸入框、下拉選單與文字區域 (深色底 + 清楚邊框 + 純白文字) */
+        html.dark input,
+        html.dark select,
+        html.dark textarea {
+            background-color: #0f172a !important; /* slate-900 */
+            border-color: #475569 !important; /* slate-600 */
+            color: #f8fafc !important; /* slate-50 */
+        }
+
+        html.dark select option {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+        }
+
+        html.dark input::placeholder,
+        html.dark textarea::placeholder {
+            color: #64748b !important; /* slate-500 */
+        }
+
+        /* 8. 邊框線調和 (防止突兀白色或過黑) */
         html.dark .border-slate-100,
         html.dark .border-slate-200,
         html.dark .border-slate-300 {
             border-color: #334155 !important;
         }
 
-        /* 文字色彩深色適配 */
-        html.dark .text-slate-900,
-        html.dark .text-slate-800 {
-            color: #f8fafc !important;
-        }
-
-        html.dark .text-slate-700 {
-            color: #e2e8f0 !important;
-        }
-
-        html.dark .text-slate-600,
-        html.dark .text-slate-500 {
-            color: #94a3b8 !important;
-        }
-
-        /* 輸入框、下拉選單與文字區域 */
-        html.dark input,
-        html.dark select,
-        html.dark textarea {
-            background-color: #1e293b !important;
-            border-color: #475569 !important;
-            color: #f8fafc !important;
-        }
-
-        html.dark input::placeholder,
-        html.dark textarea::placeholder {
-            color: #64748b !important;
-        }
-
-        /* 彈出視窗容器 */
+        /* 9. 彈出設定視窗與浮動遮罩 */
         html.dark #piSettingsModal > div,
         html.dark #datePickerModal > div {
             background-color: #1e293b !important;
             color: #f8fafc !important;
             border-color: #334155 !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7) !important;
         }
 
-        /* 標籤徽章適配 */
-        html.dark .bg-indigo-50 {
-            background-color: #1e1b4b !important;
-            color: #c7d2fe !important;
+        /* 10. 時間軸模式矩陣與拖曳放置區 */
+        html.dark .border-indigo-100,
+        html.dark .border-indigo-200,
+        html.dark .border-indigo-300 {
+            border-color: #3730a3 !important;
         }
 
-        html.dark .bg-emerald-50,
-        html.dark .bg-emerald-50\/70 {
-            background-color: #064e3b !important;
-            color: #a7f3d0 !important;
+        html.dark .border-emerald-100,
+        html.dark .border-emerald-200,
+        html.dark .border-emerald-300 {
+            border-color: #065f46 !important;
         }
 
-        html.dark .bg-teal-50 {
+        html.dark .border-rose-200,
+        html.dark .border-rose-300 {
+            border-color: #881337 !important;
+        }
+
+        html.dark .border-amber-100,
+        html.dark .border-amber-200,
+        html.dark .border-amber-300 {
+            border-color: #78350f !important;
+        }
+
+        html.dark .border-teal-200 {
+            border-color: #134e4a !important;
+        }
+
+        /* 11. 懸停 Hover 狀態自然過渡 */
+        html.dark .hover\:bg-slate-100:hover,
+        html.dark .hover\:bg-slate-200:hover {
+            background-color: #475569 !important;
+        }
+
+        html.dark .hover\:bg-indigo-100:hover {
+            background-color: #3730a3 !important;
+        }
+
+        html.dark .hover\:bg-emerald-100:hover,
+        html.dark .hover\:bg-emerald-200:hover {
+            background-color: #065f46 !important;
+        }
+
+        html.dark .hover\:bg-teal-100:hover {
             background-color: #134e4a !important;
-            color: #99f6e4 !important;
         }
 
-        html.dark .bg-rose-50,
-        html.dark .bg-rose-50\/80 {
-            background-color: #4c0519 !important;
-            color: #fecdd3 !important;
-        }
-
-        html.dark .bg-amber-50 {
-            background-color: #451a03 !important;
-            color: #fde68a !important;
-        }
-
-        html.dark .bg-purple-50 {
-            background-color: #3b0764 !important;
-            color: #e9d5ff !important;
-        }
-
-        html.dark .bg-sky-50 {
-            background-color: #082f49 !important;
-            color: #bae6fd !important;
-        }
-
-        /* 轉場平滑效果 */
+        /* 平滑主題轉場 */
         body, header, div, input, button, select, textarea {
             transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
         }
@@ -147,7 +266,7 @@
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.7.0-test (如首頁整合日間與夜間模式切換完整版)</span>
+                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.7.1-test (全面優化夜間模式文字對比與色彩適配完整版)</span>
                 </div>
                 <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 雙擊目標/步驟精密區分跳轉編輯</p>
             </div>
