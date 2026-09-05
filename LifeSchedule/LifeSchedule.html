@@ -5,6 +5,135 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>思緒拆解與時間軸目標規劃</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        };
+        // 預載深淺色主題防止頁面載入閃爍 (FOUC)
+        (function() {
+            const saved = localStorage.getItem('weber_theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (saved === 'dark' || (!saved && prefersDark)) {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
+    <style>
+        /* 深色模式全域基礎適配 */
+        html.dark body {
+            background-color: #0b0f19 !important;
+            color: #f1f5f9 !important;
+        }
+
+        /* 卡片與容器深色模式適配 */
+        html.dark .bg-white {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+        }
+
+        html.dark .bg-slate-50 {
+            background-color: #0f172a !important;
+        }
+
+        html.dark .bg-slate-100,
+        html.dark .bg-slate-100\/80,
+        html.dark .bg-slate-100\/90 {
+            background-color: #334155 !important;
+            color: #f1f5f9 !important;
+        }
+
+        html.dark .bg-slate-200 {
+            background-color: #475569 !important;
+            color: #f1f5f9 !important;
+        }
+
+        /* 邊框線深色適配 */
+        html.dark .border-slate-100,
+        html.dark .border-slate-200,
+        html.dark .border-slate-300 {
+            border-color: #334155 !important;
+        }
+
+        /* 文字色彩深色適配 */
+        html.dark .text-slate-900,
+        html.dark .text-slate-800 {
+            color: #f8fafc !important;
+        }
+
+        html.dark .text-slate-700 {
+            color: #e2e8f0 !important;
+        }
+
+        html.dark .text-slate-600,
+        html.dark .text-slate-500 {
+            color: #94a3b8 !important;
+        }
+
+        /* 輸入框、下拉選單與文字區域 */
+        html.dark input,
+        html.dark select,
+        html.dark textarea {
+            background-color: #1e293b !important;
+            border-color: #475569 !important;
+            color: #f8fafc !important;
+        }
+
+        html.dark input::placeholder,
+        html.dark textarea::placeholder {
+            color: #64748b !important;
+        }
+
+        /* 彈出視窗容器 */
+        html.dark #piSettingsModal > div,
+        html.dark #datePickerModal > div {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+            border-color: #334155 !important;
+        }
+
+        /* 標籤徽章適配 */
+        html.dark .bg-indigo-50 {
+            background-color: #1e1b4b !important;
+            color: #c7d2fe !important;
+        }
+
+        html.dark .bg-emerald-50,
+        html.dark .bg-emerald-50\/70 {
+            background-color: #064e3b !important;
+            color: #a7f3d0 !important;
+        }
+
+        html.dark .bg-teal-50 {
+            background-color: #134e4a !important;
+            color: #99f6e4 !important;
+        }
+
+        html.dark .bg-rose-50,
+        html.dark .bg-rose-50\/80 {
+            background-color: #4c0519 !important;
+            color: #fecdd3 !important;
+        }
+
+        html.dark .bg-amber-50 {
+            background-color: #451a03 !important;
+            color: #fde68a !important;
+        }
+
+        html.dark .bg-purple-50 {
+            background-color: #3b0764 !important;
+            color: #e9d5ff !important;
+        }
+
+        html.dark .bg-sky-50 {
+            background-color: #082f49 !important;
+            color: #bae6fd !important;
+        }
+
+        /* 轉場平滑效果 */
+        body, header, div, input, button, select, textarea {
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+    </style>
 </head>
 <body class="bg-slate-50 min-h-screen py-6 px-4 text-slate-800">
 
@@ -18,12 +147,16 @@
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🧠 思緒卡片與目標拆解</h1>
-                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.6.0-test (資料管理與同步設定整合收納彈窗完整版)</span>
+                    <span class="text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs">v4.7.0-test (如首頁整合日間與夜間模式切換完整版)</span>
                 </div>
                 <p class="text-xs text-slate-500 mt-1">100% 本地儲存 · 雙擊目標/步驟精密區分跳轉編輯</p>
             </div>
             <div class="flex items-center gap-2 flex-wrap justify-end">
                 <div id="piSyncStatusBadge" onclick="handlePiBadgeClick()" class="text-xs px-2.5 py-1.5 rounded-xl font-bold flex items-center gap-1 bg-slate-100 text-slate-600 border border-slate-200 cursor-pointer hover:opacity-80 transition-all" title="點擊檢查樹莓派同步狀態或開啟設定">⚪ 未設定伺服器 (點擊設定)</div>
+                <button onclick="toggleDarkMode()" id="themeToggleBtn" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl border border-slate-300 font-bold transition-all flex items-center gap-1.5 shadow-2xs hover:shadow-xs cursor-pointer" title="切換日間/夜間模式">
+                    <span id="themeIcon">🌙</span>
+                    <span id="themeText">夜間模式</span>
+                </button>
                 <button onclick="openSettingsModal()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl border border-slate-300 font-bold transition-all flex items-center gap-1.5 shadow-2xs hover:shadow-xs" title="手動開啟備份、匯入、同步與伺服器設定">
                     <span>⚙️</span>
                     <span>設定 / 資料管理</span>
@@ -462,6 +595,36 @@ function updatePiSyncBadge(statusText, badgeClass) {
         badge.className = `text-xs px-2.5 py-1.5 rounded-xl font-bold flex items-center gap-1 border cursor-pointer hover:opacity-80 transition-all ${badgeClass}`;
     }
 }
+
+        // 日間/夜間模式切換功能 (與首頁 weber_theme 完全同步)
+        function toggleDarkMode() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('weber_theme', isDark ? 'dark' : 'light');
+            updateThemeUI(isDark);
+        }
+
+        function initTheme() {
+            const saved = localStorage.getItem('weber_theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const isDark = saved === 'dark' || (!saved && prefersDark);
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+            updateThemeUI(isDark);
+        }
+
+        function updateThemeUI(isDark) {
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+            if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+            if (text) text.textContent = isDark ? '日間模式' : '夜間模式';
+            const btn = document.getElementById('themeToggleBtn');
+            if (btn) {
+                btn.title = isDark ? '切換為日間模式' : '切換為夜間模式';
+            }
+        }
 
 function openSettingsModal() {
     openPiSettingsModal();
@@ -2650,6 +2813,7 @@ function render() {
     else renderCards(container);
 }
 window.addEventListener('DOMContentLoaded', () => {
+            initTheme();
     render();
     checkAndAutoSyncFromPi();
 });
